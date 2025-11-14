@@ -1,0 +1,13 @@
+[
+  { "code": "TR", "name": "Türkiye" },
+  { "code": "US", "name": "United States" },
+  { "code": "GB", "name": "United Kingdom" },
+  { "code": "DE", "name": "Germany" },
+  { "code": "FR", "name": "France" },
+  { "code": "ES", "name": "Spain" },
+  { "code": "IT", "name": "Italy" },
+  { "code": "RU", "name": "Russia" },
+  { "code": "CN", "name": "China" },
+  { "code": "JP", "name": "Japan" },
+  { "code": "AZ", "name": "Azerbaijan" }
+]
