@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
-import { Building, MapPin, Globe, Clock, Upload, Image, Phone, MessageCircle, BellRing, Ban } from 'lucide-react';
+import { Building, MapPin, Globe, Clock, Upload, Image, Phone, MessageCircle, BellRing, Ban, QrCode, Power, Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import timezones from '@/lib/timezones.json';
 import countries from '@/lib/countries.json';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +17,12 @@ const SettingsPage = () => {
   const [uploading, setUploading] = useState(false);
   const [adminUser, setAdminUser] = useState(null);
   const [currentTime, setCurrentTime] = useState('');
+  
+  // WhatsApp bağlantı durumu için state'ler
+  const [qrCodeLoading, setQrCodeLoading] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState('disconnected'); // 'disconnected', 'qr_pending', 'connected'
+  const [qrCodeData, setQrCodeData] = useState(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -43,6 +49,10 @@ const SettingsPage = () => {
         reminder_hours_before: company.reminder_hours_before || 24,
         cancellation_hours_before: company.cancellation_hours_before || 4,
       });
+      
+      // WhatsApp bağlantı durumunu set et
+      setQrCodeData(company.qr_code || null);
+      updateConnectionStatus(company.status);
     }
     if (user) {
         const fetchAdminUser = async () => {
@@ -61,6 +71,48 @@ const SettingsPage = () => {
         fetchAdminUser();
     }
   }, [company, user]);
+
+  // Bağlantı durumunu güncelle
+  const updateConnectionStatus = (status) => {
+    if (status === 'open' || status === 'connected') {
+      setConnectionStatus('connected');
+    } else if (status === 'qr_pending' || status === 'connecting') {
+      setConnectionStatus('qr_pending');
+    } else {
+      setConnectionStatus('disconnected');
+    }
+  };
+
+  // Supabase'deki değişiklikleri dinle (real-time)
+  useEffect(() => {
+    if (!company) return;
+
+    const channel = supabase
+      .channel('company-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'companies',
+          filter: `id=eq.${company.id}`
+        },
+        (payload) => {
+          const newData = payload.new;
+          if (newData.qr_code !== qrCodeData) {
+            setQrCodeData(newData.qr_code);
+          }
+          if (newData.status) {
+            updateConnectionStatus(newData.status);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [company, qrCodeData]);
 
   useEffect(() => {
     let intervalId;
@@ -132,6 +184,104 @@ const SettingsPage = () => {
     setFormData(prev => ({ ...prev, address: newAddress }));
   };
 
+  // QR Kod al
+  const handleGetQRCode = async () => {
+    if (!company.whatsapp_number) {
+      toast({
+        title: 'Hata',
+        description: 'Önce WhatsApp numaranızı ayarlardan kaydedin.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setQrCodeLoading(true);
+    try {
+      const response = await fetch(import.meta.env.VITE_N8N_GET_QR_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          company_id: company.id,
+          instance_name: company.instance_name || `company_${company.id}`,
+          whatsapp_number: company.whatsapp_number
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: 'Başarılı',
+          description: 'QR kod oluşturuldu. Lütfen telefonunuzla okutun.',
+        });
+        
+        // QR kod ve durum güncellenmesi Supabase real-time ile otomatik gelecek
+        // Ama yine de manuel refresh yapalım
+        await refreshCompany();
+      } else {
+        throw new Error(data.message || 'QR kod alınamadı');
+      }
+    } catch (error) {
+      toast({
+        title: 'Hata',
+        description: error.message || 'QR kod alınırken bir hata oluştu',
+        variant: 'destructive'
+      });
+    } finally {
+      setQrCodeLoading(false);
+    }
+  };
+
+  // Bağlantıyı kes
+  const handleDisconnect = async () => {
+    if (!company.instance_name) {
+      toast({
+        title: 'Hata',
+        description: 'WhatsApp instance bulunamadı.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setDisconnecting(true);
+    try {
+      const response = await fetch(import.meta.env.VITE_N8N_DISCONNECT_INSTANCE_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          company_id: company.id,
+          instance_name: company.instance_name
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: 'Başarılı',
+          description: 'WhatsApp bağlantısı kesildi.',
+        });
+        
+        // Durum güncellenmesi Supabase real-time ile otomatik gelecek
+        await refreshCompany();
+      } else {
+        throw new Error(data.message || 'Bağlantı kesilemedi');
+      }
+    } catch (error) {
+      toast({
+        title: 'Hata',
+        description: error.message || 'Bağlantı kesilirken bir hata oluştu',
+        variant: 'destructive'
+      });
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -167,6 +317,43 @@ const SettingsPage = () => {
     }
   };
 
+  // Durum göstergesi komponenti
+  const ConnectionStatusBadge = () => {
+    const statusConfig = {
+      connected: {
+        icon: CheckCircle2,
+        text: 'Bağlı',
+        bgColor: 'bg-green-100',
+        textColor: 'text-green-700',
+        iconColor: 'text-green-600'
+      },
+      qr_pending: {
+        icon: AlertCircle,
+        text: 'QR Kod Bekliyor',
+        bgColor: 'bg-yellow-100',
+        textColor: 'text-yellow-700',
+        iconColor: 'text-yellow-600'
+      },
+      disconnected: {
+        icon: XCircle,
+        text: 'Bağlı Değil',
+        bgColor: 'bg-red-100',
+        textColor: 'text-red-700',
+        iconColor: 'text-red-600'
+      }
+    };
+
+    const config = statusConfig[connectionStatus];
+    const StatusIcon = config.icon;
+
+    return (
+      <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${config.bgColor}`}>
+        <StatusIcon className={`w-5 h-5 ${config.iconColor}`} />
+        <span className={`font-medium ${config.textColor}`}>{config.text}</span>
+      </div>
+    );
+  };
+
   return (
     <>
       <Helmet>
@@ -180,6 +367,118 @@ const SettingsPage = () => {
           <p className="text-slate-600">{t('settingsSubtitle')}</p>
         </div>
 
+        {/* WhatsApp Bağlantı Bölümü */}
+        <div className="glass-effect rounded-2xl p-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold mb-2 flex items-center">
+                <MessageCircle className="w-5 h-5 mr-2" />
+                WhatsApp Bağlantısı
+              </h2>
+              <p className="text-sm text-slate-600">
+                WhatsApp hesabınızı bağlayarak randevu asistanınızı aktifleştirin
+              </p>
+            </div>
+            <ConnectionStatusBadge />
+          </div>
+
+          {/* QR Kod Gösterimi */}
+          {qrCodeData && connectionStatus !== 'connected' && (
+            <div className="flex justify-center">
+              <div className="bg-white p-6 rounded-2xl shadow-lg border-2 border-slate-200">
+                <div className="mb-4 text-center">
+                  <h3 className="font-semibold text-lg mb-1">QR Kodu Okutun</h3>
+                  <p className="text-sm text-slate-600">
+                    WhatsApp uygulamanızdan bu QR kodu okutarak bağlantıyı tamamlayın
+                  </p>
+                </div>
+                <img 
+                  src={qrCodeData} 
+                  alt="WhatsApp QR Code" 
+                  className="w-64 h-64 mx-auto"
+                />
+                <div className="mt-4 text-center">
+                  <p className="text-xs text-slate-500">
+                    WhatsApp {">"} Ayarlar {">"} Bağlı Cihazlar {">"} Cihaz Bağla
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Bağlantı Durumu Mesajları */}
+          {connectionStatus === 'connected' && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-green-900">WhatsApp Bağlı</h4>
+                  <p className="text-sm text-green-700">
+                    Randevu asistanınız aktif ve müşterilerinizle iletişim kurmaya hazır.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {connectionStatus === 'disconnected' && !qrCodeData && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-blue-900">Bağlantı Kurulmadı</h4>
+                  <p className="text-sm text-blue-700">
+                    WhatsApp hesabınızı bağlamak için aşağıdaki butona tıklayın ve QR kodu okutun.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Kontrol Butonları */}
+          <div className="flex gap-4">
+            <Button
+              onClick={handleGetQRCode}
+              disabled={qrCodeLoading || connectionStatus === 'connected'}
+              className="flex-1"
+              size="lg"
+            >
+              {qrCodeLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  QR Kod Alınıyor...
+                </>
+              ) : (
+                <>
+                  <QrCode className="w-5 h-5 mr-2" />
+                  QR Kod Al
+                </>
+              )}
+            </Button>
+
+            <Button
+              onClick={handleDisconnect}
+              disabled={disconnecting || connectionStatus === 'disconnected'}
+              variant="destructive"
+              className="flex-1"
+              size="lg"
+            >
+              {disconnecting ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Bağlantı Kesiliyor...
+                </>
+              ) : (
+                <>
+                  <Power className="w-5 h-5 mr-2" />
+                  Bağlantıyı Kes
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* Mevcut Ayarlar Formu */}
         <form onSubmit={handleSubmit} className="glass-effect rounded-2xl p-8 space-y-6">
           
           <div>
@@ -221,7 +520,16 @@ const SettingsPage = () => {
             <label className="block text-sm font-medium mb-2 flex items-center">
               <MessageCircle className="w-4 h-4 mr-2" /> {t('whatsappNumber')}
             </label>
-            <input type="tel" placeholder="+905551234567" value={formData.whatsapp_number} onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white" />
+            <input 
+              type="tel" 
+              placeholder="+905551234567" 
+              value={formData.whatsapp_number} 
+              onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value })} 
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white" 
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              WhatsApp bağlantısı için bu numarayı kullanacaksınız. Uluslararası format kullanın (+90...)
+            </p>
           </div>
 
           <div>
@@ -282,7 +590,6 @@ const SettingsPage = () => {
                 <input type="number" min="1" value={formData.cancellation_hours_before} onChange={(e) => setFormData({ ...formData, cancellation_hours_before: parseInt(e.target.value) })} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white" />
               </div>
           </div>
-
 
           <Button type="submit" disabled={loading}>
             {loading ? t('saving') : t('updateCompanyInfo')}
