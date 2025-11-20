@@ -2,23 +2,26 @@ import React from 'react';
 import { Helmet } from 'react-helmet';
 import { Button } from '@/components/ui/button';
 import { HelpCircle, Mail } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const SupportPage = () => {
+  const { t } = useTranslation();
+  
   const handleSupportClick = () => {
-    window.location.href = "mailto:info@randevubot.net?subject=Destek Talebi";
+    window.location.href = `mailto:info@randevubot.net?subject=${t('createSupportTicket')}`;
   };
 
   return (
     <>
       <Helmet>
-        <title>Destek | RandevuBot</title>
-        <meta name="description" content="Yardım ve destek" />
+        <title>{t('supportTitle')} | RandevuBot</title>
+        <meta name="description" content={t('supportSubtitle')} />
       </Helmet>
 
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Destek</h1>
-          <p className="text-slate-600">Size nasıl yardımcı olabiliriz?</p>
+          <h1 className="text-3xl font-bold mb-2">{t('supportTitle')}</h1>
+          <p className="text-slate-600">{t('supportSubtitle')}</p>
         </div>
 
         <div className="glass-effect rounded-2xl p-8">
@@ -27,25 +30,25 @@ const SupportPage = () => {
               <HelpCircle className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold">Sıkça Sorulan Sorular</h2>
-              <p className="text-slate-600">Yaygın soruların cevapları</p>
+              <h2 className="text-2xl font-semibold">{t('faq')}</h2>
+              <p className="text-slate-600">{t('faqAnswers')}</p>
             </div>
           </div>
 
           <div className="space-y-4">
             <details className="glass-effect p-4 rounded-xl">
-              <summary className="font-semibold cursor-pointer">WhatsApp entegrasyonu nasıl yapılır?</summary>
-              <p className="mt-2 text-slate-600">WhatsApp entegrasyonu için ayarlar sayfasından telefon numaranızı doğrulamanız gerekmektedir.</p>
+              <summary className="font-semibold cursor-pointer">{t('faqQuestion1')}</summary>
+              <p className="mt-2 text-slate-600">{t('faqAnswer1')}</p>
             </details>
 
             <details className="glass-effect p-4 rounded-xl">
-              <summary className="font-semibold cursor-pointer">Randevu hatırlatmaları nasıl çalışır?</summary>
-              <p className="mt-2 text-slate-600">Sistem otomatik olarak randevu saatinden 1 saat önce müşterilerinize WhatsApp üzerinden hatırlatma gönderir.</p>
+              <summary className="font-semibold cursor-pointer">{t('faqQuestion2')}</summary>
+              <p className="mt-2 text-slate-600">{t('faqAnswer2')}</p>
             </details>
 
             <details className="glass-effect p-4 rounded-xl">
-              <summary className="font-semibold cursor-pointer">Plan nasıl değiştirilir?</summary>
-              <p className="mt-2 text-slate-600">Abonelik sayfasından istediğiniz plana geçiş yapabilirsiniz.</p>
+              <summary className="font-semibold cursor-pointer">{t('faqQuestion3')}</summary>
+              <p className="mt-2 text-slate-600">{t('faqAnswer3')}</p>
             </details>
           </div>
         </div>
@@ -53,14 +56,14 @@ const SupportPage = () => {
         <div className="glass-effect rounded-2xl p-8">
           <h2 className="text-xl font-semibold mb-4 flex items-center">
             <Mail className="w-5 h-5 mr-2" />
-            Destek Talebi Oluştur
+            {t('createSupportTicket')}
           </h2>
-          <p className="text-slate-600 mb-4">Sorununuzu çözemediyseniz bize ulaşın</p>
+          <p className="text-slate-600 mb-4">{t('cantSolve')}</p>
           <Button onClick={handleSupportClick}>
-            Destek Talebi Oluştur
+            {t('createTicketButton')}
           </Button>
           <p className="text-sm text-slate-500 mt-4">
-            E-posta: info@randevubot.net
+            {t('emailSupport')}
           </p>
         </div>
       </div>

@@ -16,7 +16,9 @@ i18n
       order: ['localStorage', 'navigator'],
       caches: ['localStorage']
     },
-    resources: resources
+    resources: resources,
+    ns: ['translation'],
+    defaultNS: 'translation'
   });
 
 export default i18n;

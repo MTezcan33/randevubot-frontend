@@ -1,3 +1,4 @@
+
 export const SECTOR_CODES = {
   "SAĞLIK VE WELLNESS": "AA",
   "GÜZELLİK VE KİŞİSEL BAKIM": "AB",
@@ -16,7 +17,7 @@ export const SECTOR_CODES = {
   "DİĞER": "ZZ"
 };
 
-export const SECTORS_DATA = {
+const RAW_SECTORS_DATA = {
   "SAĞLIK VE WELLNESS": [
     "Sağlık Kliniği", "Diş Kliniği", "Fizyoterapi Merkezi", "Psikoloji / Terapi",
     "Diyetisyen / Beslenme", "Optisyen / Göz Sağlığı", "Kulak Burun Boğaz (KBB)",
@@ -96,3 +97,17 @@ export const SECTORS_DATA = {
   ],
   "DİĞER": []
 };
+
+// Transform the raw data into the desired structured format
+export const sectors = Object.entries(RAW_SECTORS_DATA).map(([mainSectorName, subSectorNames]) => {
+  const mainSectorCode = SECTOR_CODES[mainSectorName];
+  return {
+    name: mainSectorName,
+    code: mainSectorCode, // Add code for the main sector if needed elsewhere
+    subSectors: subSectorNames.map((subSectorName, index) => ({
+      name: subSectorName,
+      // Generate a unique code for each sub-sector, e.g., AA01, AA02
+      code: `${mainSectorCode}${(index + 1).toString().padStart(2, '0')}`,
+    })),
+  };
+});

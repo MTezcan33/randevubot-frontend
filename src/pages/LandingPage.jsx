@@ -31,14 +31,14 @@ const LandingPage = () => {
 
   const features = [
     {
-      icon: <Sparkles className="w-6 h-6" />,
-      title: t('feature2Title'),
-      description: t('feature2Desc')
-    },
-    {
       icon: <MessageCircle className="w-6 h-6" />,
       title: t('feature1Title'),
       description: t('feature1Desc')
+    },
+    {
+      icon: <Sparkles className="w-6 h-6" />,
+      title: t('feature2Title'),
+      description: t('feature2Desc')
     },
     {
       icon: <Bell className="w-6 h-6" />,
@@ -63,71 +63,71 @@ const LandingPage = () => {
   ];
 
   const sectors = [
-    { icon: <Stethoscope className="w-8 h-8" />, name: t('sectorKlinikNew'), demo: 'klinik' }, // Sağlık & Klinik Hizmetleri
-    { icon: <Sparkles className="w-8 h-8" />, name: t('sectorGuzellikNew'), demo: 'guzellik' }, // Güzellik & Bakım
-    { icon: <Balance className="w-8 h-8" />, name: t('sectorLawNew'), demo: 'law_office' }, // Hukuk & Danışmanlık
-    { icon: <Wrench className="w-8 h-8" />, name: t('sectorServisNew'), demo: 'servis' }, // Teknik Servis & Hizmet Alımı
-    { icon: <GraduationCap className="w-8 h-8" />, name: t('sectorOgretmenNew'), demo: 'ogretmen' } // Eğitim & Özel Ders
+    { icon: <Stethoscope className="w-8 h-8" />, name: t('sectorKlinikNew'), demo: 'klinik' },
+    { icon: <Sparkles className="w-8 h-8" />, name: t('sectorGuzellikNew'), demo: 'guzellik' },
+    { icon: <Balance className="w-8 h-8" />, name: t('sectorLawNew'), demo: 'law_office' },
+    { icon: <Wrench className="w-8 h-8" />, name: t('sectorServisNew'), demo: 'servis' },
+    { icon: <GraduationCap className="w-8 h-8" />, name: t('sectorOgretmenNew'), demo: 'ogretmen' }
   ];
   
   const plans = [
     { 
-        name: "Free", 
+        name: t('planFree'), 
         price: 0, 
-        duration: "14 Gün Ücretsiz", 
+        duration: t('durationFree'), 
         features: [
-            "1 Uzman için randevu takvimi", 
-            "7/24 çalışan randevu asistanı", 
-            "Müşterinin dilinde cevap vererek randevu oluşturma",
-            "Müşteri hatırlatma"
+            t('feature1Expert'),
+            t('feature247Assistant'),
+            t('featureMultilingual'),
+            t('featureReminder')
         ],
         cta: t('startFree'),
     },
     { 
-        name: "Standard", 
+        name: t('planStandard'), 
         price: 19, 
-        duration: "/ ay", 
+        duration: t('durationMonthly'), 
         features: [
-            "1 Uzman için randevu takvimi",
-            "7/24 çalışan randevu asistanı",
-            "Müşterinin dilinde cevap vererek randevu oluşturma",
-            "Müşteri hatırlatma"
+            t('feature1Expert'),
+            t('feature247Assistant'),
+            t('featureMultilingual'),
+            t('featureReminder')
         ],
         cta: t('getStarted'),
     },
     { 
-        name: "Standard Plus", 
+        name: t('planStandardPlus'), 
         price: 39, 
-        duration: "/ ay", 
+        duration: t('durationMonthly'), 
         features: [
-            "3 Uzman için randevu takvimi",
-            "7/24 çalışan randevu asistanı",
-            "Müşterinin dilinde cevap vererek randevu oluşturma",
-            "Müşteri hatırlatma"
+            t('feature3Expert'),
+            t('feature247Assistant'),
+            t('featureMultilingual'),
+            t('featureReminder')
         ],
         cta: t('getStarted'),
     },
     { 
-        name: "Pro", 
+        name: t('planPro'), 
         price: 69, 
-        duration: "/ ay", 
+        duration: t('durationMonthly'), 
         features: [
-            "6 Uzman için randevu takvimi",
-            "7/24 çalışan randevu asistanı",
-            "Müşterinin dilinde cevap vererek randevu oluşturma",
-            "Müşteri hatırlatma"
+            t('feature6Expert'),
+            t('feature247Assistant'),
+            t('featureMultilingual'),
+            t('featureReminder')
         ],
         cta: t('getStarted'),
     },
     { 
-        name: "Pro Plus", 
+        name: t('planProPlus'), 
         price: 89, 
-        duration: "/ ay", 
+        duration: t('durationMonthly'), 
         features: [
-            "9 Uzman için randevu takvimi",
-            "7/24 çalışan randevu asistanı",
-            "Müşterinin dilinde cevap vererek randevu oluşturma",
-            "Müşteri hatırlatma"
+            t('feature9Expert'),
+            t('feature247Assistant'),
+            t('featureMultilingual'),
+            t('featureReminder')
         ],
         cta: t('getStarted'),
     }
@@ -210,10 +210,13 @@ const LandingPage = () => {
               transition={{ duration: 0.6 }}
             >
               <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                 <Trans i18nKey="heroTitle">
-                    <span className="gradient-text">WhatsApp</span> üzerinden<br />
-                    AI destekli randevu sistemi
-                 </Trans>
+                <Trans 
+                  i18nKey="heroTitle"
+                  components={[
+                    <span className="text-blue-600" />,
+                    <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent" />
+                  ]}
+                />
               </h1>
               <p className="text-2xl md:text-3xl font-medium text-slate-800 mt-4 mb-10 max-w-3xl mx-auto leading-relaxed">
                 {t('heroSubtitle')}
@@ -231,7 +234,7 @@ const LandingPage = () => {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="mt-16"
             >
-                <img className="rounded-2xl shadow-2xl mx-auto max-w-4xl w-full" alt="WhatsApp appointment system interface showing a completed doctor appointment conversation" src="https://images.unsplash.com/photo-1593150543200-56e05bdb018e" />
+                <img className="rounded-2xl shadow-2xl mx-auto max-w-4xl w-full" alt="WhatsApp appointment system interface showing a completed doctor appointment conversation" src="https://images.unsplash.com/photo-1628611225387-c7662c2d6e6c" />
             </motion.div>
           </div>
         </section>
@@ -245,7 +248,12 @@ const LandingPage = () => {
               className="text-center mb-16"
             >
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                <Trans i18nKey="sectorsTitle">Hangi <span className="gradient-text">Sektörler</span> İçin?</Trans>
+                <Trans 
+                  i18nKey="sectorsTitle"
+                  components={[
+                    <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent" />
+                  ]}
+                />
               </h2>
               <p className="text-slate-600 text-lg">
                 {t('sectorsSubtitle')}
@@ -263,7 +271,6 @@ const LandingPage = () => {
                   className="relative glass-effect p-6 rounded-2xl text-center hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 cursor-pointer"
                   onClick={() => handleDemo(sector.demo)}
                 >
-                  {/* Play ikonu */}
                   <div className="absolute top-3 right-3 text-xl hover:scale-110 transition-transform duration-200">
                     🎥
                   </div>
@@ -287,9 +294,12 @@ const LandingPage = () => {
               className="text-center mb-16"
             >
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                <Trans i18nKey="featuresTitle">
-                    İşinizi Kolaylaştıran <span className="gradient-text">Akıllı Özellikler</span>
-                </Trans>
+                <Trans 
+                  i18nKey="featuresTitle"
+                  components={[
+                    <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent" />
+                  ]}
+                />
               </h2>
               <p className="text-slate-600 text-lg">
                 {t('featuresSubtitle')}
@@ -310,12 +320,7 @@ const LandingPage = () => {
                     {feature.icon}
                   </div>
                   <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-slate-600">{feature.description.split('<br />').map((line, i) => (
-                    <React.Fragment key={i}>
-                      {line}
-                      <br />
-                    </React.Fragment>
-                  ))}</p>
+                  <p className="text-slate-600">{feature.description}</p>
                 </motion.div>
               ))}
             </div>
@@ -331,9 +336,12 @@ const LandingPage = () => {
               className="text-center mb-16"
             >
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                <Trans i18nKey="pricingTitle">
-                  Bütçenize <span className="gradient-text">Uygun Akıllı Çözümler</span>
-                </Trans>
+                <Trans 
+                  i18nKey="pricingTitle"
+                  components={[
+                    <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent" />
+                  ]}
+                />
               </h2>
               <p className="text-slate-600 text-lg">
                 {t('pricingSubtitle')}
@@ -352,8 +360,8 @@ const LandingPage = () => {
                 >
                   <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
                   <div className="mb-4">
-                    <span className="text-4xl font-bold">{plan.price > 0 ? `$${plan.price}`: 'Free'}</span>
-                    <span className="text-slate-600">{plan.duration}</span>
+                    <span className="text-4xl font-bold">{plan.price > 0 ? `$${plan.price}`: t('free')}</span>
+                    <span className="text-slate-600 ml-1">{plan.duration}</span>
                   </div>
                   <ul className="space-y-3 mb-8 flex-grow">
                     {plan.features.map((feature, i) => (

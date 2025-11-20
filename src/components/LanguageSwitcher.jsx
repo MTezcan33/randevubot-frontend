@@ -12,11 +12,7 @@ import { Globe } from 'lucide-react';
 const languages = [
   { code: 'tr', name: 'Türkçe' },
   { code: 'en', name: 'English' },
-  { code: 'de', name: 'Deutsch' },
-  { code: 'fr', name: 'Français' },
   { code: 'ru', name: 'Русский' },
-  { code: 'uk', name: 'Українська' },
-  { code: 'es', name: 'Español' },
 ];
 
 const LanguageSwitcher = () => {

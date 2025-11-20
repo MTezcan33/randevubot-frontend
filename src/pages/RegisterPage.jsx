@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
@@ -8,6 +9,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { MessageCircle, Mail, Lock, User, Building, Phone, ArrowLeft, Briefcase } from 'lucide-react';
+import { Instagram as Whatsapp } from 'lucide-react';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -24,7 +26,8 @@ const RegisterPage = () => {
     otherSubSector: '',
     companyName: '',
     fullName: '',
-    phone: '',
+    userPhone: '', // User's personal phone
+    companyWhatsApp: '', // Company's WhatsApp number
     email: '',
     password: ''
   });
@@ -100,7 +103,8 @@ const RegisterPage = () => {
       const { data: signUpData, error: signUpError } = await signUp(formData.email, formData.password, {
         full_name: formData.fullName.toUpperCase(),
         company_name: formData.companyName,
-        phone: formData.phone,
+        user_phone: formData.userPhone, // Pass user phone
+        company_whatsapp: formData.companyWhatsApp, // Pass company whatsapp
         sector: sectorName,
         sub_sector: subSectorName,
         sector_code: companySectorCode
@@ -200,10 +204,18 @@ const RegisterPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">{t('phoneNumber')}</label>
+                <label className="block text-sm font-medium mb-2">Telefon Numarası (Opsiyonel)</label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <input type="tel" required value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+90 555 123 4567"/>
+                  <input type="tel" value={formData.userPhone} onChange={(e) => setFormData({ ...formData, userPhone: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+90 555 123 4567"/>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">İşletme WhatsApp Numarası (Opsiyonel)</label>
+                <div className="relative">
+                  <Whatsapp className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input type="tel" value={formData.companyWhatsApp} onChange={(e) => setFormData({ ...formData, companyWhatsApp: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+90 555 987 6543"/>
                 </div>
               </div>
 

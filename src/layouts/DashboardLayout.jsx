@@ -39,7 +39,7 @@ const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const menuItems = [
     { icon: <LayoutDashboard className="w-5 h-5" />, label: t('dashboard'), path: '/dashboard' },
@@ -134,7 +134,7 @@ const DashboardLayout = () => {
                       <div className={`mt-1 h-2 w-2 rounded-full ${!n.is_read ? 'bg-blue-500' : 'bg-transparent'}`} />
                       <div className="flex-1">
                         <p className="text-sm">{n.message}</p>
-                        <p className="text-xs text-slate-500">{new Date(n.created_at).toLocaleString('tr-TR')}</p>
+                        <p className="text-xs text-slate-500">{new Date(n.created_at).toLocaleString(i18n.language)}</p>
                       </div>
                     </DropdownMenuItem>
                   ))

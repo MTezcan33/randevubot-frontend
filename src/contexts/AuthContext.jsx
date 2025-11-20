@@ -1,9 +1,10 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const AuthContext = createContext({});
+export const AuthContext = createContext({}); // Export AuthContext directly
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -116,6 +117,13 @@ export const AuthProvider = ({ children }) => {
     }
   }, [toast, fetchCompanyAndStaffData]);
   
+  const refreshCompany = useCallback(async () => {
+    if (user) {
+      return await fetchCompanyAndStaffData(user.id);
+    }
+    return null;
+  }, [user, fetchCompanyAndStaffData]);
+
   useEffect(() => {
     setLoading(true);
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -187,13 +195,6 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
-  const refreshData = async () => {
-    if (user) {
-        return await fetchCompanyAndStaffData(user.id);
-    }
-    return null;
-  }
-
   const value = {
     user,
     company,
@@ -207,7 +208,7 @@ export const AuthProvider = ({ children }) => {
     resetPassword,
     updatePassword,
     setSelectedExpert,
-    refreshCompany: refreshData
+    refreshCompany
   };
 
   return (
