@@ -23,6 +23,7 @@ const SettingsPage = () => {
   const [disconnecting, setDisconnecting] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
   const [qrCodeData, setQrCodeData] = useState(null);
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -37,6 +38,108 @@ const SettingsPage = () => {
 
   const [adminPhone, setAdminPhone] = useState('');
 
+  // Instance name oluşturma fonksiyonu
+  const generateInstanceName = (companyName, sectorCode) => {
+    if (!companyName) return null;
+
+    // 1. Boşlukları _ ile değiştir
+    let instanceName = companyName.trim().replace(/\s+/g, '_');
+
+    // 2. İngilizce dışı karakterleri 0 ile değiştir
+    // Sadece a-z, A-Z, 0-9 ve _ karakterlerine izin ver
+    instanceName = instanceName.replace(/[^a-zA-Z0-9_]/g, '0');
+
+    // 3. Sector code varsa ekle
+    if (sectorCode) {
+      instanceName = `${instanceName}_${sectorCode}`;
+    }
+
+    return instanceName;
+  };
+
+  // QR Code verisini güvenli şekilde işleyen yardımcı fonksiyon
+  const processQrCodeData = (qrData) => {
+    if (!qrData) return null;
+
+    // Eğer zaten string ise
+    if (typeof qrData === 'string') {
+      // Boş string kontrolü
+      if (qrData.trim() === '') return null;
+
+      // Zaten base64 data URI formatında mı?
+      if (qrData.startsWith('data:image')) {
+        return qrData;
+      }
+
+      // Sadece base64 string ise, data URI formatına çevir
+      if (qrData.match(/^[A-Za-z0-9+/=]+$/)) {
+        return `data:image/png;base64,${qrData}`;
+      }
+
+      // URL formatında olabilir
+      if (qrData.startsWith('http://') || qrData.startsWith('https://')) {
+        return qrData;
+      }
+
+      // Diğer durumlarda base64 olarak kabul et
+      return `data:image/png;base64,${qrData}`;
+    }
+
+    // Eğer obje ise
+    if (typeof qrData === 'object') {
+      // { base64: "..." } formatı
+      if (qrData.base64) {
+        const base64Str = qrData.base64;
+        if (base64Str.startsWith('data:image')) {
+          return base64Str;
+        }
+        return `data:image/png;base64,${base64Str}`;
+      }
+
+      // { code: "..." } formatı
+      if (qrData.code) {
+        const codeStr = qrData.code;
+        if (codeStr.startsWith('data:image')) {
+          return codeStr;
+        }
+        return `data:image/png;base64,${codeStr}`;
+      }
+
+      // { qrcode: "..." } formatı
+      if (qrData.qrcode) {
+        const qrcodeStr = qrData.qrcode;
+        if (qrcodeStr.startsWith('data:image')) {
+          return qrcodeStr;
+        }
+        return `data:image/png;base64,${qrcodeStr}`;
+      }
+
+      // { data: "..." } formatı
+      if (qrData.data) {
+        const dataStr = qrData.data;
+        if (dataStr.startsWith('data:image')) {
+          return dataStr;
+        }
+        return `data:image/png;base64,${dataStr}`;
+      }
+
+      // { image: "..." } formatı
+      if (qrData.image) {
+        const imageStr = qrData.image;
+        if (imageStr.startsWith('data:image')) {
+          return imageStr;
+        }
+        return `data:image/png;base64,${imageStr}`;
+      }
+
+      console.warn('QR Code objesinde tanınmayan format:', Object.keys(qrData));
+      return null;
+    }
+
+    console.warn('QR Code beklenmeyen tip:', typeof qrData);
+    return null;
+  };
+
   useEffect(() => {
     if (company) {
       setFormData({
@@ -50,7 +153,9 @@ const SettingsPage = () => {
         cancellation_hours_before: company.cancellation_hours_before || 4,
       });
 
-      setQrCodeData(company.qr_code || null);
+      // QR kodunu güvenli şekilde işle
+      const processedQr = processQrCodeData(company.qr_code);
+      setQrCodeData(processedQr);
       updateConnectionStatus(company.status);
     }
     if (user) {
@@ -96,9 +201,13 @@ const SettingsPage = () => {
         },
         (payload) => {
           const newData = payload.new;
-          if (newData.qr_code !== qrCodeData) {
-            setQrCodeData(newData.qr_code);
+
+          // QR kodunu güvenli şekilde işle
+          const processedQr = processQrCodeData(newData.qr_code);
+          if (processedQr !== qrCodeData) {
+            setQrCodeData(processedQr);
           }
+
           if (newData.status) {
             updateConnectionStatus(newData.status);
           }
@@ -177,7 +286,9 @@ const SettingsPage = () => {
     setFormData(prev => ({ ...prev, address: newAddress }));
   };
 
+  // QR Kod Al - Güncellenmiş versiyon
   const handleGetQRCode = async () => {
+    // WhatsApp numarası kontrolü
     if (!company.whatsapp_number) {
       toast({
         title: t('error'),
@@ -187,23 +298,87 @@ const SettingsPage = () => {
       return;
     }
 
+    // Instance name yoksa oluştur
+    let instanceName = company.instance_name;
+    if (!instanceName) {
+      instanceName = generateInstanceName(company.name, company.sector_code);
+
+      // Instance name'i veritabanına kaydet
+      if (instanceName) {
+        const { error: updateError } = await supabase
+          .from('companies')
+          .update({ instance_name: instanceName })
+          .eq('id', company.id);
+
+        if (updateError) {
+          console.error('Instance name update error:', updateError);
+          toast({
+            title: t('error'),
+            description: 'Instance name oluşturulamadı',
+            variant: 'destructive'
+          });
+          return;
+        }
+
+        // Company verisini yenile
+        await refreshCompany();
+      }
+    }
+
+    if (!instanceName) {
+      toast({
+        title: t('error'),
+        description: t('instanceNotFound', 'Instance name oluşturulamadı. Lütfen firma adını kontrol edin.'),
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setQrCodeLoading(true);
     try {
-      const response = await fetch(import.meta.env.VITE_N8N_GET_QR_WEBHOOK_URL, {
+      const webhookUrl = import.meta.env.VITE_N8N_GET_QR_WEBHOOK_URL;
+
+      if (!webhookUrl) {
+        throw new Error('VITE_N8N_GET_QR_WEBHOOK_URL tanımlı değil');
+      }
+
+      console.log('Sending QR request:', {
+        company_id: company.id,
+        company_name: company.name,
+        instance_name: instanceName,
+        whatsapp_number: company.whatsapp_number,
+        sector_code: company.sector_code
+      });
+
+      const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           company_id: company.id,
-          instance_name: company.instance_name || `company_${company.id}`,
-          whatsapp_number: company.whatsapp_number
+          company_name: company.name,
+          instance_name: instanceName,
+          whatsapp_number: company.whatsapp_number,
+          sector_code: company.sector_code,
+          action: 'get_qr'
         })
       });
 
       const data = await response.json();
+      console.log('QR Code API Response:', data);
 
       if (response.ok) {
+        // Eğer response'da direkt QR kodu varsa, işle
+        if (data.qr_code || data.qrcode || data.base64 || data.code || data.qr) {
+          const qrFromResponse = data.qr_code || data.qrcode || data.base64 || data.code || data.qr;
+          const processedQr = processQrCodeData(qrFromResponse);
+          if (processedQr) {
+            setQrCodeData(processedQr);
+            setConnectionStatus('qr_pending');
+          }
+        }
+
         toast({
           title: t('success'),
           description: t('qrCodeSuccess'),
@@ -213,6 +388,7 @@ const SettingsPage = () => {
         throw new Error(data.message || t('qrCodeError'));
       }
     } catch (error) {
+      console.error('QR Code Error:', error);
       toast({
         title: t('error'),
         description: error.message || t('qrCodeError'),
@@ -223,6 +399,7 @@ const SettingsPage = () => {
     }
   };
 
+  // Bağlantıyı Kes - Güncellenmiş versiyon
   const handleDisconnect = async () => {
     if (!company.instance_name) {
       toast({
@@ -233,7 +410,7 @@ const SettingsPage = () => {
       return;
     }
 
-    if (connectionStatus !== 'connected') {
+    if (connectionStatus !== 'connected' && connectionStatus !== 'qr_pending') {
       toast({
         title: t('warning'),
         description: t('alreadyDisconnected'),
@@ -244,42 +421,105 @@ const SettingsPage = () => {
 
     setDisconnecting(true);
     try {
-      const response = await fetch(import.meta.env.VITE_EVOLUTION_API_DELETE_URL, {
+      const deleteUrl = import.meta.env.VITE_EVOLUTION_API_DELETE_URL;
+
+      if (!deleteUrl) {
+        throw new Error('VITE_EVOLUTION_API_DELETE_URL tanımlı değil');
+      }
+
+      console.log('Sending disconnect request to:', deleteUrl);
+      console.log('Payload:', {
+        company_id: company.id,
+        company_name: company.name,
+        instance_name: company.instance_name,
+        action: 'disconnect'
+      });
+
+      const response = await fetch(deleteUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           company_id: company.id,
-          instance_name: company.instance_name
+          company_name: company.name,
+          instance_name: company.instance_name,
+          action: 'disconnect'
         })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || t('disconnectError'));
+      console.log('Response status:', response.status);
+
+      // Response'u parse etmeye çalış
+      let data = {};
+      try {
+        const text = await response.text();
+        console.log('Response text:', text);
+        if (text) {
+          data = JSON.parse(text);
+        }
+      } catch (parseError) {
+        console.log('Response parse error (not critical):', parseError);
       }
 
-      const data = await response.json().catch(() => ({}));
+      // Başarılı kabul et (200-299 veya n8n'den gelen response)
+      if (response.ok || response.status === 200) {
+        // Veritabanını güncelle
+        const { error: updateError } = await supabase
+          .from('companies')
+          .update({
+            qr_code: null,
+            status: 'disconnected'
+          })
+          .eq('id', company.id);
 
-      const { error: updateError } = await supabase
-        .from('companies')
-        .update({
-          qr_code: null,
-          status: 'disconnected'
-        })
-        .eq('id', company.id);
+        if (updateError) {
+          console.error('Database update error:', updateError);
+        }
 
-      if (updateError) throw updateError;
+        setQrCodeData(null);
+        setConnectionStatus('disconnected');
 
-      toast({
-        title: t('success'),
-        description: t('whatsappDisconnected'),
-      });
+        toast({
+          title: t('success'),
+          description: t('whatsappDisconnected'),
+        });
 
-      await refreshCompany();
+        await refreshCompany();
+      } else {
+        throw new Error(data.message || `HTTP ${response.status}: ${t('disconnectError')}`);
+      }
     } catch (error) {
       console.error('Disconnect error:', error);
+
+      // Network hatası olsa bile local state'i güncelle
+      if (error.message === 'Failed to fetch') {
+        // CORS veya network hatası - yine de veritabanını güncellemeyi dene
+        try {
+          const { error: updateError } = await supabase
+            .from('companies')
+            .update({
+              qr_code: null,
+              status: 'disconnected'
+            })
+            .eq('id', company.id);
+
+          if (!updateError) {
+            setQrCodeData(null);
+            setConnectionStatus('disconnected');
+            await refreshCompany();
+
+            toast({
+              title: t('warning', 'Uyarı'),
+              description: t('disconnectPartial', 'Bağlantı durumu güncellendi. WhatsApp tarafında manuel kontrol gerekebilir.'),
+            });
+            return;
+          }
+        } catch (dbError) {
+          console.error('Database fallback error:', dbError);
+        }
+      }
+
       toast({
         title: t('error'),
         description: error.message || t('disconnectError'),
@@ -296,9 +536,22 @@ const SettingsPage = () => {
 
     try {
       const { name, address, country, timezone, whatsapp_number, reminder_hours_before, cancellation_hours_before } = formData;
+
+      // Instance name'i de güncelle (eğer firma adı değiştiyse)
+      const instanceName = generateInstanceName(name, company.sector_code);
+
       const { error: companyError } = await supabase
         .from('companies')
-        .update({ name, address, country, timezone, whatsapp_number, reminder_hours_before, cancellation_hours_before })
+        .update({
+          name,
+          address,
+          country,
+          timezone,
+          whatsapp_number,
+          reminder_hours_before,
+          cancellation_hours_before,
+          instance_name: instanceName // Instance name'i de güncelle
+        })
         .eq('id', company.id);
 
       if (companyError) throw companyError;
@@ -364,6 +617,32 @@ const SettingsPage = () => {
     );
   };
 
+  // QR kodunu güvenli şekilde render eden component
+  const QRCodeDisplay = () => {
+    if (!qrCodeData || connectionStatus === 'connected') {
+      return null;
+    }
+
+    return (
+      <div className="text-center">
+        <div className="bg-white p-4 rounded-xl border-2 border-blue-500 inline-block">
+          <img
+            src={qrCodeData}
+            alt="WhatsApp QR Code"
+            className="w-56 h-56"
+            onError={(e) => {
+              console.error('QR Code image load error');
+              e.target.style.display = 'none';
+            }}
+          />
+        </div>
+        <p className="text-xs text-slate-500 mt-3">
+          WhatsApp {">"} {t('settingsTitle')} {">"} {t('linkedDevices')}
+        </p>
+      </div>
+    );
+  };
+
   return (
     <>
       <Helmet>
@@ -421,11 +700,11 @@ const SettingsPage = () => {
                 <label className="block text-xs font-medium mb-1.5 text-slate-700">
                   {t('companyName')}
                 </label>
-                <input 
-                  type="text" 
-                  value={formData.name} 
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
@@ -435,11 +714,11 @@ const SettingsPage = () => {
                   <Phone className="w-3 h-3 mr-1.5" />
                   {t('adminPhone')}
                 </label>
-                <input 
-                  type="tel" 
-                  value={adminPhone} 
-                  onChange={(e) => setAdminPhone(e.target.value)} 
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                <input
+                  type="tel"
+                  value={adminPhone}
+                  onChange={(e) => setAdminPhone(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
@@ -467,10 +746,10 @@ const SettingsPage = () => {
                   <MapPin className="w-3 h-3 mr-1.5" />
                   {t('address')}
                 </label>
-                <textarea 
-                  value={formData.address} 
-                  onChange={handleAddressChange} 
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                <textarea
+                  value={formData.address}
+                  onChange={handleAddressChange}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   rows={2}
                 />
               </div>
@@ -522,12 +801,12 @@ const SettingsPage = () => {
                     <BellRing className="w-3 h-3 mr-1.5" />
                     {t('reminderHours')}
                   </label>
-                  <input 
-                    type="number" 
-                    min="1" 
-                    value={formData.reminder_hours_before} 
-                    onChange={(e) => setFormData({ ...formData, reminder_hours_before: parseInt(e.target.value) })} 
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                  <input
+                    type="number"
+                    min="1"
+                    value={formData.reminder_hours_before}
+                    onChange={(e) => setFormData({ ...formData, reminder_hours_before: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -535,12 +814,12 @@ const SettingsPage = () => {
                     <Ban className="w-3 h-3 mr-1.5" />
                     {t('cancellationHours')}
                   </label>
-                  <input 
-                    type="number" 
-                    min="1" 
-                    value={formData.cancellation_hours_before} 
-                    onChange={(e) => setFormData({ ...formData, cancellation_hours_before: parseInt(e.target.value) })} 
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                  <input
+                    type="number"
+                    min="1"
+                    value={formData.cancellation_hours_before}
+                    onChange={(e) => setFormData({ ...formData, cancellation_hours_before: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -579,18 +858,7 @@ const SettingsPage = () => {
               {/* QR Kod veya Durum Mesajı */}
               <div className="min-h-[280px] flex items-center justify-center">
                 {qrCodeData && connectionStatus !== 'connected' ? (
-                  <div className="text-center">
-                    <div className="bg-white p-4 rounded-xl border-2 border-blue-500 inline-block">
-                      <img
-                        src={qrCodeData}
-                        alt="WhatsApp QR Code"
-                        className="w-56 h-56"
-                      />
-                    </div>
-                    <p className="text-xs text-slate-500 mt-3">
-                      WhatsApp {">"} {t('settingsTitle')} {">"} {t('linkedDevices')}
-                    </p>
-                  </div>
+                  <QRCodeDisplay />
                 ) : connectionStatus === 'connected' ? (
                   <div className="text-center py-8">
                     <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
@@ -639,6 +907,34 @@ const SettingsPage = () => {
                 </div>
               )}
 
+              {/* Disconnect Onay Dialogu */}
+              {showDisconnectConfirm && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <p className="text-sm text-amber-800 mb-3">
+                    {t('disconnectConfirm', 'WhatsApp bağlantısını kesmek istediğinizden emin misiniz?')}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        setShowDisconnectConfirm(false);
+                        handleDisconnect();
+                      }}
+                      size="sm"
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      {t('confirm', 'Evet, Kes')}
+                    </Button>
+                    <Button
+                      onClick={() => setShowDisconnectConfirm(false)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      {t('cancel', 'İptal')}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Butonlar */}
               <div className="grid grid-cols-2 gap-2 pt-2">
                 <Button
@@ -661,8 +957,8 @@ const SettingsPage = () => {
                 </Button>
 
                 <Button
-                  onClick={handleDisconnect}
-                  disabled={disconnecting || connectionStatus === 'disconnected'}
+                  onClick={() => setShowDisconnectConfirm(true)}
+                  disabled={disconnecting || connectionStatus === 'disconnected' || showDisconnectConfirm}
                   variant="destructive"
                   size="sm"
                   className="w-full"

@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useCallback, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
@@ -7,253 +6,263 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
-import { Building, Clock, Users, Scissors, Calendar, Sparkles, Loader2, Save, ArrowRight } from 'lucide-react';
+import { 
+    Building2, 
+    Clock, 
+    Users, 
+    Scissors, 
+    Sparkles, 
+    Loader2, 
+    ArrowRight, 
+    Check,
+    MessageCircle,
+    Rocket
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { triggerCreateInstanceWebhook } from '@/services/whatsappService';
 
-// Define steps with components
+// Sadeleştirilmiş adımlar - sadece welcome ve company
 const steps = [
     { id: 1, name: 'welcome', icon: Sparkles },
-    { id: 2, name: 'company', icon: Building },
-    { id: 3, name: 'workingHours', icon: Clock },
-    { id: 4, name: 'staff', icon: Users },
-    { id: 5, name: 'services', icon: Scissors },
-    { id: 6, name: 'finish', icon: Calendar },
+    { id: 2, name: 'company', icon: Building2 },
 ];
 
-// --- Sub-components for each step ---
+// --- Feature kartları için data ---
+const getFeatures = (t) => [
+    {
+        icon: Clock,
+        title: t('onboarding.features.workingHours', 'Çalışma Saatleri'),
+        description: t('onboarding.features.workingHoursDesc', 'Ayarlar menüsünden düzenleyebilirsiniz')
+    },
+    {
+        icon: Users,
+        title: t('onboarding.features.staff', 'Personel Yönetimi'),
+        description: t('onboarding.features.staffDesc', 'Uzmanlarınızı sonradan ekleyebilirsiniz')
+    },
+    {
+        icon: Scissors,
+        title: t('onboarding.features.services', 'Hizmetler'),
+        description: t('onboarding.features.servicesDesc', 'Hizmetlerinizi panel üzerinden tanımlayın')
+    },
+    {
+        icon: MessageCircle,
+        title: t('onboarding.features.whatsapp', 'WhatsApp'),
+        description: t('onboarding.features.whatsappDesc', 'QR kod ile bağlantı kurun')
+    }
+];
 
-const WelcomeStep = ({ companyName, onNext }) => {
-    const { t } = useTranslation();
+// --- Welcome Step Component ---
+const WelcomeStep = ({ companyName, onNext, t }) => {
+    const features = getFeatures(t);
+    
     return (
-        <div className="text-center">
-            <Sparkles className="w-16 h-16 mx-auto text-yellow-400 mb-6" />
-            <h2 className="text-3xl font-bold text-slate-800">{t('welcomeOnboard', { companyName })}</h2>
-            <p className="text-slate-600 mt-4 max-w-lg mx-auto">{t('onboardIntro')}</p>
-            <Button size="lg" className="mt-8" onClick={onNext}>{t('startSetup')} <ArrowRight className="ml-2 w-5 h-5" /></Button>
+        <div className="text-center w-full max-w-2xl mx-auto">
+            {/* Animated Icon */}
+            <motion.div
+                initial={{ scale: 0, rotate: -10 }}
+                animate={{ scale: 1, rotate: 3 }}
+                transition={{ type: "spring", delay: 0.2, stiffness: 200 }}
+                className="mb-8"
+            >
+                <div className="w-24 h-24 mx-auto bg-gradient-to-br from-yellow-400 to-orange-500 rounded-3xl flex items-center justify-center shadow-lg shadow-orange-200/50">
+                    <Sparkles className="w-12 h-12 text-white" />
+                </div>
+            </motion.div>
+
+            {/* Title */}
+            <motion.h2
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="text-3xl sm:text-4xl font-bold text-slate-800 mb-4"
+            >
+                {t('onboarding.welcomeTitle', 'RandevuBot\'a Hoş Geldiniz!')}
+            </motion.h2>
+
+            <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="text-lg text-slate-600 mb-8 max-w-md mx-auto"
+            >
+                {t('onboarding.welcomeDescription', 'WhatsApp üzerinden AI destekli randevu sisteminiz hazır. Hızlıca kurulumu tamamlayalım.')}
+            </motion.p>
+
+            {/* Feature Cards */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="grid grid-cols-2 gap-4 mb-8"
+            >
+                {features.map((feature, index) => {
+                    const IconComponent = feature.icon;
+                    return (
+                        <motion.div
+                            key={index}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.5 + index * 0.1 }}
+                            className="bg-slate-50 rounded-xl p-4 text-left border border-slate-100 hover:border-blue-200 hover:bg-blue-50/50 transition-all duration-200 cursor-default"
+                        >
+                            <IconComponent className="w-6 h-6 text-blue-600 mb-2" />
+                            <h3 className="font-semibold text-slate-800 text-sm">{feature.title}</h3>
+                            <p className="text-xs text-slate-500 mt-1">{feature.description}</p>
+                        </motion.div>
+                    );
+                })}
+            </motion.div>
+
+            {/* CTA Button */}
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 }}
+            >
+                <Button
+                    size="lg"
+                    onClick={onNext}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-blue-200/50 hover:shadow-xl hover:shadow-blue-300/50 transition-all duration-200"
+                >
+                    {t('onboarding.startSetup', 'Kuruluma Başla')}
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+            </motion.div>
         </div>
     );
 };
 
-const CompanyInfoStep = ({ company, onUpdate, onSave, loading }) => {
-    const { t } = useTranslation();
+// --- Company Info Step Component ---
+const CompanyInfoStep = ({ company, onSave, loading, t }) => {
     const [name, setName] = useState(company?.name || '');
-    const [address, setAddress] = useState(company?.address || '');
 
     const handleSave = () => {
-        onSave({ name, address });
+        if (!name.trim()) {
+            return;
+        }
+        onSave({ name: name.trim() });
     };
 
     return (
         <div className="w-full max-w-lg mx-auto">
-            <h2 className="text-2xl font-bold mb-6">{t('companyInfo')}</h2>
-            <div className="space-y-4">
-                <div>
-                    <label htmlFor="companyName" className="font-medium text-slate-700">{t('companyName')}</label>
-                    <Input id="companyName" value={name} onChange={(e) => setName(e.target.value)} className="mt-2" />
+            {/* Icon */}
+            <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", delay: 0.2 }}
+                className="mb-8 text-center"
+            >
+                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200/50">
+                    <Building2 className="w-10 h-10 text-white" />
                 </div>
-                <div>
-                    <label htmlFor="companyAddress" className="font-medium text-slate-700">{t('address')}</label>
-                    <Input id="companyAddress" value={address} onChange={(e) => setAddress(e.target.value)} className="mt-2" />
-                </div>
-            </div>
-            <Button className="w-full mt-8" onClick={handleSave} disabled={loading}>
-                {loading ? <Loader2 className="animate-spin" /> : <><Save className="mr-2 w-4 h-4" /> {t('saveAndContinue')}</>}
-            </Button>
-        </div>
-    );
-};
+            </motion.div>
 
-const WorkingHoursStep = ({ workingHours, companyId, onSave, loading }) => {
-    const { t } = useTranslation();
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const [hours, setHours] = useState(workingHours);
+            {/* Title */}
+            <motion.h2
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2 text-center"
+            >
+                {t('onboarding.companyNameTitle', 'İşletmenizin Adı')}
+            </motion.h2>
 
-    useEffect(() => {
-        if (workingHours.length === 0) {
-            const defaultHours = days.map(day => ({
-                day,
-                is_open: day !== 'Sunday',
-                start_time: '09:00',
-                end_time: '18:00',
-                company_id: companyId
-            }));
-            setHours(defaultHours);
-        } else {
-            const existingDays = workingHours.map(h => h.day);
-            const missingDays = days.filter(d => !existingDays.includes(d));
-            const newHours = missingDays.map(day => ({
-                day,
-                is_open: day !== 'Sunday',
-                start_time: '09:00',
-                end_time: '18:00',
-                company_id: companyId
-            }));
-            setHours([...workingHours, ...newHours].sort((a, b) => days.indexOf(a.day) - days.indexOf(b.day)));
-        }
-    }, [workingHours, companyId]);
+            <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="text-slate-600 mb-8 text-center"
+            >
+                {t('onboarding.companyNameDescription', 'Müşterileriniz sizi bu isimle görecek')}
+            </motion.p>
 
-    const handleTimeChange = (day, field, value) => {
-        setHours(currentHours =>
-            currentHours.map(h => (h.day === day ? { ...h, [field]: value } : h))
-        );
-    };
+            {/* Input */}
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="mb-8"
+            >
+                <Input
+                    type="text"
+                    placeholder={t('onboarding.companyNamePlaceholder', 'Örn: MT Güzellik Salonu')}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-5 py-6 text-lg border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200"
+                    autoFocus
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && name.trim()) {
+                            handleSave();
+                        }
+                    }}
+                />
+            </motion.div>
 
-    const toggleDay = (day) => {
-        setHours(currentHours =>
-            currentHours.map(h => (h.day === day ? { ...h, is_open: !h.is_open } : h))
-        );
-    };
+            {/* Info Box - Sonra yapılacak ayarlar */}
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 mb-8 border border-blue-100"
+            >
+                <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                    <Rocket className="w-5 h-5" />
+                    {t('onboarding.laterSettingsTitle', 'Sonra Tamamlayacağınız Ayarlar:')}
+                </h4>
+                <ul className="space-y-2 text-sm text-blue-800">
+                    <li className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        {t('onboarding.laterItem1', 'Çalışma saatleri ve tatil günleri')}
+                    </li>
+                    <li className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        {t('onboarding.laterItem2', 'Personel ve uzman bilgileri')}
+                    </li>
+                    <li className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        {t('onboarding.laterItem3', 'Sunduğunuz hizmetler ve fiyatlar')}
+                    </li>
+                    <li className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        {t('onboarding.laterItem4', 'WhatsApp bağlantısı (QR kod)')}
+                    </li>
+                </ul>
+            </motion.div>
 
-    return (
-        <div className="w-full max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6">{t('workingHoursTitle')}</h2>
-            <div className="space-y-3">
-                {hours.map(({ day, is_open, start_time, end_time }) => (
-                    <div key={day} className={`p-4 rounded-lg flex items-center justify-between transition-colors ${is_open ? 'bg-white' : 'bg-slate-100'}`}>
-                        <div className="flex items-center">
-                            <input type="checkbox" checked={is_open} onChange={() => toggleDay(day)} className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                            <span className={`ml-4 font-medium ${is_open ? 'text-slate-800' : 'text-slate-500'}`}>{t(`days.${day.toLowerCase()}`)}</span>
-                        </div>
-                        <div className={`flex items-center gap-2 ${!is_open && 'opacity-50'}`}>
-                            <Input type="time" value={start_time || '09:00'} onChange={e => handleTimeChange(day, 'start_time', e.target.value)} disabled={!is_open} className="w-32" />
-                            <span>-</span>
-                            <Input type="time" value={end_time || '18:00'} onChange={e => handleTimeChange(day, 'end_time', e.target.value)} disabled={!is_open} className="w-32" />
-                        </div>
-                    </div>
-                ))}
-            </div>
-            <Button className="w-full mt-8" onClick={() => onSave(hours)} disabled={loading}>
-                {loading ? <Loader2 className="animate-spin" /> : <><Save className="mr-2 w-4 h-4" /> {t('saveAndContinue')}</>}
-            </Button>
-        </div>
-    );
-};
-
-const StaffStep = ({ staff, companyId, onSave, loading }) => {
-    const { t } = useTranslation();
-    const [members, setMembers] = useState(staff.length > 0 ? staff : [{ name: '', email: '', role: 'Uzman', color: '#4BADE8' }]);
-
-    const handleMemberChange = (index, field, value) => {
-        const newMembers = [...members];
-        newMembers[index][field] = value;
-        setMembers(newMembers);
-    };
-
-    const addMember = () => {
-        setMembers([...members, { name: '', email: '', role: 'Uzman', color: '#4BADE8' }]);
-    };
-    
-    const removeMember = (index) => {
-        const newMembers = members.filter((_, i) => i !== index);
-        setMembers(newMembers);
-    }
-    
-    const handleSave = () => {
-        const preparedStaff = members.map(m => ({ ...m, company_id: companyId }));
-        onSave(preparedStaff);
-    };
-
-    return (
-        <div className="w-full max-w-3xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6">{t('manageStaffTitle')}</h2>
-            <p className="text-slate-600 mb-6">{t('addStaffHelp')}</p>
-            <div className="space-y-4">
-                {members.map((member, index) => (
-                    <div key={index} className="bg-white p-4 rounded-lg flex items-center gap-4">
-                        <Input type="color" value={member.color || '#4BADE8'} onChange={e => handleMemberChange(index, 'color', e.target.value)} className="w-14 h-12 p-1" />
-                        <Input placeholder={t('fullName')} value={member.name} onChange={e => handleMemberChange(index, 'name', e.target.value)} />
-                        <Input placeholder={t('emailAddress')} value={member.email} onChange={e => handleMemberChange(index, 'email', e.target.value)} />
-                         <Button variant="ghost" size="icon" onClick={() => removeMember(index)} className={members.length === 1 ? 'invisible' : ''}>
-                            <Users className="w-4 h-4 text-red-500" />
-                        </Button>
-                    </div>
-                ))}
-            </div>
-            <Button variant="outline" className="mt-4" onClick={addMember}>{t('addStaff')}</Button>
-            <Button className="w-full mt-8" onClick={handleSave} disabled={loading}>
-                {loading ? <Loader2 className="animate-spin" /> : <><Save className="mr-2 w-4 h-4" /> {t('saveAndContinue')}</>}
-            </Button>
-        </div>
-    );
-};
-
-const ServicesStep = ({ services, companyId, staff, onSave, loading }) => {
-    const { t } = useTranslation();
-    const [serviceList, setServiceList] = useState(services.length > 0 ? services : [{ description: '', duration: 30, price: 0, expert_id: null }]);
-    
-    const experts = staff.filter(s => s.role === 'Uzman');
-
-    const handleServiceChange = (index, field, value) => {
-        const newServices = [...serviceList];
-        newServices[index][field] = value;
-        setServiceList(newServices);
-    };
-
-    const addService = () => {
-        setServiceList([...serviceList, { description: '', duration: 30, price: 0, expert_id: null }]);
-    };
-    
-    const removeService = (index) => {
-        const newServices = serviceList.filter((_, i) => i !== index);
-        setServiceList(newServices);
-    }
-
-    const handleSave = () => {
-        const preparedServices = serviceList.map(s => ({ ...s, company_id: companyId, expert_id: s.expert_id === 'all' ? null : s.expert_id }));
-        onSave(preparedServices);
-    };
-
-    return (
-        <div className="w-full max-w-3xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6">{t('servicesTitle')}</h2>
-            <p className="text-slate-600 mb-6">{t('addServicesHelp')}</p>
-            <div className="space-y-4">
-                {serviceList.map((service, index) => (
-                    <div key={index} className="bg-white p-4 rounded-lg grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                        <Input placeholder={t('serviceName')} value={service.description} onChange={e => handleServiceChange(index, 'description', e.target.value)} className="md:col-span-2" />
-                        <Input type="number" placeholder={t('durationMinutes')} value={service.duration} onChange={e => handleServiceChange(index, 'duration', parseInt(e.target.value, 10))} />
-                        <Input type="number" placeholder={t('price')} value={service.price} onChange={e => handleServiceChange(index, 'price', parseFloat(e.target.value))} />
-                         {experts.length > 0 && (
-                            <select value={service.expert_id || 'all'} onChange={e => handleServiceChange(index, 'expert_id', e.target.value)} className="md:col-span-3 rounded-md border-gray-300">
-                                <option value="all">{t('allExperts')}</option>
-                                {experts.map(expert => <option key={expert.id} value={expert.id}>{expert.name}</option>)}
-                            </select>
-                        )}
-                        <div className="md:col-span-1 flex justify-end">
-                             <Button variant="ghost" size="icon" onClick={() => removeService(index)} className={serviceList.length === 1 ? 'invisible' : ''}>
-                                <Scissors className="w-4 h-4 text-red-500" />
-                            </Button>
-                        </div>
-                    </div>
-                ))}
-            </div>
-            <Button variant="outline" className="mt-4" onClick={addService}>{t('addService')}</Button>
-            <Button className="w-full mt-8" onClick={handleSave} disabled={loading}>
-                {loading ? <Loader2 className="animate-spin" /> : <><Save className="mr-2 w-4 h-4" /> {t('saveAndContinue')}</>}
-            </Button>
-        </div>
-    );
-};
-
-const FinishStep = ({ onFinish, loading }) => {
-    const { t } = useTranslation();
-    return (
-        <div className="text-center">
-            <Calendar className="w-16 h-16 mx-auto text-blue-500 mb-6" />
-            <h2 className="text-3xl font-bold text-slate-800">{t('setupCompleteTitle')}</h2>
-            <p className="text-slate-600 mt-4 max-w-lg mx-auto">{t('setupCompleteBody')}</p>
-            <Button size="lg" className="mt-8" onClick={onFinish} disabled={loading}>
-                {loading ? <Loader2 className="animate-spin" /> : <>{t('goToDashboard')} <ArrowRight className="ml-2 w-5 h-5" /></>}
-            </Button>
+            {/* Save Button */}
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+            >
+                <Button
+                    size="lg"
+                    onClick={handleSave}
+                    disabled={loading || !name.trim()}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-6 text-lg rounded-xl shadow-lg shadow-emerald-200/50 hover:shadow-xl hover:shadow-emerald-300/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {loading ? (
+                        <>
+                            <Loader2 className="mr-2 w-5 h-5 animate-spin" />
+                            {t('loading', 'Yükleniyor...')}
+                        </>
+                    ) : (
+                        <>
+                            {t('onboarding.completeSetup', 'Kurulumu Tamamla')}
+                            <Check className="ml-2 w-5 h-5" />
+                        </>
+                    )}
+                </Button>
+            </motion.div>
         </div>
     );
 };
 
 
+// --- Main OnboardingPage Component ---
 const OnboardingPage = () => {
-    const { company, staff, services, workingHours, refreshCompany } = useAuth();
+    const { company, refreshCompany } = useAuth();
     const { toast } = useToast();
     const navigate = useNavigate();
     const { t } = useTranslation();
@@ -262,9 +271,9 @@ const OnboardingPage = () => {
     const [pageLoading, setPageLoading] = useState(true);
 
     useEffect(() => {
-        if(company) {
+        if (company) {
             setPageLoading(false);
-            if(company.onboarding_completed) {
+            if (company.onboarding_completed) {
                 navigate('/dashboard', { replace: true });
             }
         }
@@ -272,197 +281,210 @@ const OnboardingPage = () => {
 
     const handleNext = () => setCurrentStep(prev => Math.min(prev + 1, steps.length));
     const handleBack = () => setCurrentStep(prev => Math.max(prev - 1, 1));
-    
-    const saveCompanyInfo = async (data) => {
-        setLoading(true);
-        const { error } = await supabase.from('companies').update(data).eq('id', company.id);
-        if (error) {
-            toast({ title: t('error'), description: error.message, variant: 'destructive' });
-        } else {
-            await refreshCompany();
-            toast({ title: t('success'), description: t('companyInfoUpdated') });
-            handleNext();
-        }
-        setLoading(false);
+
+    const handleSkip = () => {
+        navigate('/dashboard', { replace: true });
     };
 
-    const saveWorkingHours = async (data) => {
-        setLoading(true);
-        // Delete existing hours first to handle additions/removals correctly
-        await supabase.from('company_working_hours').delete().eq('company_id', company.id);
-
-        const upsertData = data.map(d => ({ ...d, company_id: company.id }));
-
-        const { error } = await supabase.from('company_working_hours').upsert(upsertData, { onConflict: ['company_id', 'day'] });
-
-        if (error) {
-            toast({ title: t('error'), description: error.message, variant: 'destructive' });
-        } else {
-            await refreshCompany();
-            toast({ title: t('success'), description: t('workingHoursUpdated') });
-            handleNext();
-        }
-        setLoading(false);
-    };
-    
-    const saveStaff = async (data) => {
-        setLoading(true);
+    // Instance name oluşturma fonksiyonu
+    const generateInstanceName = (companyName, sectorCode) => {
+        if (!companyName) return null;
         
-        // Let's get existing staff to compare
-        const { data: existingStaff, error: fetchError } = await supabase.from('company_users').select('id').eq('company_id', company.id);
-        if(fetchError){
-            toast({ title: t('error'), description: fetchError.message, variant: 'destructive' });
-            setLoading(false);
-            return;
-        }
-
-        const existingIds = existingStaff.map(s => s.id);
-        const newIds = data.map(s => s.id).filter(Boolean);
-        const idsToDelete = existingIds.filter(id => !newIds.includes(id));
+        // 1. Boşlukları _ ile değiştir
+        let instanceName = companyName.trim().replace(/\s+/g, '_');
         
-        // Delete removed staff
-        if (idsToDelete.length > 0) {
-            await supabase.from('company_users').delete().in('id', idsToDelete);
-        }
-
-        // Upsert current staff
-        const { error } = await supabase.from('company_users').upsert(data, { onConflict: 'id' });
-        if (error) {
-            toast({ title: t('error'), description: error.message, variant: 'destructive' });
-        } else {
-            await refreshCompany();
-            toast({ title: t('success'), description: t('staffUpdated') });
-            handleNext();
-        }
-        setLoading(false);
-    };
-    
-    const saveServices = async (data) => {
-        setLoading(true);
-        // Let's get existing services to compare
-        const { data: existingServices, error: fetchError } = await supabase.from('company_services').select('id').eq('company_id', company.id);
-        if(fetchError){
-            toast({ title: t('error'), description: fetchError.message, variant: 'destructive' });
-            setLoading(false);
-            return;
+        // 2. İngilizce dışı karakterleri 0 ile değiştir
+        // Sadece a-z, A-Z, 0-9 ve _ karakterlerine izin ver
+        instanceName = instanceName.replace(/[^a-zA-Z0-9_]/g, '0');
+        
+        // 3. Sector code varsa ekle
+        if (sectorCode) {
+            instanceName = `${instanceName}_${sectorCode}`;
         }
         
-        const existingIds = existingServices.map(s => s.id);
-        const newIds = data.map(s => s.id).filter(Boolean);
-        const idsToDelete = existingIds.filter(id => !newIds.includes(id));
-
-        // Delete removed services
-        if (idsToDelete.length > 0) {
-            await supabase.from('company_services').delete().in('id', idsToDelete);
-        }
-
-        // Upsert current services
-        const { error } = await supabase.from('company_services').upsert(data, { onConflict: 'id' });
-        if (error) {
-            toast({ title: t('error'), description: error.message, variant: 'destructive' });
-        } else {
-            await refreshCompany();
-            toast({ title: t('success'), description: t('servicesUpdated') });
-            handleNext();
-        }
-        setLoading(false);
+        return instanceName;
     };
-    
-    const completeOnboarding = async () => {
+
+    // Firma bilgisini kaydet ve onboarding'i tamamla
+    const saveCompanyAndComplete = async (data) => {
         setLoading(true);
         try {
-            // Mark onboarding as completed
+            // Instance name oluştur
+            const instanceName = generateInstanceName(data.name, company.sector_code);
+            
+            // 1. Firma bilgisini güncelle
             const { error: updateError } = await supabase
                 .from('companies')
-                .update({ onboarding_completed: true })
+                .update({ 
+                    name: data.name,
+                    instance_name: instanceName,
+                    onboarding_completed: true
+                })
                 .eq('id', company.id);
 
             if (updateError) throw updateError;
-            
-            // Refresh company data to get the latest state including whatsapp_number
+
+            // 2. Company verisini yenile
             const refreshedCompany = await refreshCompany();
 
-            // Trigger WhatsApp instance creation if number exists
-            if (refreshedCompany && refreshedCompany.whatsapp_number) {
-                 await triggerCreateInstanceWebhook(refreshedCompany);
-                 toast({ title: t('success'), description: "WhatsApp bağlantı isteğiniz gönderildi." });
+            // 3. WhatsApp instance oluştur (opsiyonel - hata olursa devam et)
+            try {
+                if (refreshedCompany && refreshedCompany.whatsapp_number) {
+                    await triggerCreateInstanceWebhook(refreshedCompany);
+                    toast({ 
+                        title: t('success', 'Başarılı'), 
+                        description: t('onboarding.whatsappRequestSent', 'WhatsApp bağlantı isteğiniz gönderildi.') 
+                    });
+                }
+            } catch (whatsappError) {
+                console.warn('WhatsApp instance creation skipped:', whatsappError);
             }
 
-            toast({ title: t('setupCompleteTitle'), description: t('redirectingToDashboard') });
-            navigate('/dashboard', { replace: true });
+            // 4. Başarı mesajı
+            toast({ 
+                title: t('onboarding.setupCompleteTitle', 'Kurulum Tamamlandı!'), 
+                description: t('onboarding.redirectingToDashboard', 'Dashboard\'a yönlendiriliyorsunuz...') 
+            });
+
+            // 5. Dashboard'a yönlendir - replace: true ile beyaz ekran sorununu çöz
+            setTimeout(() => {
+                navigate('/dashboard', { replace: true });
+            }, 500);
+
         } catch (error) {
-            toast({ title: t('error'), description: error.message, variant: 'destructive' });
+            console.error('Onboarding error:', error);
+            toast({ 
+                title: t('error', 'Hata'), 
+                description: error.message || t('onboarding.setupError', 'Kurulum sırasında bir hata oluştu'), 
+                variant: 'destructive' 
+            });
         } finally {
             setLoading(false);
         }
     };
 
-
     const renderStepContent = () => {
         switch (currentStep) {
-            case 1: return <WelcomeStep companyName={company?.name} onNext={handleNext} />;
-            case 2: return <CompanyInfoStep company={company} onSave={saveCompanyInfo} loading={loading} />;
-            case 3: return <WorkingHoursStep workingHours={workingHours} companyId={company?.id} onSave={saveWorkingHours} loading={loading} />;
-            case 4: return <StaffStep staff={staff} companyId={company?.id} onSave={saveStaff} loading={loading} />;
-            case 5: return <ServicesStep services={services} companyId={company?.id} staff={staff} onSave={saveServices} loading={loading} />;
-            case 6: return <FinishStep onFinish={completeOnboarding} loading={loading} />;
-            default: return null;
+            case 1:
+                return <WelcomeStep companyName={company?.name} onNext={handleNext} t={t} />;
+            case 2:
+                return <CompanyInfoStep company={company} onSave={saveCompanyAndComplete} loading={loading} t={t} />;
+            default:
+                return null;
         }
     };
 
+    // Loading state
     if (pageLoading || !company) {
         return (
-            <div className="w-full h-screen flex items-center justify-center bg-slate-50">
-                <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
+            <div className="w-full h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+                <div className="text-center">
+                    <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+                    <p className="text-slate-600">{t('loading', 'Yükleniyor...')}</p>
+                </div>
             </div>
         );
     }
-    
+
     return (
         <>
             <Helmet>
-                <title>{t('onboardingTitle')} - RandevuBot</title>
+                <title>{t('onboarding.title', 'Hoş Geldiniz')} - RandevuBot</title>
             </Helmet>
-            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-                <div className="w-full max-w-4xl">
-                    {/* Progress Bar */}
-                    <div className="mb-8 px-4">
-                         <div className="flex items-center justify-between">
-                            {steps.map((step, index) => (
-                                <React.Fragment key={step.id}>
-                                    <div className="flex flex-col items-center">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${currentStep >= step.id ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-300 text-slate-400'}`}>
-                                            <step.icon className="w-5 h-5" />
-                                        </div>
-                                        <p className={`text-xs mt-2 font-medium ${currentStep >= step.id ? 'text-blue-600' : 'text-slate-500'}`}>{t(`onboardSteps.${step.name}`)}</p>
-                                    </div>
-                                    {index < steps.length - 1 && <div className={`flex-1 h-1 mx-2 rounded-full ${currentStep > step.id ? 'bg-blue-600' : 'bg-slate-200'}`}></div>}
-                                </React.Fragment>
-                            ))}
+
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex flex-col">
+                {/* Progress Bar */}
+                <div className="w-full bg-white/50 backdrop-blur-sm border-b border-slate-200/50 sticky top-0 z-10">
+                    <div className="max-w-4xl mx-auto px-4 py-4">
+                        <div className="flex items-center justify-between">
+                            {/* Steps Indicator */}
+                            <div className="flex items-center gap-3">
+                                {steps.map((step, index) => {
+                                    const StepIcon = step.icon;
+                                    return (
+                                        <React.Fragment key={step.id}>
+                                            <div
+                                                className={`
+                                                    w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm
+                                                    transition-all duration-300 shadow-sm
+                                                    ${currentStep > step.id
+                                                        ? 'bg-emerald-500 text-white'
+                                                        : currentStep === step.id
+                                                            ? 'bg-blue-600 text-white ring-4 ring-blue-100'
+                                                            : 'bg-white text-slate-400 border-2 border-slate-200'
+                                                    }
+                                                `}
+                                            >
+                                                {currentStep > step.id ? (
+                                                    <Check className="w-5 h-5" />
+                                                ) : (
+                                                    <StepIcon className="w-5 h-5" />
+                                                )}
+                                            </div>
+                                            {index < steps.length - 1 && (
+                                                <div
+                                                    className={`w-12 h-1 rounded-full transition-all duration-300 ${
+                                                        currentStep > step.id ? 'bg-emerald-500' : 'bg-slate-200'
+                                                    }`}
+                                                />
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Skip Button */}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleSkip}
+                                className="text-slate-500 hover:text-slate-700"
+                            >
+                                {t('skip', 'Atla')}
+                            </Button>
                         </div>
                     </div>
-                    
-                    {/* Step Content */}
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={currentStep}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3 }}
-                            className="bg-white rounded-2xl shadow-lg p-8 md:p-12 min-h-[400px] flex items-center justify-center"
-                        >
-                            {renderStepContent()}
-                        </motion.div>
-                    </AnimatePresence>
-                    
-                    {/* Navigation */}
-                    <div className="flex justify-between items-center mt-6 px-4">
-                        <Button variant="ghost" onClick={handleBack} disabled={currentStep === 1 || loading}>{t('back')}</Button>
-                        {currentStep < steps.length -1 && 
-                            <Button variant="outline" onClick={handleNext} disabled={loading}>{t('skip')}</Button>
-                        }
+                </div>
+
+                {/* Main Content */}
+                <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
+                    <div className="w-full max-w-2xl">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={currentStep}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.4 }}
+                                className="bg-white rounded-3xl shadow-xl shadow-blue-100/50 p-8 sm:p-12 border border-slate-100"
+                            >
+                                {renderStepContent()}
+                            </motion.div>
+                        </AnimatePresence>
+
+                        {/* Back Button - sadece 2. adımda göster */}
+                        {currentStep > 1 && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="mt-6 text-center"
+                            >
+                                <Button
+                                    variant="ghost"
+                                    onClick={handleBack}
+                                    disabled={loading}
+                                    className="text-slate-500 hover:text-slate-700"
+                                >
+                                    {t('back', 'Geri')}
+                                </Button>
+                            </motion.div>
+                        )}
                     </div>
+                </div>
+
+                {/* Footer */}
+                <div className="text-center py-6 text-sm text-slate-500">
+                    {t('onboarding.footer', 'Tüm ayarları daha sonra kullanıcı panelinizden düzenleyebilirsiniz.')}
                 </div>
             </div>
         </>
