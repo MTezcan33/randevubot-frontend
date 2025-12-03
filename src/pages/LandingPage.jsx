@@ -238,7 +238,8 @@ const LandingPage = () => {
             >
               {/* HERO IMAGE: bigger + cinematic + crisp */}
               <div className="rounded-3xl shadow-2xl mx-auto w-full max-w-7xl overflow-hidden ring-1 ring-black/5">
-                <div className="h-[520px] md:h-[680px] lg:h-[760px] bg-slate-900"> {/* bg eklendi */}
+                <div className="h-[400px] md:h-[500px] lg:h-[600px]">
+                  {/* Yüksekliği düşürdük */}
                   <HeroImage />
                 </div>
               </div>

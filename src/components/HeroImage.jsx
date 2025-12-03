@@ -20,9 +20,10 @@ const HeroImage = ({ className = '' }) => {
       loading="eager"
       decoding="async"
       fetchpriority="high"
-      className={`w-full h-full object-cover object-center ${className}`}
+      className={`w-full h-full object-contain object-center ${className}`}
+      // object-cover yerine object-contain kullan
     />
   );
 };
 
-export default HeroImage;  // ← Bu satır eksikti!
+export default HeroImage;
