@@ -15,7 +15,6 @@ const SettingsPage = () => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [adminUser, setAdminUser] = useState(null);
   const [currentTime, setCurrentTime] = useState('');
 
   // WhatsApp bağlantı durumu için state'ler
@@ -25,6 +24,7 @@ const SettingsPage = () => {
   const [qrCodeData, setQrCodeData] = useState(null);
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
 
+  // Form verileri - manager_phone kullanılıyor
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -32,11 +32,10 @@ const SettingsPage = () => {
     timezone: '',
     logo_url: '',
     whatsapp_number: '',
+    manager_phone: '', // Yönetici telefonu - companies tablosundan
     reminder_hours_before: 24,
     cancellation_hours_before: 4,
   });
-
-  const [adminPhone, setAdminPhone] = useState('');
 
   // Instance name oluşturma fonksiyonu
   const generateInstanceName = (companyName, sectorCode) => {
@@ -140,6 +139,7 @@ const SettingsPage = () => {
     return null;
   };
 
+  // Company verisi geldiğinde form'u doldur
   useEffect(() => {
     if (company) {
       setFormData({
@@ -149,6 +149,7 @@ const SettingsPage = () => {
         timezone: company.timezone || '',
         logo_url: company.logo_url || '',
         whatsapp_number: company.whatsapp_number || '',
+        manager_phone: company.manager_phone || '', // Companies tablosundan al
         reminder_hours_before: company.reminder_hours_before || 24,
         cancellation_hours_before: company.cancellation_hours_before || 4,
       });
@@ -158,23 +159,7 @@ const SettingsPage = () => {
       setQrCodeData(processedQr);
       updateConnectionStatus(company.status);
     }
-    if (user) {
-      const fetchAdminUser = async () => {
-        if (!company) return;
-        const { data, error } = await supabase
-          .from('company_users')
-          .select('*')
-          .eq('company_id', company.id)
-          .eq('role', 'Yönetici')
-          .single();
-        if (data) {
-          setAdminUser(data);
-          setAdminPhone(data.phone || '');
-        }
-      };
-      fetchAdminUser();
-    }
-  }, [company, user]);
+  }, [company]);
 
   const updateConnectionStatus = (status) => {
     if (status === 'open' || status === 'connected') {
@@ -530,16 +515,27 @@ const SettingsPage = () => {
     }
   };
 
+  // Form gönderimi - manager_phone companies tablosuna kaydediliyor
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { name, address, country, timezone, whatsapp_number, reminder_hours_before, cancellation_hours_before } = formData;
+      const { 
+        name, 
+        address, 
+        country, 
+        timezone, 
+        whatsapp_number, 
+        manager_phone,
+        reminder_hours_before, 
+        cancellation_hours_before 
+      } = formData;
 
       // Instance name'i de güncelle (eğer firma adı değiştiyse)
       const instanceName = generateInstanceName(name, company.sector_code);
 
+      // Companies tablosunu güncelle - manager_phone dahil
       const { error: companyError } = await supabase
         .from('companies')
         .update({
@@ -548,26 +544,20 @@ const SettingsPage = () => {
           country,
           timezone,
           whatsapp_number,
+          manager_phone, // Yönetici telefonu companies tablosuna kaydet
           reminder_hours_before,
           cancellation_hours_before,
-          instance_name: instanceName // Instance name'i de güncelle
+          instance_name: instanceName
         })
         .eq('id', company.id);
 
       if (companyError) throw companyError;
 
-      if (adminUser) {
-        const { error: adminError } = await supabase
-          .from('company_users')
-          .update({ phone: adminPhone })
-          .eq('id', adminUser.id);
-        if (adminError) throw adminError;
-      }
-
       await refreshCompany();
 
       toast({ title: t('success'), description: t('companyInfoUpdated') });
     } catch (error) {
+      console.error('Update error:', error);
       toast({
         title: t('error'),
         description: t('companyInfoUpdateError', { error: error.message || t('updateFailed') }),
@@ -708,18 +698,22 @@ const SettingsPage = () => {
                 />
               </div>
 
-              {/* Admin Telefon */}
+              {/* Yönetici Telefonu - formData.manager_phone kullanıyor */}
               <div>
                 <label className="block text-xs font-medium mb-1.5 text-slate-700 flex items-center">
                   <Phone className="w-3 h-3 mr-1.5" />
-                  {t('adminPhone')}
+                  {t('adminPhone', 'Yönetici Telefonu')}
                 </label>
                 <input
                   type="tel"
-                  value={adminPhone}
-                  onChange={(e) => setAdminPhone(e.target.value)}
+                  placeholder="+905551234567"
+                  value={formData.manager_phone}
+                  onChange={(e) => setFormData({ ...formData, manager_phone: e.target.value })}
                   className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  {t('managerPhoneHint', 'Yönetici iletişim numarası')}
+                </p>
               </div>
 
               {/* WhatsApp Numarası */}

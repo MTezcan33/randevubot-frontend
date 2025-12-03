@@ -16,19 +16,22 @@ import {
     ArrowRight, 
     Check,
     MessageCircle,
-    Rocket
+    Rocket,
+    Globe // Yeni ikon
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { triggerCreateInstanceWebhook } from '@/services/whatsappService';
 
-// Sadeleştirilmiş adımlar - sadece welcome ve company
+// --- YENİ IMPORTLAR ---
+import timezones from '@/lib/timezones.json';
+import countries from '@/lib/countries.json';
+
 const steps = [
     { id: 1, name: 'welcome', icon: Sparkles },
     { id: 2, name: 'company', icon: Building2 },
 ];
 
-// --- Feature kartları için data ---
 const getFeatures = (t) => [
     {
         icon: Clock,
@@ -58,7 +61,6 @@ const WelcomeStep = ({ companyName, onNext, t }) => {
     
     return (
         <div className="text-center w-full max-w-2xl mx-auto">
-            {/* Animated Icon */}
             <motion.div
                 initial={{ scale: 0, rotate: -10 }}
                 animate={{ scale: 1, rotate: 3 }}
@@ -70,7 +72,6 @@ const WelcomeStep = ({ companyName, onNext, t }) => {
                 </div>
             </motion.div>
 
-            {/* Title */}
             <motion.h2
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -89,7 +90,6 @@ const WelcomeStep = ({ companyName, onNext, t }) => {
                 {t('onboarding.welcomeDescription', 'WhatsApp üzerinden AI destekli randevu sisteminiz hazır. Hızlıca kurulumu tamamlayalım.')}
             </motion.p>
 
-            {/* Feature Cards */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -114,7 +114,6 @@ const WelcomeStep = ({ companyName, onNext, t }) => {
                 })}
             </motion.div>
 
-            {/* CTA Button */}
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -133,15 +132,43 @@ const WelcomeStep = ({ companyName, onNext, t }) => {
     );
 };
 
-// --- Company Info Step Component ---
+// --- Company Info Step Component (GÜNCELLENMİŞ) ---
 const CompanyInfoStep = ({ company, onSave, loading, t }) => {
+    // State Tanımları
     const [name, setName] = useState(company?.name || '');
+    
+    // YENİ: Ülke ve Zaman Dilimi için State'ler
+    // Tarayıcının varsayılan zaman dilimini bulmaya çalışır, bulamazsa boş bırakır
+    const defaultTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; 
+    // timezones.json içindeki formatla eşleştirmeye çalışalım (Genelde listede varsa tutar)
+    const matchedTimezone = timezones.find(tz => tz.utc.includes(defaultTimezone))?.text || '';
+
+    const [country, setCountry] = useState(company?.country || 'Türkiye'); // Varsayılan Türkiye yapabiliriz veya boş bırakabiliriz
+    const [timezone, setTimezone] = useState(company?.timezone || matchedTimezone);
+
+    const { toast } = useToast();
 
     const handleSave = () => {
+        // Validasyonlar
         if (!name.trim()) {
+            toast({ title: t('error'), description: t('companyNameRequired', 'Lütfen işletme adını giriniz.'), variant: 'destructive' });
             return;
         }
-        onSave({ name: name.trim() });
+        if (!country) {
+            toast({ title: t('error'), description: t('countryRequired', 'Lütfen ülkenizi seçiniz.'), variant: 'destructive' });
+            return;
+        }
+        if (!timezone) {
+            toast({ title: t('error'), description: t('timezoneRequired', 'Lütfen zaman dilimini seçiniz.'), variant: 'destructive' });
+            return;
+        }
+
+        // Hepsini kaydetmeye gönder
+        onSave({ 
+            name: name.trim(),
+            country: country,
+            timezone: timezone
+        });
     };
 
     return (
@@ -165,7 +192,7 @@ const CompanyInfoStep = ({ company, onSave, loading, t }) => {
                 transition={{ delay: 0.3 }}
                 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2 text-center"
             >
-                {t('onboarding.companyNameTitle', 'İşletmenizin Adı')}
+                {t('onboarding.companyNameTitle', 'İşletme Bilgileri')}
             </motion.h2>
 
             <motion.p
@@ -177,29 +204,81 @@ const CompanyInfoStep = ({ company, onSave, loading, t }) => {
                 {t('onboarding.companyNameDescription', 'Müşterileriniz sizi bu isimle görecek')}
             </motion.p>
 
-            {/* Input */}
+            {/* --- FORM ALANLARI --- */}
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="mb-8"
+                className="space-y-5 mb-8"
             >
-                <Input
-                    type="text"
-                    placeholder={t('onboarding.companyNamePlaceholder', 'Örn: MT Güzellik Salonu')}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-5 py-6 text-lg border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200"
-                    autoFocus
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' && name.trim()) {
-                            handleSave();
-                        }
-                    }}
-                />
+                {/* 1. Firma Adı */}
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1 flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-blue-500" />
+                        {t('companyName', 'İşletme Adı')}
+                    </label>
+                    <Input
+                        type="text"
+                        placeholder={t('onboarding.companyNamePlaceholder', 'Örn: MT Güzellik Salonu')}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full px-5 py-6 text-lg border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200"
+                        autoFocus
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* 2. Ülke Seçimi */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1 flex items-center gap-2">
+                            <Globe className="w-4 h-4 text-blue-500" />
+                            {t('country', 'Ülke')}
+                        </label>
+                        <div className="relative">
+                            <select
+                                value={country}
+                                onChange={(e) => setCountry(e.target.value)}
+                                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none appearance-none cursor-pointer text-sm"
+                            >
+                                <option value="">Seçiniz...</option>
+                                {countries.map(c => (
+                                    <option key={c.code} value={c.name}>{c.name}</option>
+                                ))}
+                            </select>
+                            {/* Custom Arrow Icon */}
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 3. Zaman Dilimi Seçimi */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1 flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-blue-500" />
+                            {t('timezone', 'Saat Dilimi')}
+                        </label>
+                        <div className="relative">
+                            <select
+                                value={timezone}
+                                onChange={(e) => setTimezone(e.target.value)}
+                                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none appearance-none cursor-pointer text-sm"
+                            >
+                                <option value="">Seçiniz...</option>
+                                {timezones.map(tz => (
+                                    <option key={tz.text} value={tz.text}>{tz.text}</option>
+                                ))}
+                            </select>
+                            {/* Custom Arrow Icon */}
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </motion.div>
 
-            {/* Info Box - Sonra yapılacak ayarlar */}
+            {/* Info Box */}
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -239,7 +318,8 @@ const CompanyInfoStep = ({ company, onSave, loading, t }) => {
                 <Button
                     size="lg"
                     onClick={handleSave}
-                    disabled={loading || !name.trim()}
+                    // Validasyon: Hepsi dolu olmalı
+                    disabled={loading || !name.trim() || !country || !timezone}
                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-6 text-lg rounded-xl shadow-lg shadow-emerald-200/50 hover:shadow-xl hover:shadow-emerald-300/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {loading ? (
@@ -258,7 +338,6 @@ const CompanyInfoStep = ({ company, onSave, loading, t }) => {
         </div>
     );
 };
-
 
 // --- Main OnboardingPage Component ---
 const OnboardingPage = () => {
@@ -286,22 +365,13 @@ const OnboardingPage = () => {
         navigate('/dashboard', { replace: true });
     };
 
-    // Instance name oluşturma fonksiyonu
     const generateInstanceName = (companyName, sectorCode) => {
         if (!companyName) return null;
-        
-        // 1. Boşlukları _ ile değiştir
         let instanceName = companyName.trim().replace(/\s+/g, '_');
-        
-        // 2. İngilizce dışı karakterleri 0 ile değiştir
-        // Sadece a-z, A-Z, 0-9 ve _ karakterlerine izin ver
         instanceName = instanceName.replace(/[^a-zA-Z0-9_]/g, '0');
-        
-        // 3. Sector code varsa ekle
         if (sectorCode) {
             instanceName = `${instanceName}_${sectorCode}`;
         }
-        
         return instanceName;
     };
 
@@ -309,14 +379,15 @@ const OnboardingPage = () => {
     const saveCompanyAndComplete = async (data) => {
         setLoading(true);
         try {
-            // Instance name oluştur
             const instanceName = generateInstanceName(data.name, company.sector_code);
             
-            // 1. Firma bilgisini güncelle
+            // 1. Firma bilgisini güncelle (Ülke ve Timezone eklendi)
             const { error: updateError } = await supabase
                 .from('companies')
                 .update({ 
                     name: data.name,
+                    country: data.country,     // <--- YENİ
+                    timezone: data.timezone,   // <--- YENİ
                     instance_name: instanceName,
                     onboarding_completed: true
                 })
@@ -327,7 +398,7 @@ const OnboardingPage = () => {
             // 2. Company verisini yenile
             const refreshedCompany = await refreshCompany();
 
-            // 3. WhatsApp instance oluştur (opsiyonel - hata olursa devam et)
+            // 3. WhatsApp instance oluştur (opsiyonel)
             try {
                 if (refreshedCompany && refreshedCompany.whatsapp_number) {
                     await triggerCreateInstanceWebhook(refreshedCompany);
@@ -346,7 +417,7 @@ const OnboardingPage = () => {
                 description: t('onboarding.redirectingToDashboard', 'Dashboard\'a yönlendiriliyorsunuz...') 
             });
 
-            // 5. Dashboard'a yönlendir - replace: true ile beyaz ekran sorununu çöz
+            // 5. Dashboard'a yönlendir
             setTimeout(() => {
                 navigate('/dashboard', { replace: true });
             }, 500);

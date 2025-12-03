@@ -1,4 +1,3 @@
-
 export const triggerCreateInstanceWebhook = async (companyData) => {
   const webhookUrl = import.meta.env.VITE_N8N_CREATE_INSTANCE_WEBHOOK_URL;
 

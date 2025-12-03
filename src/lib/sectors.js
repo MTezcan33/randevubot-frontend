@@ -1,4 +1,3 @@
-
 export const SECTOR_CODES = {
   "SAĞLIK VE WELLNESS": "AA",
   "GÜZELLİK VE KİŞİSEL BAKIM": "AB",

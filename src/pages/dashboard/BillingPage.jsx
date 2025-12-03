@@ -42,7 +42,7 @@ const BillingPage = () => {
         t('featureReminder')
       ],
       planKey: "Standard",
-      stripeLink: "https://buy.stripe.com/test_bIeeV7b1Achn0nz9K7"
+      stripeLink: "https://buy.stripe.com/test_fZudR3b1Achn7Q1bSfaIM04"
     },
     {
       name: t('planStandardPlus'),
@@ -56,7 +56,7 @@ const BillingPage = () => {
         t('featureReminder')
       ],
       planKey: "Standard Plus",
-      stripeLink: "https://buy.stripe.com/test_3cI7sF8Ts817fit4pNa"
+      stripeLink: "https://buy.stripe.com/test_aFa5kx1r01CJb2d4pNaIM06"
     },
     {
       name: t('planPro'),
@@ -70,7 +70,7 @@ const BillingPage = () => {
         t('featureReminder')
       ],
       planKey: "Pro",
-      stripeLink: "https://buy.stripe.com/test_3cI28l8Ts5SZ4DPe0n"
+      stripeLink: "https://buy.stripe.com/test_00w5kx8Tsepvdalf4raIM07"
     },
     {
       name: t('planProPlus'),
@@ -84,7 +84,7 @@ const BillingPage = () => {
         t('featureReminder')
       ],
       planKey: "Pro Plus",
-      stripeLink: "https://buy.stripe.com/test_aIgaFf0v80NP8U08wG"
+      stripeLink: "https://buy.stripe.com/test_cNi3cpd9I1CJ1rDcWjaIM08"
     }
   ];
 

@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { Button } from '@/components/ui/button';
@@ -453,4 +452,3 @@ const CustomersPage = () => {
 };
 
 export default CustomersPage;
-

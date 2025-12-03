@@ -1,4 +1,5 @@
-export const translations = {
+
+export const resources = {
   tr: {
     translation: {
       // Page Metadata
@@ -44,17 +45,17 @@ export const translations = {
       pricingTitle: "Bütçenize Uygun <0>Akıllı Çözümler</0>",
       pricingSubtitle: "İşletmenizin büyüklüğüne ve ihtiyaçlarınıza göre esnek planlarımızdan birini seçin.",
       getStarted: "Hemen Başla",
-      
+
       // Pricing Plans
       planFree: "Free",
       planStandard: "Standard",
       planStandardPlus: "Standard Plus",
       planPro: "Pro",
       planProPlus: "Pro Plus",
-      
+
       durationFree: "14 Gün Ücretsiz",
       durationMonthly: "/ ay",
-      
+
       feature1Expert: "1 Uzman için randevu takvimi",
       feature3Expert: "3 Uzman için randevu takvimi",
       feature6Expert: "6 Uzman için randevu takvimi",
@@ -187,7 +188,7 @@ export const translations = {
         "beklemede": "Beklemede",
         "iptal": "İptal Edildi"
       },
-      
+
       // Dashboard Home
       businessAnalysis: "İşletme Analizi",
       businessAnalysisSubtitle: "İşletmenizin performansını takip edin.",
@@ -196,7 +197,7 @@ export const translations = {
       newLabel: "Yeni",
       occupancyRate: "Doluluk Oranı",
       expertPerformanceAnalysis: "Uzman Performans Analizi",
-      
+
       // Working Hours
       workingHoursTitle: "Çalışma Saatleri",
       workingHours: "Çalışma Saatleri",
@@ -225,7 +226,7 @@ export const translations = {
       open: "Açık",
       closed: "Kapalı",
       selectDate: "Tarih Seçin",
-      
+
       // Billing Page
       billingTitle: "Abonelik",
       billingSubtitle: "Plan yönetimi ve fatura geçmişi",
@@ -249,7 +250,7 @@ export const translations = {
       discountApplied: "%{{discount}} indirim uygulandı.",
       couponError: "Kupon uygulanırken bir sorun oluştu.",
       noPaymentLink: "Bu plan için bir ödeme bağlantısı bulunamadı.",
-      
+
       // Settings Page  
       settingsTitle: "Ayarlar",
       settings: "Ayarlar",
@@ -302,7 +303,7 @@ export const translations = {
       updateFailed: "Güncelleme başarısız",
       qrPending: "QR Bekliyor",
       linkedDevices: "Bağlı Cihazlar",
-      
+
       // Support Page
       supportTitle: "Destek",
       support: "Destek",
@@ -322,7 +323,7 @@ export const translations = {
       faq: "Sıkça Sorulan Sorular",
       faqAnswers: "Yaygın soruların cevapları",
       cantSolve: "Sorununuzu çözemediyseniz bize ulaşın",
-      
+
       // Months
       january: "Ocak",
       february: "Şubat",
@@ -348,13 +349,13 @@ export const translations = {
       octoberShort: "Eki",
       novemberShort: "Kas",
       decemberShort: "Ara",
-      
+
       // Calendar
       selectedDate: "Seçili Tarih",
       createAppointmentButton: "Randevu Oluştur",
       unknownCustomer: "Bilinmeyen Müşteri",
       unknownService: "Bilinmeyen Hizmet",
-      
+
       // Dashboard Analytics
       averageOccupancy: "Ortalama Doluluk",
       revenuePerHour: "Saat Başı Gelir",
@@ -370,7 +371,7 @@ export const translations = {
       noPerformanceData: "Henüz uzman performans verisi bulunmuyor.",
       performanceDataInfo: "Randevular oluşturuldukça analiz verileri burada görünecek.",
       lastDays: "Son {{days}} gün",
-      
+
       // Time units
       minuteShort: "dk",
       hourShort: "s",
@@ -503,17 +504,17 @@ export const translations = {
       pricingTitle: "<0>Smart Solutions</0> That Fit Your Budget",
       pricingSubtitle: "Choose one of our flexible plans according to your business size and needs.",
       getStarted: "Get Started Now",
-      
+
       // Pricing Plans
       planFree: "Free",
       planStandard: "Standard",
       planStandardPlus: "Standard Plus",
       planPro: "Pro",
       planProPlus: "Pro Plus",
-      
+
       durationFree: "14 Days Free",
       durationMonthly: "/ month",
-      
+
       feature1Expert: "Appointment calendar for 1 expert",
       feature3Expert: "Appointment calendar for 3 experts",
       feature6Expert: "Appointment calendar for 6 experts",
@@ -646,7 +647,7 @@ export const translations = {
         "beklemede": "Pending",
         "iptal": "Cancelled"
       },
-      
+
       // Dashboard Home
       businessAnalysis: "Business Analysis",
       businessAnalysisSubtitle: "Track your business performance.",
@@ -655,7 +656,7 @@ export const translations = {
       newLabel: "New",
       occupancyRate: "Occupancy Rate",
       expertPerformanceAnalysis: "Expert Performance Analysis",
-      
+
       // Working Hours
       workingHoursTitle: "Working Hours",
       workingHours: "Working Hours",
@@ -684,7 +685,7 @@ export const translations = {
       open: "Open",
       closed: "Closed",
       selectDate: "Select Date",
-      
+
       // Billing Page
       billingTitle: "Billing",
       billingSubtitle: "Plan management and billing history",
@@ -708,7 +709,7 @@ export const translations = {
       discountApplied: "{{discount}}% discount applied.",
       couponError: "An error occurred while applying the coupon.",
       noPaymentLink: "No payment link found for this plan.",
-      
+
       // Settings Page
       settingsTitle: "Settings",
       settings: "Settings",
@@ -761,7 +762,7 @@ export const translations = {
       updateFailed: "Update failed",
       qrPending: "QR Pending",
       linkedDevices: "Linked Devices",
-      
+
       // Support Page
       supportTitle: "Support",
       support: "Support",
@@ -781,7 +782,7 @@ export const translations = {
       faq: "Frequently Asked Questions",
       faqAnswers: "Answers to common questions",
       cantSolve: "Contact us if we couldn't solve your problem",
-      
+
       // Months
       january: "January",
       february: "February",
@@ -807,13 +808,13 @@ export const translations = {
       octoberShort: "Oct",
       novemberShort: "Nov",
       decemberShort: "Dec",
-      
+
       // Calendar
       selectedDate: "Selected Date",
       createAppointmentButton: "Create Appointment",
       unknownCustomer: "Unknown Customer",
       unknownService: "Unknown Service",
-      
+
       // Dashboard Analytics
       averageOccupancy: "Average Occupancy",
       revenuePerHour: "Revenue per Hour",
@@ -829,7 +830,7 @@ export const translations = {
       noPerformanceData: "No expert performance data yet.",
       performanceDataInfo: "Analysis data will appear here as appointments are created.",
       lastDays: "Last {{days}} days",
-      
+
       // Time units
       minuteShort: "min",
       hourShort: "h",
@@ -962,17 +963,17 @@ export const translations = {
       pricingTitle: "<0>Умные решения</0> в рамках вашего бюджета",
       pricingSubtitle: "Выберите один из наших гибких планов в соответствии с размером и потребностями вашего бизнеса.",
       getStarted: "Начать сейчас",
-      
+
       // Pricing Plans
       planFree: "Бесплатно",
       planStandard: "Стандарт",
       planStandardPlus: "Стандарт Плюс",
       planPro: "Про",
       planProPlus: "Про Плюс",
-      
+
       durationFree: "14 дней бесплатно",
       durationMonthly: "/ месяц",
-      
+
       feature1Expert: "Календарь записей для 1 специалиста",
       feature3Expert: "Календарь записей для 3 специалистов",
       feature6Expert: "Календарь записей для 6 специалистов",
@@ -1105,7 +1106,7 @@ export const translations = {
         "beklemede": "В ожидании",
         "iptal": "Отменено"
       },
-      
+
       // Dashboard Home
       businessAnalysis: "Бизнес-анализ",
       businessAnalysisSubtitle: "Отслеживайте эффективность вашего бизнеса.",
@@ -1114,7 +1115,7 @@ export const translations = {
       newLabel: "Новый",
       occupancyRate: "Уровень заполняемости",
       expertPerformanceAnalysis: "Анализ производительности специалистов",
-      
+
       // Working Hours
       workingHoursTitle: "Рабочие часы",
       workingHours: "Рабочие часы",
@@ -1143,7 +1144,7 @@ export const translations = {
       open: "Открыто",
       closed: "Закрыто",
       selectDate: "Выберите дату",
-      
+
       // Billing Page
       billingTitle: "Подписка",
       billingSubtitle: "Управление планом и история счетов",
@@ -1167,7 +1168,7 @@ export const translations = {
       discountApplied: "Скидка {{discount}}% применена.",
       couponError: "Произошла ошибка при применении купона.",
       noPaymentLink: "Ссылка на оплату для этого плана не найдена.",
-      
+
       // Settings Page
       settingsTitle: "Настройки",
       settings: "Настройки",
@@ -1220,7 +1221,7 @@ export const translations = {
       updateFailed: "Обновление не удалось",
       qrPending: "Ожидание QR",
       linkedDevices: "Связанные устройства",
-      
+
       // Support Page
       supportTitle: "Поддержка",
       support: "Поддержка",
@@ -1240,7 +1241,7 @@ export const translations = {
       faq: "Часто задаваемые вопросы",
       faqAnswers: "Ответы на распространенные вопросы",
       cantSolve: "Свяжитесь с нами, если мы не смогли решить вашу проблему",
-      
+
       // Months
       january: "Январь",
       february: "Февраль",
@@ -1266,13 +1267,13 @@ export const translations = {
       octoberShort: "Окт",
       novemberShort: "Ноя",
       decemberShort: "Дек",
-      
+
       // Calendar
       selectedDate: "Выбранная дата",
       createAppointmentButton: "Создать запись",
       unknownCustomer: "Неизвестный клиент",
       unknownService: "Неизвестная услуга",
-      
+
       // Dashboard Analytics
       averageOccupancy: "Средняя заполняемость",
       revenuePerHour: "Доход в час",
@@ -1288,7 +1289,7 @@ export const translations = {
       noPerformanceData: "Данных о производительности специалистов пока нет.",
       performanceDataInfo: "Данные анализа будут отображаться здесь по мере создания записей.",
       lastDays: "Последние {{days}} дней",
-      
+
       // Time units
       minuteShort: "мин",
       hourShort: "ч",
@@ -1377,4 +1378,4 @@ export const translations = {
   }
 };
 
-export const resources = translations;
+export const translations = resources;
