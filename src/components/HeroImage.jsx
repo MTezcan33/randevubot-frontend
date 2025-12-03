@@ -1,3 +1,4 @@
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import heroTr from '../assets/hero-tr.jpg';
 import heroEn from '../assets/hero-en.jpg';
@@ -17,7 +18,11 @@ const HeroImage = ({ className = '' }) => {
       src={heroImages[i18n.language] || heroTr}
       alt="Hero"
       loading="eager"
-      className={`w-full h-full object-cover ${className}`}
+      decoding="async"
+      fetchpriority="high"
+      className={`w-full h-full object-cover object-center ${className}`}
     />
   );
 };
+
+export default HeroImage;  // ← Bu satır eksikti!
