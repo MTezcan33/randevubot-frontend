@@ -236,9 +236,9 @@ const LandingPage = () => {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="mt-16"
             >
-              {/* HERO IMAGE: bigger + cinematic + crisp */}
+              {/* HERO IMAGE: aspect-ratio ile tam uyum */}
               <div className="rounded-3xl shadow-2xl mx-auto w-full max-w-7xl overflow-hidden ring-1 ring-black/5">
-                <div className="h-[400px] md:h-[500px] lg:h-[600px]">
+                <div className="aspect-[16/9] w-full">
                   {/* Yüksekliği düşürdük */}
                   <HeroImage />
                 </div>

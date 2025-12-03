@@ -21,7 +21,6 @@ const HeroImage = ({ className = '' }) => {
       decoding="async"
       fetchpriority="high"
       className={`w-full h-full object-contain object-center ${className}`}
-      // object-cover yerine object-contain kullan
     />
   );
 };
