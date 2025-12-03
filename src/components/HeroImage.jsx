@@ -3,7 +3,7 @@ import React from 'react';
 // 1. ADIM: Resmi proje klasöründen çağırıyoruz.
 // Bu satır React'e diyor ki: "Bu resmi al, paketle ve yayına hazırla"
 // Hem PC'de hem GitHub'da çalışmasının sırrı budur.
-import heroResmi from '../assets/hero.png'; 
+import heroResmi from '../assets/hero.jpg'; 
 
 const HeroImage = () => {
   return (
