@@ -1,21 +1,23 @@
-import React from 'react';
+import { useTranslation } from 'react-i18next';
+import heroTr from '../assets/hero-tr.jpg';
+import heroEn from '../assets/hero-en.jpg';
+import heroRu from '../assets/hero-ru.jpg';
 
-// 1. ADIM: Resmi proje klasöründen çağırıyoruz.
-// Bu satır React'e diyor ki: "Bu resmi al, paketle ve yayına hazırla"
-// Hem PC'de hem GitHub'da çalışmasının sırrı budur.
-import heroResmi from '../assets/hero.jpg'; 
+const HeroImage = ({ className = '' }) => {
+  const { i18n } = useTranslation();
+  
+  const heroImages = {
+    tr: heroTr,
+    en: heroEn,
+    ru: heroRu
+  };
 
-const HeroImage = () => {
   return (
-    <div className='flex justify-center items-center'>
-      {/* 2. ADIM: Yukarıda import ettiğimiz ismi buraya süslü parantez ile yazıyoruz */}
-      <img 
-        src={heroResmi} 
-        alt='Randevu Yönetiminin Geleceği' 
-        className='w-full h-auto object-cover'
-      />
-    </div>
+    <img
+      src={heroImages[i18n.language] || heroTr}
+      alt="Hero"
+      loading="eager"
+      className={`w-full h-full object-cover ${className}`}
+    />
   );
 };
-
-export default HeroImage;
