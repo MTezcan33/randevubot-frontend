@@ -218,9 +218,11 @@ const LandingPage = () => {
                   ]}
                 />
               </h1>
+
               <p className="text-2xl md:text-3xl font-medium text-slate-800 mt-4 mb-10 max-w-3xl mx-auto leading-relaxed">
                 {t('heroSubtitle')}
               </p>
+
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button size="lg" onClick={() => navigate('/register')}>
                   {t('startFree')}
@@ -234,8 +236,11 @@ const LandingPage = () => {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="mt-16"
             >
-              <div className="rounded-2xl shadow-2xl mx-auto max-w-4xl w-full overflow-hidden">
+              {/* HERO IMAGE: bigger + cinematic + crisp */}
+              <div className="rounded-3xl shadow-2xl mx-auto w-full max-w-7xl overflow-hidden ring-1 ring-black/5">
+                <div className="h-[520px] md:h-[680px] lg:h-[760px]">
                 <HeroImage />
+                </div>
               </div>
             </motion.div>
           </div>
