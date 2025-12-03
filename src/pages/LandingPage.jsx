@@ -5,20 +5,21 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useTranslation, Trans } from 'react-i18next';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { 
-  MessageCircle, 
-  Clock, 
-  Users, 
-  Bell, 
-  Sparkles, 
-  Stethoscope, 
-  Wrench, 
-  GraduationCap, 
-  Check, 
-  Menu, 
-  X, 
-  BarChart3, 
-  Scale as Balance 
+import HeroImage from '@/components/HeroImage';
+import {
+  MessageCircle,
+  Clock,
+  Users,
+  Bell,
+  Sparkles,
+  Stethoscope,
+  Wrench,
+  GraduationCap,
+  Check,
+  Menu,
+  X,
+  BarChart3,
+  Scale as Balance
 } from 'lucide-react';
 import DemoModal from '@/components/DemoModal';
 
@@ -69,75 +70,74 @@ const LandingPage = () => {
     { icon: <Wrench className="w-8 h-8" />, name: t('sectorServisNew'), demo: 'servis' },
     { icon: <GraduationCap className="w-8 h-8" />, name: t('sectorOgretmenNew'), demo: 'ogretmen' }
   ];
-  
+
   const plans = [
-    { 
-        name: t('planFree'), 
-        price: 0, 
-        duration: t('durationFree'), 
-        features: [
-            t('feature1Expert'),
-            t('feature247Assistant'),
-            t('featureMultilingual'),
-            t('featureReminder')
-        ],
-        cta: t('startFree'),
+    {
+      name: t('planFree'),
+      price: 0,
+      duration: t('durationFree'),
+      features: [
+        t('feature1Expert'),
+        t('feature247Assistant'),
+        t('featureMultilingual'),
+        t('featureReminder')
+      ],
+      cta: t('startFree'),
     },
-    { 
-        name: t('planStandard'), 
-        price: 19, 
-        duration: t('durationMonthly'), 
-        features: [
-            t('feature1Expert'),
-            t('feature247Assistant'),
-            t('featureMultilingual'),
-            t('featureReminder')
-        ],
-        cta: t('getStarted'),
+    {
+      name: t('planStandard'),
+      price: 19,
+      duration: t('durationMonthly'),
+      features: [
+        t('feature1Expert'),
+        t('feature247Assistant'),
+        t('featureMultilingual'),
+        t('featureReminder')
+      ],
+      cta: t('getStarted'),
     },
-    { 
-        name: t('planStandardPlus'), 
-        price: 39, 
-        duration: t('durationMonthly'), 
-        features: [
-            t('feature3Expert'),
-            t('feature247Assistant'),
-            t('featureMultilingual'),
-            t('featureReminder')
-        ],
-        cta: t('getStarted'),
+    {
+      name: t('planStandardPlus'),
+      price: 39,
+      duration: t('durationMonthly'),
+      features: [
+        t('feature3Expert'),
+        t('feature247Assistant'),
+        t('featureMultilingual'),
+        t('featureReminder')
+      ],
+      cta: t('getStarted'),
     },
-    { 
-        name: t('planPro'), 
-        price: 69, 
-        duration: t('durationMonthly'), 
-        features: [
-            t('feature6Expert'),
-            t('feature247Assistant'),
-            t('featureMultilingual'),
-            t('featureReminder')
-        ],
-        cta: t('getStarted'),
+    {
+      name: t('planPro'),
+      price: 69,
+      duration: t('durationMonthly'),
+      features: [
+        t('feature6Expert'),
+        t('feature247Assistant'),
+        t('featureMultilingual'),
+        t('featureReminder')
+      ],
+      cta: t('getStarted'),
     },
-    { 
-        name: t('planProPlus'), 
-        price: 89, 
-        duration: t('durationMonthly'), 
-        features: [
-            t('feature9Expert'),
-            t('feature247Assistant'),
-            t('featureMultilingual'),
-            t('featureReminder')
-        ],
-        cta: t('getStarted'),
+    {
+      name: t('planProPlus'),
+      price: 89,
+      duration: t('durationMonthly'),
+      features: [
+        t('feature9Expert'),
+        t('feature247Assistant'),
+        t('featureMultilingual'),
+        t('featureReminder')
+      ],
+      cta: t('getStarted'),
     }
   ];
-  
+
   const handleDemo = (sectorDemo) => {
     setDemoContent(sectorDemo);
     setShowDemo(true);
   };
-
 
   return (
     <>
@@ -150,7 +150,7 @@ const LandingPage = () => {
         <nav className="fixed top-0 w-full glass-effect z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="flex items-center space-x-2"
@@ -169,7 +169,7 @@ const LandingPage = () => {
                 </Button>
               </div>
 
-              <button 
+              <button
                 className="md:hidden"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
@@ -178,20 +178,20 @@ const LandingPage = () => {
             </div>
 
             {mobileMenuOpen && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="md:hidden py-4 space-y-2"
               >
-                 <LanguageSwitcher />
-                <Button 
-                  variant="ghost" 
+                <LanguageSwitcher />
+                <Button
+                  variant="ghost"
                   className="w-full"
                   onClick={() => { navigate('/login'); setMobileMenuOpen(false); }}
                 >
                   {t('login')}
                 </Button>
-                <Button 
+                <Button
                   className="w-full"
                   onClick={() => { navigate('/register'); setMobileMenuOpen(false); }}
                 >
@@ -210,7 +210,7 @@ const LandingPage = () => {
               transition={{ duration: 0.6 }}
             >
               <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                <Trans 
+                <Trans
                   i18nKey="heroTitle"
                   components={[
                     <span className="text-blue-600" />,
@@ -234,7 +234,9 @@ const LandingPage = () => {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="mt-16"
             >
-                <img className="rounded-2xl shadow-2xl mx-auto max-w-4xl w-full" alt="WhatsApp appointment system interface showing a completed doctor appointment conversation" src="https://images.unsplash.com/photo-1628611225387-c7662c2d6e6c" />
+              <div className="rounded-2xl shadow-2xl mx-auto max-w-4xl w-full overflow-hidden">
+                <HeroImage />
+              </div>
             </motion.div>
           </div>
         </section>
@@ -248,7 +250,7 @@ const LandingPage = () => {
               className="text-center mb-16"
             >
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                <Trans 
+                <Trans
                   i18nKey="sectorsTitle"
                   components={[
                     <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent" />
@@ -294,7 +296,7 @@ const LandingPage = () => {
               className="text-center mb-16"
             >
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                <Trans 
+                <Trans
                   i18nKey="featuresTitle"
                   components={[
                     <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent" />
@@ -336,7 +338,7 @@ const LandingPage = () => {
               className="text-center mb-16"
             >
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                <Trans 
+                <Trans
                   i18nKey="pricingTitle"
                   components={[
                     <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent" />
@@ -360,7 +362,7 @@ const LandingPage = () => {
                 >
                   <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
                   <div className="mb-4">
-                    <span className="text-4xl font-bold">{plan.price > 0 ? `$${plan.price}`: t('free')}</span>
+                    <span className="text-4xl font-bold">{plan.price > 0 ? `$${plan.price}` : t('free')}</span>
                     <span className="text-slate-600 ml-1">{plan.duration}</span>
                   </div>
                   <ul className="space-y-3 mb-8 flex-grow">
@@ -371,7 +373,7 @@ const LandingPage = () => {
                       </li>
                     ))}
                   </ul>
-                  <Button 
+                  <Button
                     className="w-full mt-auto"
                     onClick={() => navigate('/register')}
                   >
@@ -425,7 +427,7 @@ const LandingPage = () => {
           </div>
         </footer>
 
-        <DemoModal open={showDemo} onClose={() => setShowDemo(false)} contentType={demoContent}/>
+        <DemoModal open={showDemo} onClose={() => setShowDemo(false)} contentType={demoContent} />
       </div>
     </>
   );
