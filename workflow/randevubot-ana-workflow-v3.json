@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Extract Message Data - Mesaj verisini normalize et\nconst body = $input.item.json.body;\n\nif (!body || !body.data) {\n  return [];\n}\n\nconst remoteJid = body.data?.key?.remoteJid || '';\nconst customerPhone = '+' + remoteJid.replace(/\\D/g, '');\nconst messageText = body.data?.message?.conversation\n  || body.data?.message?.extendedTextMessage?.text\n  || '';\nconst messageId = body.data?.key?.id || '';\nconst timestamp = body.date_time || new Date().toISOString();\nconst fromNumber = body.from || '';\n\nif (!messageText.trim()) {\n  return [];\n}\n\nreturn [{\n  json: {\n    customerPhone,\n    messageText,\n    messageId,\n    timestamp,\n    remoteJid,\n    fromNumber\n  }\n}];"
+        "jsCode": "// Extract Message Data - Mesaj verisini normalize et\nconst body = $input.item.json.body;\n\nif (!body || !body.data) {\n  return [];\n}\n\nconst remoteJid = body.data?.key?.remoteJid || '';\nconst customerPhone = '+' + remoteJid.replace(/\\D/g, '');\nconst messageText = body.data?.message?.conversation\n  || body.data?.message?.extendedTextMessage?.text\n  || '';\nconst messageId = body.data?.key?.id || '';\nconst timestamp = body.date_time || new Date().toISOString();\nconst instanceName = body.instance || '';\n\nif (!messageText.trim()) {\n  return [];\n}\n\nreturn [{\n  json: {\n    customerPhone,\n    messageText,\n    messageId,\n    timestamp,\n    remoteJid,\n    instanceName\n  }\n}];"
       },
       "id": "a1000001-0001-0001-0001-000000000001",
       "name": "Extract Message Data",
@@ -32,8 +32,8 @@
         "filters": {
           "conditions": [
             {
-              "keyName": "whatsapp_number",
-              "keyValue": "={{ $json.fromNumber }}"
+              "keyName": "instance_name",
+              "keyValue": "={{ $json.instanceName }}"
             }
           ]
         }
