@@ -9,7 +9,8 @@ import {
   Plus, Edit, Trash2, Phone, Mail, FileText, Users, Search, User,
   Download, Upload, ChevronLeft, ChevronRight, X, FileSpreadsheet,
   Eye, Star, Calendar, Clock, CreditCard, Tag, MessageSquare,
-  Crown, Filter, Send, ChevronDown,
+  Crown, Filter, Send, ChevronDown, ChevronUp, Wallet, Scissors,
+  CalendarCheck, CalendarX, CalendarClock,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import * as XLSX from 'xlsx';
@@ -57,6 +58,8 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
   const [drawerLoading, setDrawerLoading] = useState(true);
   const [respondingFeedbackId, setRespondingFeedbackId] = useState(null);
   const [adminResponseText, setAdminResponseText] = useState('');
+  const [expandedApptId, setExpandedApptId] = useState(null);
+  const [historyFilter, setHistoryFilter] = useState('all'); // all, upcoming, completed, cancelled
 
   // Bilgiler tab state
   const [profileEdit, setProfileEdit] = useState({});
@@ -272,58 +275,227 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                 </div>
               ) : (
                 <>
-                  {/* GEÇMİŞ TAB */}
-                  {activeTab === 'history' && (
-                    <div className="space-y-3">
-                      {appointments.length === 0 ? (
-                        <div className="text-center py-8">
-                          <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                          <p className="text-slate-500">{t('noAppointmentHistory')}</p>
-                        </div>
-                      ) : (
-                        appointments.map(appt => {
-                          const services = appt.appointment_services?.length > 0
-                            ? appt.appointment_services.map(as => as.company_services?.description).filter(Boolean)
-                            : [appt.company_services?.description].filter(Boolean);
-                          const totalPrice = appt.appointment_services?.length > 0
-                            ? appt.appointment_services.reduce((s, as) => s + (as.company_services?.price || 0), 0)
-                            : (appt.company_services?.price || 0);
-                          const duration = appt.total_duration || appt.company_services?.duration || 0;
+                  {/* GEÇMİŞ TAB — Detaylı Randevu Kayıtları */}
+                  {activeTab === 'history' && (() => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const upcomingCount = appointments.filter(a => a.date >= today && a.status !== 'iptal').length;
+                    const completedCount = appointments.filter(a => a.status === 'onaylandı' && a.date < today).length;
+                    const cancelledCount = appointments.filter(a => a.status === 'iptal').length;
 
-                          return (
-                            <div key={appt.id} className="border rounded-xl p-3 hover:border-pink-200 transition-colors">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="w-4 h-4 text-slate-400" />
-                                  <span className="text-sm font-medium">{new Date(appt.date).toLocaleDateString()}</span>
-                                  <Clock className="w-3.5 h-3.5 text-slate-400" />
-                                  <span className="text-sm">{appt.time?.slice(0, 5)}</span>
-                                </div>
-                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[appt.status] || 'bg-slate-100 text-slate-600'}`}>
-                                  {appt.status}
-                                </span>
-                              </div>
-                              <p className="text-sm font-medium text-slate-800">{services.join(' + ') || t('unknownService')}</p>
-                              <div className="flex items-center justify-between mt-1.5 text-xs text-slate-500">
-                                <span className="flex items-center gap-1">
-                                  {appt.company_users && (
-                                    <>
-                                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: appt.company_users.color || '#9333EA' }} />
-                                      {appt.company_users.name}
-                                    </>
-                                  )}
-                                </span>
-                                <div className="flex items-center gap-3">
-                                  {duration > 0 && <span>{duration} dk</span>}
-                                  {totalPrice > 0 && <span className="font-semibold text-slate-700">{totalPrice.toLocaleString()} TL</span>}
-                                </div>
-                              </div>
+                    const filteredAppts = appointments.filter(a => {
+                      if (historyFilter === 'upcoming') return a.date >= today && a.status !== 'iptal';
+                      if (historyFilter === 'completed') return a.status === 'onaylandı' && a.date < today;
+                      if (historyFilter === 'cancelled') return a.status === 'iptal';
+                      return true;
+                    });
+
+                    const paymentMethodLabels = {
+                      cash: t('cash') || 'Nakit',
+                      card: t('card') || 'Kart',
+                      transfer: t('transfer') || 'Havale',
+                      other: t('otherPayment') || 'Diğer',
+                    };
+
+                    return (
+                      <div className="space-y-3">
+                        {/* Özet sayaçlar */}
+                        <div className="grid grid-cols-3 gap-2 mb-1">
+                          <button
+                            onClick={() => setHistoryFilter(historyFilter === 'upcoming' ? 'all' : 'upcoming')}
+                            className={`flex items-center gap-1.5 p-2 rounded-lg border text-xs font-medium transition-all ${
+                              historyFilter === 'upcoming' ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200'
+                            }`}
+                          >
+                            <CalendarClock className="w-3.5 h-3.5" />
+                            <span>{upcomingCount}</span>
+                            <span className="hidden sm:inline">{t('upcoming') || 'Yaklaşan'}</span>
+                          </button>
+                          <button
+                            onClick={() => setHistoryFilter(historyFilter === 'completed' ? 'all' : 'completed')}
+                            className={`flex items-center gap-1.5 p-2 rounded-lg border text-xs font-medium transition-all ${
+                              historyFilter === 'completed' ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-slate-200 text-slate-600 hover:border-green-200'
+                            }`}
+                          >
+                            <CalendarCheck className="w-3.5 h-3.5" />
+                            <span>{completedCount}</span>
+                            <span className="hidden sm:inline">{t('completed') || 'Tamamlanan'}</span>
+                          </button>
+                          <button
+                            onClick={() => setHistoryFilter(historyFilter === 'cancelled' ? 'all' : 'cancelled')}
+                            className={`flex items-center gap-1.5 p-2 rounded-lg border text-xs font-medium transition-all ${
+                              historyFilter === 'cancelled' ? 'bg-red-50 border-red-300 text-red-700' : 'bg-white border-slate-200 text-slate-600 hover:border-red-200'
+                            }`}
+                          >
+                            <CalendarX className="w-3.5 h-3.5" />
+                            <span>{cancelledCount}</span>
+                            <span className="hidden sm:inline">{t('cancelledAppointments') || 'İptal'}</span>
+                          </button>
+                        </div>
+
+                        {filteredAppts.length === 0 ? (
+                          <div className="text-center py-8">
+                            <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                            <p className="text-slate-500">{t('noAppointmentHistory')}</p>
+                          </div>
+                        ) : (
+                          /* Timeline */
+                          <div className="relative">
+                            <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-slate-200" />
+                            <div className="space-y-3">
+                              {filteredAppts.map(appt => {
+                                const isExpanded = expandedApptId === appt.id;
+                                const serviceList = appt.appointment_services?.length > 0
+                                  ? appt.appointment_services.map(as => as.company_services).filter(Boolean)
+                                  : (appt.company_services ? [appt.company_services] : []);
+                                const serviceNames = serviceList.map(s => s.description).filter(Boolean);
+                                const totalPrice = serviceList.reduce((s, svc) => s + (svc.price || 0), 0);
+                                const duration = appt.total_duration || appt.company_services?.duration || 0;
+                                const isUpcoming = appt.date >= today && appt.status !== 'iptal';
+                                const endTime = appt.time && duration > 0
+                                  ? (() => { const [h, m] = appt.time.split(':').map(Number); const end = h * 60 + m + duration; return `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`; })()
+                                  : null;
+
+                                return (
+                                  <div key={appt.id} className="relative pl-9">
+                                    {/* Timeline dot */}
+                                    <div className={`absolute left-[9px] top-3 w-3 h-3 rounded-full border-2 border-white z-10 ${
+                                      appt.status === 'iptal' ? 'bg-red-400' : isUpcoming ? 'bg-blue-400' : 'bg-green-400'
+                                    }`} />
+
+                                    <div
+                                      className={`border rounded-xl overflow-hidden transition-all cursor-pointer ${
+                                        isExpanded ? 'border-pink-300 shadow-sm' : 'border-slate-200 hover:border-pink-200'
+                                      } ${isUpcoming ? 'bg-blue-50/30' : ''}`}
+                                      onClick={() => setExpandedApptId(isExpanded ? null : appt.id)}
+                                    >
+                                      {/* Özet satır */}
+                                      <div className="p-3">
+                                        <div className="flex items-center justify-between mb-1.5">
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-sm font-semibold text-slate-800">
+                                              {new Date(appt.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                            </span>
+                                            <span className="text-sm text-slate-500">{appt.time?.slice(0, 5)}{endTime ? ` - ${endTime}` : ''}</span>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${statusColors[appt.status] || 'bg-slate-100 text-slate-600'}`}>
+                                              {appt.status}
+                                            </span>
+                                            {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                                          </div>
+                                        </div>
+
+                                        <p className="text-sm font-medium text-slate-700">{serviceNames.join(' + ') || t('unknownService')}</p>
+
+                                        <div className="flex items-center justify-between mt-1.5">
+                                          <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                                            {appt.company_users && (
+                                              <>
+                                                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: appt.company_users.color || '#9333EA' }} />
+                                                {appt.company_users.name}
+                                              </>
+                                            )}
+                                          </span>
+                                          <div className="flex items-center gap-2 text-xs">
+                                            {duration > 0 && <span className="text-slate-400">{duration} dk</span>}
+                                            {totalPrice > 0 && <span className="font-bold text-slate-800">{totalPrice.toLocaleString()} TL</span>}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* Genişletilmiş detay */}
+                                      <AnimatePresence>
+                                        {isExpanded && (
+                                          <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="overflow-hidden"
+                                          >
+                                            <div className="px-3 pb-3 pt-0 border-t border-slate-100">
+                                              {/* Hizmet detayları — her biri ayrı satır */}
+                                              {serviceList.length > 0 && (
+                                                <div className="mt-2.5 mb-2">
+                                                  <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5">{t('services') || 'Hizmetler'}</p>
+                                                  <div className="space-y-1.5">
+                                                    {serviceList.map((svc, idx) => (
+                                                      <div key={idx} className="flex items-center justify-between bg-slate-50 rounded-lg px-2.5 py-1.5">
+                                                        <div className="flex items-center gap-2">
+                                                          <Scissors className="w-3.5 h-3.5 text-purple-400" />
+                                                          <span className="text-xs font-medium text-slate-700">{svc.description}</span>
+                                                          {svc.category && <span className="text-[10px] text-slate-400">({svc.category})</span>}
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                                                          <span>{svc.duration || 0} dk</span>
+                                                          {svc.price > 0 && <span className="font-semibold text-slate-700">{svc.price.toLocaleString()} TL</span>}
+                                                        </div>
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                </div>
+                                              )}
+
+                                              {/* Uzman bilgisi */}
+                                              {appt.company_users && (
+                                                <div className="flex items-center gap-2 mb-2 text-xs text-slate-600">
+                                                  <User className="w-3.5 h-3.5 text-slate-400" />
+                                                  <span>{t('expert') || 'Uzman'}:</span>
+                                                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: appt.company_users.color || '#9333EA' }} />
+                                                  <span className="font-medium">{appt.company_users.name}</span>
+                                                </div>
+                                              )}
+
+                                              {/* Ödeme bilgisi */}
+                                              {appt.payment && (
+                                                <div className="flex items-center gap-2 mb-2 text-xs text-slate-600">
+                                                  <Wallet className="w-3.5 h-3.5 text-green-500" />
+                                                  <span>{t('payment') || 'Ödeme'}:</span>
+                                                  <span className="font-medium text-green-700">{Number(appt.payment.amount).toLocaleString()} TL</span>
+                                                  <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-medium">
+                                                    {paymentMethodLabels[appt.payment.payment_method] || appt.payment.payment_method}
+                                                  </span>
+                                                </div>
+                                              )}
+                                              {!appt.payment && totalPrice > 0 && appt.status !== 'iptal' && (
+                                                <div className="flex items-center gap-2 mb-2 text-xs text-amber-600">
+                                                  <Wallet className="w-3.5 h-3.5" />
+                                                  <span>{t('paymentNotRecorded') || 'Ödeme kaydı yok'}</span>
+                                                </div>
+                                              )}
+
+                                              {/* Süre özeti */}
+                                              <div className="flex items-center gap-2 mb-2 text-xs text-slate-600">
+                                                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                                <span>{t('totalDuration')}: <span className="font-medium">{duration} dk</span></span>
+                                                {serviceList.length > 1 && <span className="text-slate-400">({serviceList.length} {t('services') || 'hizmet'})</span>}
+                                              </div>
+
+                                              {/* Notlar */}
+                                              {appt.notes && (
+                                                <div className="mt-2 bg-amber-50 rounded-lg p-2 text-xs text-amber-800">
+                                                  <span className="font-medium">{t('customerNotes')}:</span> {appt.notes}
+                                                </div>
+                                              )}
+
+                                              {/* Oluşturulma tarihi */}
+                                              <div className="mt-2 text-[10px] text-slate-400">
+                                                {t('createdAt') || 'Kayıt'}: {new Date(appt.created_at).toLocaleString('tr-TR')}
+                                              </div>
+                                            </div>
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* YORUMLAR TAB */}
                   {activeTab === 'feedback' && (

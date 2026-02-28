@@ -25,16 +25,16 @@ export const getCustomersWithStats = async (companyId, filters = {}) => {
 };
 
 /**
- * Müşterinin randevu geçmişini getir
+ * Müşterinin randevu geçmişini getir (detaylı: hizmetler, uzman, ödeme bilgisi)
  */
 export const getCustomerAppointments = async (customerId, companyId) => {
   const { data, error } = await supabase
     .from('appointments')
     .select(`
-      id, date, time, status, total_duration, created_at,
-      company_services(id, description, duration, price),
+      id, date, time, status, total_duration, notes, created_at,
+      company_services(id, description, duration, price, category, color),
       company_users(id, name, color),
-      appointment_services(service_id, company_services(id, description, duration, price))
+      appointment_services(service_id, company_services(id, description, duration, price, category, color))
     `)
     .eq('customer_id', customerId)
     .eq('company_id', companyId)
@@ -42,7 +42,29 @@ export const getCustomerAppointments = async (customerId, companyId) => {
     .order('time', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+
+  // Her randevu için ödeme bilgisini de çek
+  const appointmentIds = (data || []).map(a => a.id);
+  let payments = {};
+  if (appointmentIds.length > 0) {
+    const { data: txData } = await supabase
+      .from('transactions')
+      .select('appointment_id, amount, payment_method, transaction_date')
+      .in('appointment_id', appointmentIds)
+      .eq('type', 'income');
+
+    if (txData) {
+      txData.forEach(tx => {
+        payments[tx.appointment_id] = tx;
+      });
+    }
+  }
+
+  // Randevulara ödeme bilgisini ekle
+  return (data || []).map(appt => ({
+    ...appt,
+    payment: payments[appt.id] || null,
+  }));
 };
 
 /**
