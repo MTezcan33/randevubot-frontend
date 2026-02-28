@@ -347,6 +347,44 @@ export const resources = {
       serviceDurationRequired: "Süre zorunludur.",
       save: "Kaydet",
 
+      // Hizmet detay alanları
+      serviceContent: "Hizmet İçeriği",
+      serviceContentPlaceholder: "Bu hizmette neler yapılır? Hangi ürünler/teknikler kullanılır?",
+      preparationInfo: "Hazırlık Talimatları",
+      preparationInfoPlaceholder: "Müşterinin randevu öncesinde bilmesi gerekenler...",
+      contraindications: "Kontra-endikasyonlar",
+      contraindicationsPlaceholder: "Bu hizmet kimler için uygun değildir...",
+      detailedInfo: "Detaylı Bilgi",
+      hasDetailedInfo: "Detaylı bilgi mevcut",
+
+      // Uzman-hizmet seçimi
+      expertServices: "Hizmetler",
+      expertServicesSubtitle: "Bu uzmanın sunduğu hizmetleri seçin",
+      selectAll: "Tümünü Seç",
+      deselectAll: "Tümünü Kaldır",
+      servicesSelected: "{{count}} hizmet seçili",
+      noServicesYet: "Henüz hizmet eklenmemiş. Önce Hizmetler sayfasından hizmet ekleyin.",
+      servicesAssigned: "{{count}} hizmet atanmış",
+      editStaff: "Uzmanı Düzenle",
+      deleteStaff: "Uzmanı Sil",
+      deleteStaffConfirm: "adlı uzmanı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+      staffName: "İsim Soyisim",
+      email: "E-posta",
+      phone: "Telefon",
+      role: "Rol",
+      color: "Renk",
+      updated: "güncellendi",
+      added: "eklendi",
+      operationFailed: "İşlem başarısız oldu.",
+
+      // Çoklu hizmet randevu
+      selectServices: "Hizmet Seçin (birden fazla seçebilirsiniz)",
+      totalDuration: "Toplam Süre",
+      totalPrice: "Toplam Fiyat",
+      conflictWarning: "Çakışma Uyarısı",
+      conflictMessage: "Bu uzmanın {{time}} saatleri arasında başka bir randevusu var.",
+      selectedServices: "{{count}} hizmet",
+
       // Customers Page
       customersTitle: "Müşteriler",
       customers: "Müşteriler",
@@ -1097,6 +1135,44 @@ export const resources = {
       serviceDurationRequired: "Duration is required.",
       save: "Save",
 
+      // Service detail fields
+      serviceContent: "Service Content",
+      serviceContentPlaceholder: "What does this service include? What products/techniques are used?",
+      preparationInfo: "Preparation Instructions",
+      preparationInfoPlaceholder: "What the customer should know before the appointment...",
+      contraindications: "Contraindications",
+      contraindicationsPlaceholder: "This service is not suitable for...",
+      detailedInfo: "Detailed Info",
+      hasDetailedInfo: "Detailed info available",
+
+      // Expert-service selection
+      expertServices: "Services",
+      expertServicesSubtitle: "Select the services this expert provides",
+      selectAll: "Select All",
+      deselectAll: "Deselect All",
+      servicesSelected: "{{count}} services selected",
+      noServicesYet: "No services added yet. Add services from the Services page first.",
+      servicesAssigned: "{{count}} services assigned",
+      editStaff: "Edit Expert",
+      deleteStaff: "Delete Expert",
+      deleteStaffConfirm: "Are you sure you want to delete this expert? This action cannot be undone.",
+      staffName: "Full Name",
+      email: "Email",
+      phone: "Phone",
+      role: "Role",
+      color: "Color",
+      updated: "updated",
+      added: "added",
+      operationFailed: "Operation failed.",
+
+      // Multi-service appointment
+      selectServices: "Select Services (you can select multiple)",
+      totalDuration: "Total Duration",
+      totalPrice: "Total Price",
+      conflictWarning: "Conflict Warning",
+      conflictMessage: "This expert has another appointment between {{time}}.",
+      selectedServices: "{{count}} services",
+
       // Customers Page
       customersTitle: "Customers",
       customers: "Customers",
@@ -1846,6 +1922,44 @@ export const resources = {
       serviceNameRequired: "Название услуги обязательно.",
       serviceDurationRequired: "Длительность обязательна.",
       save: "Сохранить",
+
+      // Детали услуги
+      serviceContent: "Содержание услуги",
+      serviceContentPlaceholder: "Что включает эта услуга? Какие продукты/техники используются?",
+      preparationInfo: "Инструкции по подготовке",
+      preparationInfoPlaceholder: "Что клиент должен знать перед визитом...",
+      contraindications: "Противопоказания",
+      contraindicationsPlaceholder: "Эта услуга не подходит для...",
+      detailedInfo: "Подробная информация",
+      hasDetailedInfo: "Подробная информация доступна",
+
+      // Выбор услуг специалиста
+      expertServices: "Услуги",
+      expertServicesSubtitle: "Выберите услуги, которые предоставляет этот специалист",
+      selectAll: "Выбрать все",
+      deselectAll: "Снять все",
+      servicesSelected: "{{count}} услуг выбрано",
+      noServicesYet: "Услуги пока не добавлены. Сначала добавьте услуги на странице Услуг.",
+      servicesAssigned: "{{count}} услуг назначено",
+      editStaff: "Редактировать специалиста",
+      deleteStaff: "Удалить специалиста",
+      deleteStaffConfirm: "Вы уверены, что хотите удалить этого специалиста? Это действие нельзя отменить.",
+      staffName: "Имя и фамилия",
+      email: "Эл. почта",
+      phone: "Телефон",
+      role: "Роль",
+      color: "Цвет",
+      updated: "обновлён",
+      added: "добавлен",
+      operationFailed: "Операция не удалась.",
+
+      // Мульти-услуга запись
+      selectServices: "Выберите услуги (можно выбрать несколько)",
+      totalDuration: "Общая длительность",
+      totalPrice: "Общая стоимость",
+      conflictWarning: "Предупреждение о конфликте",
+      conflictMessage: "У этого специалиста другая запись между {{time}}.",
+      selectedServices: "{{count}} услуг",
 
       // Customers Page
       customersTitle: "Клиенты",

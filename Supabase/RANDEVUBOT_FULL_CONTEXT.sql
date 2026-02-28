@@ -1091,3 +1091,65 @@ COMMENT ON COLUMN public.company_services.notes IS 'Hizmet hakkında ek açıkla
 COMMENT ON COLUMN public.company_services.pdf_url IS 'Supabase Storage public-files/services/{company_id}/ altındaki PDF broşür URL';
 COMMENT ON COLUMN public.company_services.color IS 'Takvim görünümü için renk (HEX, varsayılan: mor #9333EA)';
 COMMENT ON COLUMN public.company_services.is_active IS 'Aktif/pasif toggle - pasif hizmetler randevu formunda görünmez';
+
+
+-- =============================================================================
+-- BÖLÜM 12: HİZMET DETAY ALANLARI + JUNCTION TABLOLAR
+-- Tarih: 2026-02-28
+-- Amaç: Hizmetlere detaylı bilgi alanları, uzman↔hizmet ve randevu↔hizmet
+--        çoka-çok ilişkileri için junction tablolar
+-- =============================================================================
+
+-- 12a. company_services tablosuna detaylı bilgi sütunları
+ALTER TABLE public.company_services
+  ADD COLUMN IF NOT EXISTS service_content TEXT,
+  ADD COLUMN IF NOT EXISTS preparation_info TEXT,
+  ADD COLUMN IF NOT EXISTS contraindications TEXT;
+
+COMMENT ON COLUMN public.company_services.service_content IS 'Hizmet İçeriği — neler dahil, hangi ürünler/teknikler kullanılır';
+COMMENT ON COLUMN public.company_services.preparation_info IS 'Hazırlık Talimatları — müşterinin randevu öncesinde bilmesi gerekenler';
+COMMENT ON COLUMN public.company_services.contraindications IS 'Kontra-endikasyonlar — bu hizmet kimler için uygun değildir';
+
+-- 12b. appointments tablosuna toplam süre sütunu (çoklu hizmet desteği)
+ALTER TABLE public.appointments
+  ADD COLUMN IF NOT EXISTS total_duration INTEGER;
+
+COMMENT ON COLUMN public.appointments.total_duration IS 'Toplam süre (dk) — birden fazla hizmetin toplam süresi';
+
+-- 12c. expert_services junction tablosu (uzman ↔ hizmet çoka-çok)
+CREATE TABLE IF NOT EXISTS public.expert_services (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  expert_id uuid NOT NULL REFERENCES public.company_users(id) ON DELETE CASCADE,
+  service_id uuid NOT NULL REFERENCES public.company_services(id) ON DELETE CASCADE,
+  company_id uuid NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(expert_id, service_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_expert_services_expert ON public.expert_services(expert_id);
+CREATE INDEX IF NOT EXISTS idx_expert_services_service ON public.expert_services(service_id);
+CREATE INDEX IF NOT EXISTS idx_expert_services_company ON public.expert_services(company_id);
+
+ALTER TABLE public.expert_services ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own company expert_services" ON public.expert_services
+  FOR ALL USING (company_id IN (SELECT id FROM companies WHERE owner_id = auth.uid()));
+
+-- 12d. appointment_services junction tablosu (randevu ↔ hizmet çoka-çok)
+CREATE TABLE IF NOT EXISTS public.appointment_services (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  appointment_id uuid NOT NULL REFERENCES public.appointments(id) ON DELETE CASCADE,
+  service_id uuid NOT NULL REFERENCES public.company_services(id) ON DELETE CASCADE,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(appointment_id, service_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_appointment_services_appointment ON public.appointment_services(appointment_id);
+CREATE INDEX IF NOT EXISTS idx_appointment_services_service ON public.appointment_services(service_id);
+
+ALTER TABLE public.appointment_services ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own appointment_services" ON public.appointment_services
+  FOR ALL USING (appointment_id IN (
+    SELECT id FROM appointments WHERE company_id IN (
+      SELECT id FROM companies WHERE owner_id = auth.uid()
+    )
+  ));
