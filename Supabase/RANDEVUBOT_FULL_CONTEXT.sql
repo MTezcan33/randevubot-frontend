@@ -1253,3 +1253,389 @@ BEGIN
   RETURN v_appointment_id;
 END;
 $$ LANGUAGE plpgsql;
+
+-- =============================================================================
+-- BÖLÜM 14: WHATSAPP BOT OPTİMİZASYON RPC FONKSİYONLARI
+-- Tarih: 2026-02-28
+-- Amaç: N8N WhatsApp bot workflow'unu optimize eden RPC fonksiyonları
+--        Pre-fetch context, available slots, dedup, side-effect'li CRUD
+-- =============================================================================
+
+-- 14.0 Appointment default status düzeltmesi
+ALTER TABLE public.appointments ALTER COLUMN status SET DEFAULT 'beklemede';
+
+-- 14a. bot_get_company_context: Tek sorguda tüm firma verilerini getirir
+-- AI Agent'a context olarak enjekte edilir (5 tool call yerine 1 RPC)
+CREATE OR REPLACE FUNCTION public.bot_get_company_context(p_company_id UUID)
+RETURNS JSONB AS $$
+DECLARE
+  v_result JSONB;
+BEGIN
+  SELECT jsonb_build_object(
+    'experts', (
+      SELECT COALESCE(jsonb_agg(jsonb_build_object(
+        'id', cu.id, 'name', cu.name, 'role', cu.role,
+        'lunch_start', cu.general_lunch_start_time,
+        'lunch_end', cu.general_lunch_end_time
+      )), '[]'::jsonb)
+      FROM public.company_users cu
+      WHERE cu.company_id = p_company_id AND cu.role = 'Uzman'
+    ),
+    'services', (
+      SELECT COALESCE(jsonb_agg(jsonb_build_object(
+        'id', cs.id, 'description', cs.description,
+        'duration', cs.duration, 'price', cs.price,
+        'category', cs.category,
+        'service_content', cs.service_content,
+        'preparation_info', cs.preparation_info,
+        'contraindications', cs.contraindications
+      )), '[]'::jsonb)
+      FROM public.company_services cs
+      WHERE cs.company_id = p_company_id AND cs.is_active = true
+    ),
+    'expert_services', (
+      SELECT COALESCE(jsonb_agg(jsonb_build_object(
+        'expert_id', es.expert_id, 'service_id', es.service_id
+      )), '[]'::jsonb)
+      FROM public.expert_services es
+      WHERE es.company_id = p_company_id
+    ),
+    'working_hours', (
+      SELECT COALESCE(jsonb_agg(jsonb_build_object(
+        'expert_id', wh.expert_id, 'day', wh.day,
+        'is_open', wh.is_open, 'start_time', wh.start_time,
+        'end_time', wh.end_time
+      )), '[]'::jsonb)
+      FROM public.company_working_hours wh
+      WHERE wh.company_id = p_company_id
+    ),
+    'holidays', (
+      SELECT COALESCE(jsonb_agg(jsonb_build_object(
+        'date', ch.date, 'description', ch.description,
+        'expert_id', ch.expert_id
+      )), '[]'::jsonb)
+      FROM public.company_holidays ch
+      WHERE ch.company_id = p_company_id
+        AND ch.date >= CURRENT_DATE
+    )
+  ) INTO v_result;
+
+  RETURN v_result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 14b. bot_get_available_slots: Müsait randevu slotlarını döndürür
+-- Çalışma saatleri + tatiller + mevcut randevuları birleştirerek hesaplar
+CREATE OR REPLACE FUNCTION public.bot_get_available_slots(
+  p_company_id UUID,
+  p_expert_id UUID,
+  p_date DATE,
+  p_service_duration INTEGER DEFAULT 30
+)
+RETURNS TABLE(
+  slot_time TIME,
+  is_available BOOLEAN
+) AS $$
+DECLARE
+  v_day_name TEXT;
+  v_start_time TIME;
+  v_end_time TIME;
+  v_is_open BOOLEAN;
+  v_lunch_start TIME;
+  v_lunch_end TIME;
+  v_is_holiday BOOLEAN;
+  v_slot TIME;
+BEGIN
+  -- Gün adını İngilizce al (DB'de İngilizce saklanıyor)
+  v_day_name := trim(to_char(p_date, 'Day'));
+
+  -- Tatil günü mü kontrol et
+  SELECT EXISTS(
+    SELECT 1 FROM public.company_holidays
+    WHERE company_id = p_company_id
+      AND date = p_date
+      AND (expert_id = p_expert_id OR expert_id IS NULL)
+  ) INTO v_is_holiday;
+
+  IF v_is_holiday THEN RETURN; END IF;
+
+  -- Uzmanın bu gün çalışma saatlerini al
+  SELECT wh.start_time, wh.end_time, wh.is_open
+  INTO v_start_time, v_end_time, v_is_open
+  FROM public.company_working_hours wh
+  WHERE wh.company_id = p_company_id
+    AND wh.expert_id = p_expert_id
+    AND wh.day = v_day_name;
+
+  -- Uzman bazlı kayıt yoksa firma geneli kontrol et
+  IF NOT FOUND THEN
+    SELECT wh.start_time, wh.end_time, wh.is_open
+    INTO v_start_time, v_end_time, v_is_open
+    FROM public.company_working_hours wh
+    WHERE wh.company_id = p_company_id
+      AND wh.expert_id IS NULL
+      AND wh.day = v_day_name;
+  END IF;
+
+  IF NOT FOUND OR NOT v_is_open THEN RETURN; END IF;
+
+  -- Öğle arası bilgisini al
+  SELECT general_lunch_start_time, general_lunch_end_time
+  INTO v_lunch_start, v_lunch_end
+  FROM public.company_users
+  WHERE id = p_expert_id;
+
+  -- 30 dakikalık aralıklarla slot üret
+  v_slot := v_start_time;
+  WHILE v_slot + (p_service_duration || ' minutes')::interval <= v_end_time LOOP
+    -- Öğle arası atla
+    IF v_lunch_start IS NOT NULL AND v_lunch_end IS NOT NULL
+       AND v_slot >= v_lunch_start AND v_slot < v_lunch_end THEN
+      v_slot := v_slot + interval '30 minutes';
+      CONTINUE;
+    END IF;
+
+    -- Slot mevcut randevularla çakışıyor mu kontrol et
+    RETURN QUERY
+    SELECT v_slot,
+           NOT EXISTS(
+             SELECT 1 FROM public.appointments a
+             LEFT JOIN public.company_services cs ON cs.id = a.service_id
+             WHERE a.expert_id = p_expert_id
+               AND a.date = p_date
+               AND a.status != 'iptal'
+               AND v_slot < a.time + (COALESCE(a.total_duration, cs.duration, 30) || ' minutes')::interval
+               AND v_slot + (p_service_duration || ' minutes')::interval > a.time
+           );
+
+    v_slot := v_slot + interval '30 minutes';
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 14c. bot_get_customer_by_phone: Telefon numarasına göre müşteri arama
+-- Get All Customers (tüm müşteriler) yerine tek kayıt döndürür
+CREATE OR REPLACE FUNCTION public.bot_get_customer_by_phone(
+  p_company_id UUID,
+  p_phone TEXT
+)
+RETURNS TABLE(
+  id UUID,
+  name TEXT,
+  phone TEXT,
+  email TEXT,
+  notes TEXT,
+  birthday DATE,
+  is_vip BOOLEAN,
+  preferred_expert_id UUID,
+  total_visits INTEGER,
+  total_spent DECIMAL(10,2),
+  tags JSONB
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT c.id, c.name, c.phone, c.email, c.notes,
+         c.birthday, c.is_vip, c.preferred_expert_id,
+         c.total_visits, c.total_spent, c.tags
+  FROM public.customers c
+  WHERE c.company_id = p_company_id
+    AND c.phone = p_phone;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 14d. bot_create_appointment_with_side_effects: Randevu + bildirim + stats atomik
+-- create_appointment_multi_service + admin_notification + preferred_expert güncelleme
+CREATE OR REPLACE FUNCTION public.bot_create_appointment_with_side_effects(
+  p_company_id UUID,
+  p_customer_id UUID,
+  p_expert_id UUID,
+  p_service_ids UUID[],
+  p_date DATE,
+  p_time TIME,
+  p_payment_method TEXT DEFAULT 'cash'
+)
+RETURNS UUID AS $$
+DECLARE
+  v_appointment_id UUID;
+  v_total_price DECIMAL(10,2);
+  v_total_duration INTEGER;
+  v_service_desc TEXT;
+  v_customer_name TEXT;
+  v_expert_name TEXT;
+BEGIN
+  -- Mevcut multi-service RPC'yi kullan
+  v_appointment_id := public.create_appointment_multi_service(
+    p_company_id, p_customer_id, p_expert_id, p_service_ids, p_date, p_time
+  );
+
+  -- Toplam fiyat, süre ve hizmet açıklamasını hesapla
+  SELECT COALESCE(SUM(price), 0), COALESCE(SUM(duration), 0),
+         string_agg(description, ', ')
+  INTO v_total_price, v_total_duration, v_service_desc
+  FROM public.company_services WHERE id = ANY(p_service_ids);
+
+  -- Bildirim için isimleri al
+  SELECT name INTO v_customer_name FROM public.customers WHERE id = p_customer_id;
+  SELECT name INTO v_expert_name FROM public.company_users WHERE id = p_expert_id;
+
+  -- Admin bildirimi oluştur
+  INSERT INTO public.admin_notifications (company_id, type, title, message, related_id)
+  VALUES (
+    p_company_id, 'new_appointment',
+    'Yeni Randevu (WhatsApp Bot)',
+    v_customer_name || ' - ' || v_service_desc || ' (' ||
+    to_char(p_date, 'DD.MM.YYYY') || ' ' || to_char(p_time, 'HH24:MI') || ') - ' || v_expert_name,
+    v_appointment_id
+  );
+
+  -- Müşteri tercih edilen uzmanı güncelle (3+ ziyarette)
+  IF (
+    SELECT COUNT(*) FROM public.appointments
+    WHERE customer_id = p_customer_id AND expert_id = p_expert_id AND status != 'iptal'
+  ) >= 3 THEN
+    UPDATE public.customers SET preferred_expert_id = p_expert_id WHERE id = p_customer_id;
+  END IF;
+
+  RETURN v_appointment_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 14e. bot_cancel_appointment_with_side_effects: İptal + bildirim + stats atomik
+CREATE OR REPLACE FUNCTION public.bot_cancel_appointment_with_side_effects(
+  p_appointment_id UUID
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_appt RECORD;
+BEGIN
+  -- Randevu bilgilerini al
+  SELECT a.company_id, a.customer_id, a.expert_id, a.service_id, a.date, a.time,
+         c.name as customer_name, cs.description as service_desc
+  INTO v_appt
+  FROM public.appointments a
+  LEFT JOIN public.customers c ON c.id = a.customer_id
+  LEFT JOIN public.company_services cs ON cs.id = a.service_id
+  WHERE a.id = p_appointment_id;
+
+  IF NOT FOUND THEN RETURN FALSE; END IF;
+
+  -- Durumu iptal olarak güncelle
+  UPDATE public.appointments SET status = 'iptal' WHERE id = p_appointment_id;
+
+  -- Admin bildirimi oluştur
+  INSERT INTO public.admin_notifications (company_id, type, title, message, related_id)
+  VALUES (
+    v_appt.company_id, 'cancelled_appointment',
+    'Randevu İptal (WhatsApp Bot)',
+    COALESCE(v_appt.customer_name, 'Bilinmeyen') || ' - ' ||
+    COALESCE(v_appt.service_desc, 'Hizmet') || ' (' ||
+    to_char(v_appt.date, 'DD.MM.YYYY') || ' ' || to_char(v_appt.time, 'HH24:MI') || ')',
+    p_appointment_id
+  );
+
+  -- Müşteri istatistiklerini yeniden hesapla
+  PERFORM public.recalculate_customer_stats(v_appt.customer_id);
+
+  RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 14f. bot_check_message_dedup: Mesaj tekrar kontrolü (5 dk pencere)
+CREATE OR REPLACE FUNCTION public.bot_check_message_dedup(
+  p_message_id TEXT,
+  p_company_id UUID
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_exists BOOLEAN;
+BEGIN
+  -- Son 5 dakikada aynı mesaj işlenmiş mi kontrol et
+  SELECT EXISTS(
+    SELECT 1 FROM public.whatsapp_conversations
+    WHERE company_id = p_company_id
+      AND conversation_log = p_message_id
+      AND created_at > NOW() - INTERVAL '5 minutes'
+  ) INTO v_exists;
+
+  IF NOT v_exists THEN
+    -- Bu mesaj ID'sini logla
+    INSERT INTO public.whatsapp_conversations (company_id, conversation_log, created_at)
+    VALUES (p_company_id, p_message_id, NOW());
+  END IF;
+
+  RETURN v_exists; -- TRUE = zaten işlenmiş (atla), FALSE = yeni mesaj (işle)
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 14g. RPC fonksiyonlarına erişim izinleri
+GRANT EXECUTE ON FUNCTION public.bot_get_company_context TO service_role;
+GRANT EXECUTE ON FUNCTION public.bot_get_available_slots TO service_role;
+GRANT EXECUTE ON FUNCTION public.bot_get_customer_by_phone TO service_role;
+GRANT EXECUTE ON FUNCTION public.bot_create_appointment_with_side_effects TO service_role;
+GRANT EXECUTE ON FUNCTION public.bot_cancel_appointment_with_side_effects TO service_role;
+GRANT EXECUTE ON FUNCTION public.bot_check_message_dedup TO service_role;
+
+-- =============================================================================
+-- BÖLÜM 14h: RANDEVU ADMIN BİLDİRİM TRİGGER'I
+-- Amaç: Randevu oluşturma/iptal işlemlerinde otomatik admin bildirimi
+--        ve müşteri istatistik güncellemesi (workflow'dan bağımsız, DB katmanında)
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION public.trigger_bot_admin_notification()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_customer_name TEXT;
+  v_service_desc TEXT;
+  v_expert_name TEXT;
+  v_notification_type TEXT;
+  v_title TEXT;
+  v_message TEXT;
+BEGIN
+  -- Müşteri, hizmet ve uzman isimlerini al
+  SELECT name INTO v_customer_name FROM public.customers WHERE id = NEW.customer_id;
+  SELECT description INTO v_service_desc FROM public.company_services WHERE id = NEW.service_id;
+  SELECT name INTO v_expert_name FROM public.company_users WHERE id = NEW.expert_id;
+
+  -- Yeni randevu oluşturma (INSERT)
+  IF TG_OP = 'INSERT' THEN
+    v_notification_type := 'new_appointment';
+    v_title := 'Yeni Randevu';
+    v_message := COALESCE(v_customer_name, 'Müşteri') || ' - ' ||
+                 COALESCE(v_service_desc, 'Hizmet') || ' (' ||
+                 to_char(NEW.date, 'DD.MM.YYYY') || ' ' ||
+                 to_char(NEW.time, 'HH24:MI') || ')';
+    IF v_expert_name IS NOT NULL THEN
+      v_message := v_message || ' - ' || v_expert_name;
+    END IF;
+
+    INSERT INTO public.admin_notifications (company_id, type, title, message, related_id)
+    VALUES (NEW.company_id, v_notification_type, v_title, v_message, NEW.id);
+
+  -- Randevu iptali (UPDATE status → 'iptal')
+  ELSIF TG_OP = 'UPDATE' AND NEW.status = 'iptal' AND OLD.status != 'iptal' THEN
+    v_notification_type := 'cancelled_appointment';
+    v_title := 'Randevu İptal';
+    v_message := COALESCE(v_customer_name, 'Müşteri') || ' - ' ||
+                 COALESCE(v_service_desc, 'Hizmet') || ' (' ||
+                 to_char(NEW.date, 'DD.MM.YYYY') || ' ' ||
+                 to_char(NEW.time, 'HH24:MI') || ')';
+
+    INSERT INTO public.admin_notifications (company_id, type, title, message, related_id)
+    VALUES (NEW.company_id, v_notification_type, v_title, v_message, NEW.id);
+
+    -- Müşteri istatistiklerini yeniden hesapla
+    IF NEW.customer_id IS NOT NULL THEN
+      PERFORM public.recalculate_customer_stats(NEW.customer_id);
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger'ı appointments tablosuna bağla
+DROP TRIGGER IF EXISTS trg_bot_admin_notification ON public.appointments;
+CREATE TRIGGER trg_bot_admin_notification
+  AFTER INSERT OR UPDATE ON public.appointments
+  FOR EACH ROW
+  EXECUTE FUNCTION public.trigger_bot_admin_notification();

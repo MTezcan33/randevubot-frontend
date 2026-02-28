@@ -1,0 +1,642 @@
+{
+  "name": "randevubot-ana-workflow-v3",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "903de904-7556-4155-98f2-7129e8c14f2f",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "1fed6192-091e-4fd3-9b74-c2c7aac2f18c",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [-2800, 208],
+      "webhookId": "whatsapp-appointment-bot"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract Message Data - Mesaj verisini normalize et\nconst body = $input.item.json.body;\n\nif (!body || !body.data) {\n  return [];\n}\n\nconst remoteJid = body.data?.key?.remoteJid || '';\nconst customerPhone = '+' + remoteJid.replace(/\\D/g, '');\nconst messageText = body.data?.message?.conversation\n  || body.data?.message?.extendedTextMessage?.text\n  || '';\nconst messageId = body.data?.key?.id || '';\nconst timestamp = body.date_time || new Date().toISOString();\nconst fromNumber = body.from || '';\n\nif (!messageText.trim()) {\n  return [];\n}\n\nreturn [{\n  json: {\n    customerPhone,\n    messageText,\n    messageId,\n    timestamp,\n    remoteJid,\n    fromNumber\n  }\n}];"
+      },
+      "id": "a1000001-0001-0001-0001-000000000001",
+      "name": "Extract Message Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-2560, 208]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "companies",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "whatsapp_number",
+              "keyValue": "={{ $json.fromNumber }}"
+            }
+          ]
+        }
+      },
+      "id": "72e08e89-61b4-4cac-8300-09912532efbe",
+      "name": "Get Company by WhatsApp",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [-2320, 208],
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.id }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "6d0ea3bf-bed8-4a74-9e1f-b81cadc615ac",
+      "name": "Company Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-2080, 208]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    success: false,\n    error: 'Company not found',\n    customer_message: 'Bu telefon numarasına ait firma bulunamadı. Lütfen firma yetkilisiyle iletişime geçin.'\n  }\n}];"
+      },
+      "id": "5f9d0a4a-f711-4a21-b3dc-a93085fa6876",
+      "name": "Error - No Company",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-2080, 480]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseCode": 404 }
+      },
+      "id": "65dce4bf-58fd-4c73-83b6-5a217d92606e",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [-1840, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dedup Check - whatsapp_conversations tablosunda messageId kontrol et\nconst messageId = $('Extract Message Data').item.json.messageId;\nconst companyId = $('Get Company by WhatsApp').item.json.id;\n\nif (!messageId) {\n  return [{ json: { isDuplicate: false } }];\n}\n\n// Supabase REST API ile kontrol\nconst supabaseUrl = $env.SUPABASE_URL;\nconst supabaseKey = $env.SUPABASE_SERVICE_ROLE_KEY;\n\n// Son 5 dakikada ayni mesaj var mi kontrol et\nconst fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();\nconst checkUrl = `${supabaseUrl}/rest/v1/whatsapp_conversations?company_id=eq.${companyId}&conversation_log=eq.${encodeURIComponent(messageId)}&created_at=gte.${fiveMinAgo}&select=id&limit=1`;\n\nconst checkRes = await fetch(checkUrl, {\n  headers: {\n    'apikey': supabaseKey,\n    'Authorization': `Bearer ${supabaseKey}`\n  }\n});\nconst existing = await checkRes.json();\n\nif (existing && existing.length > 0) {\n  return [{ json: { isDuplicate: true } }];\n}\n\n// Mesaji logla\nawait fetch(`${supabaseUrl}/rest/v1/whatsapp_conversations`, {\n  method: 'POST',\n  headers: {\n    'apikey': supabaseKey,\n    'Authorization': `Bearer ${supabaseKey}`,\n    'Content-Type': 'application/json',\n    'Prefer': 'return=minimal'\n  },\n  body: JSON.stringify({\n    company_id: companyId,\n    conversation_log: messageId,\n    created_at: new Date().toISOString()\n  })\n});\n\nreturn [{ json: { isDuplicate: false } }];"
+      },
+      "id": "a1000001-0001-0001-0001-000000000005",
+      "name": "Dedup Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1840, 208]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.isDuplicate }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "a1000001-0001-0001-0001-000000000006",
+      "name": "Is Duplicate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-1600, 208]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pre-fetch Context - Firma verilerini 5 paralel Supabase REST sorgusuyla al\nconst companyId = $('Get Company by WhatsApp').item.json.id;\nconst supabaseUrl = $env.SUPABASE_URL;\nconst supabaseKey = $env.SUPABASE_SERVICE_ROLE_KEY;\n\nconst headers = {\n  'apikey': supabaseKey,\n  'Authorization': `Bearer ${supabaseKey}`\n};\n\n// 5 paralel sorgu\nconst [expertsRes, servicesRes, expertServicesRes, workingHoursRes, holidaysRes] = await Promise.all([\n  fetch(`${supabaseUrl}/rest/v1/company_users?company_id=eq.${companyId}&role=eq.Uzman&select=id,name,role,general_lunch_start_time,general_lunch_end_time`, { headers }),\n  fetch(`${supabaseUrl}/rest/v1/company_services?company_id=eq.${companyId}&is_active=eq.true&select=id,description,duration,price,category,service_content,preparation_info,contraindications`, { headers }),\n  fetch(`${supabaseUrl}/rest/v1/expert_services?company_id=eq.${companyId}&select=expert_id,service_id`, { headers }),\n  fetch(`${supabaseUrl}/rest/v1/company_working_hours?company_id=eq.${companyId}&select=expert_id,day,is_open,start_time,end_time`, { headers }),\n  fetch(`${supabaseUrl}/rest/v1/company_holidays?company_id=eq.${companyId}&date=gte.${new Date().toISOString().split('T')[0]}&select=date,description,expert_id`, { headers })\n]);\n\nconst [experts, services, expertServices, workingHours, holidays] = await Promise.all([\n  expertsRes.json(), servicesRes.json(), expertServicesRes.json(), workingHoursRes.json(), holidaysRes.json()\n]);\n\n// AI icin okunabilir formata cevir\nlet context = '';\n\nif (experts?.length) {\n  context += '### Uzmanlar\\n';\n  experts.forEach(e => {\n    context += `- ${e.name} (ID: ${e.id})`;\n    if (e.general_lunch_start_time) context += ` | Ogle arasi: ${e.general_lunch_start_time}-${e.general_lunch_end_time}`;\n    context += '\\n';\n  });\n}\n\nif (services?.length) {\n  context += '\\n### Hizmetler\\n';\n  services.forEach(s => {\n    context += `- ${s.description} (ID: ${s.id}) | ${s.duration} dk | ${s.price} TL`;\n    if (s.category) context += ` | Kategori: ${s.category}`;\n    context += '\\n';\n    if (s.service_content) context += `  Icerik: ${s.service_content}\\n`;\n    if (s.preparation_info) context += `  Hazirlik: ${s.preparation_info}\\n`;\n    if (s.contraindications) context += `  Kontra-endikasyon: ${s.contraindications}\\n`;\n  });\n}\n\nif (expertServices?.length) {\n  context += '\\n### Uzman-Hizmet Eslesmesi\\n';\n  const map = {};\n  expertServices.forEach(es => {\n    if (!map[es.expert_id]) map[es.expert_id] = [];\n    map[es.expert_id].push(es.service_id);\n  });\n  const expertNames = {};\n  experts?.forEach(e => expertNames[e.id] = e.name);\n  const serviceNames = {};\n  services?.forEach(s => serviceNames[s.id] = s.description);\n  Object.entries(map).forEach(([eid, sids]) => {\n    const eName = expertNames[eid] || eid;\n    const sNames = sids.map(sid => serviceNames[sid] || sid).join(', ');\n    context += `- ${eName}: ${sNames}\\n`;\n  });\n}\n\nif (workingHours?.length) {\n  context += '\\n### Calisma Saatleri\\n';\n  const expertNames = {};\n  experts?.forEach(e => expertNames[e.id] = e.name);\n  workingHours.filter(w => w.is_open).forEach(w => {\n    const expertName = w.expert_id ? (expertNames[w.expert_id] || w.expert_id) : 'Genel';\n    context += `- ${expertName} | ${w.day}: ${w.start_time}-${w.end_time}\\n`;\n  });\n}\n\nif (holidays?.length) {\n  context += '\\n### Tatil Gunleri\\n';\n  holidays.forEach(h => {\n    context += `- ${h.date}: ${h.description || 'Tatil'}`;\n    if (h.expert_id) context += ` (Sadece bir uzman)`;\n    context += '\\n';\n  });\n}\n\nconst today = new Date().toISOString().split('T')[0];\nconst tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];\n\nreturn [{ json: { context, today, tomorrow, companyId } }];"
+      },
+      "id": "a1000001-0001-0001-0001-000000000007",
+      "name": "Pre-fetch Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1360, 208]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tarih: {{ $('Pre-fetch Context').item.json.today }}\nSaat Dilimi: {{ $('Get Company by WhatsApp').item.json.timezone }}\nMusteri Telefonu: {{ $('Extract Message Data').item.json.customerPhone }}\nMesaj: {{ $('Extract Message Data').item.json.messageText }}\n\n## FIRMA BILGILERI\nFirma: {{ $('Get Company by WhatsApp').item.json.name }}\nAdres: {{ $('Get Company by WhatsApp').item.json.address }}\n\n## UZMANLAR, HIZMETLER, CALISMA SAATLERI\n{{ $('Pre-fetch Context').item.json.context }}\n\nSimdi musterinin mesajini analiz et ve gerekli islemleri yap.",
+        "options": {
+          "systemMessage": "=Sen {{ $('Get Company by WhatsApp').item.json.name }} firmasi icin WhatsApp randevu asistanisin.\n\n## KURALLAR\n- Musteri hangi dilde konusuyorsa o dilde cevap ver\n- Ilk mesajda kendini tanit: \"Merhaba, ben [firma adi] randevu asistaniyim\"\n- Samimi ve profesyonel ol, emoji kullan ama abartma\n- UUID'leri SADECE tool sonuclarindan al, uydurma\n- Eksik bilgi varsa sor, varsayimda bulunma\n- Firma yoneticisi, diger musteriler hakkinda bilgi paylasma\n- Randevuyu olusturduktan sonra son kez musteriden onay al\n- Yanitini sadece duz metin olarak ver, JSON formati kullanma\n\n## DURUM DEGERLERI (Turkce!)\n- beklemede = Onay bekliyor (yeni randevularda bunu kullan)\n- onaylandi = Admin tarafindan onaylandi\n- iptal = Iptal edildi\n\n## TARIH/SAAT ANLAMA\n- \"Bugun\" = Gunun tarihi (text prompt'ta verilir)\n- \"Yarin\" = Bugun + 1 gun\n- \"Pazartesi\" = Gelecek Pazartesi\n- \"Ogleden sonra\" = 14:00-16:00 arasi oner\n- \"Sabah\" = 09:00-11:00 arasi oner\n- Tarih formati: YYYY-MM-DD, Saat formati: HH:MM\n\n## GUN ADLARI (DB'de Ingilizce)\nPazartesi=Monday, Sali=Tuesday, Carsamba=Wednesday, Persembe=Thursday, Cuma=Friday, Cumartesi=Saturday, Pazar=Sunday\n\n## TOOL KULLANIM SIRASI\n\n### Randevu Olusturma:\n1. Find Customer by Phone → Musteri var mi kontrol et (telefon numarasiyla)\n2. (yoksa) Create Customer → Isim soyisim alip kaydet\n3. Get Working Hours → Uzmanin o gun calisip calismadigini kontrol et\n4. Get Company Holidays → Tatil gunu mu kontrol et\n5. Get Expert Appointments → Uzmanin o gundeki randevularini al, cakisma var mi kontrol et\n6. Get Expert Services → Uzman istenen hizmeti yapabiliyor mu dogrula\n7. Musteriye ozetle ve onay al\n8. Create Appointment → Randevuyu olustur\n\n### Randevu Iptali:\n1. Get Expert Appointments → Musterinin randevularini bul\n2. Cancel Appointment → Iptal et\n\n### Randevu Guncelleme:\n1. Get Expert Appointments → Mevcut randevuyu bul\n2. Update Appointment → Guncelle (status Turkce: beklemede/onaylandi/iptal)\n\n### Genel Sorular:\nContext'teki hizmet/uzman/calisma saati bilgilerini kullan, tool cagrisi gerekmez.\n\n## COKLU HIZMET\nMusteri birden fazla hizmet isteyebilir. Bu durumda:\n- Toplam sure = tum hizmet surelerinin toplami\n- Cakisma kontrolunde toplam sureyi kullan\n- Musteriye toplam sure ve toplam ucret bildir\n- Create Appointment'a ilk hizmetin ID'sini gonder, toplam sureyi belirt\n\n## UZMAN ESLESTIRME\nMusteri uzman belirtmezse:\n- Context'teki uzman-hizmet eslesmesinden istenen hizmetleri yapabilen uzmanlari bul\n- Birden fazla secenek varsa musteriye sor\n- Hicbir uzman yapamiyorsa musteriye bildir\n\n## VALIDASYON\n- Tarih >= bugun ve <= 30 gun sonra\n- Uzman o gun calisiyor mu? (Get Working Hours)\n- Tatil gunu mu? (Get Company Holidays)\n- Cakisma var mi? (Get Expert Appointments + hizmet suresi)\n- Uzman bu hizmeti yapabiliyor mu? (Get Expert Services)"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [-1040, 208],
+      "id": "2927a19a-c7eb-4cd2-aa99-f8a2693b1e19",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.3,
+          "topK": 40,
+          "topP": 0.95
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [-1600, 560],
+      "id": "35864825-398c-42bf-a9cf-e42bb9e88ec4",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "8nktYcYKBspNnYZX",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Extract Message Data').item.json.customerPhone + '_' + $('Get Company by WhatsApp').item.json.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [-1400, 560],
+      "id": "f2198b7d-43ab-4d6e-9b1d-6520d9e749a4",
+      "name": "Window Buffer Memory"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "customers",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "company_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Get Company by WhatsApp').item.json.id }}"
+            },
+            {
+              "keyName": "phone",
+              "condition": "eq",
+              "keyValue": "={{ $fromAI('phone', 'Customer phone number in +XX format', 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [-1920, 768],
+      "id": "a1000001-0001-0001-0001-000000000012",
+      "name": "Find Customer by Phone",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "customers",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Get Company by WhatsApp').item.json.id }}"
+            },
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $fromAI('customer_name', 'Customer full name in UPPERCASE (e.g., AHMET YILMAZ)', 'string') }}"
+            },
+            {
+              "fieldId": "phone",
+              "fieldValue": "={{ $('Extract Message Data').item.json.customerPhone }}"
+            },
+            {
+              "fieldId": "email",
+              "fieldValue": "={{ $fromAI('customer_email', 'Customer email address (optional, can be empty)', 'string') || null }}"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ $fromAI('customer_notes', 'Additional notes about customer (optional, can be empty)', 'string') || null }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [-1720, 768],
+      "id": "d6d570f1-3e0d-44e6-a9d7-3a4f740e6dca",
+      "name": "Create Customer",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "appointments",
+        "limit": 500,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "company_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Get Company by WhatsApp').item.json.id }}"
+            },
+            {
+              "keyName": "expert_id",
+              "condition": "eq",
+              "keyValue": "={{ $fromAI('expert_id', 'Expert UUID to check appointments for', 'string') }}"
+            },
+            {
+              "keyName": "date",
+              "condition": "gte",
+              "keyValue": "={{ new Date().toISOString().split('T')[0] }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [-1520, 768],
+      "id": "fda9f8fd-12d2-48c0-8aef-5aaf58144f1f",
+      "name": "Get Expert Appointments",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "company_working_hours",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "company_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Get Company by WhatsApp').item.json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [-1320, 768],
+      "id": "e8835ceb-9a00-43a4-9f52-e39f3e904f29",
+      "name": "Get Working Hours",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "company_holidays",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "company_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Get Company by WhatsApp').item.json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [-1120, 768],
+      "id": "44cf7556-2ded-4014-85fc-8d3e4abf8994",
+      "name": "Get Company Holidays",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "expert_services",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "company_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Get Company by WhatsApp').item.json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [-920, 768],
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Get Expert Services",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "appointments",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Get Company by WhatsApp').item.json.id }}"
+            },
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{ $fromAI('customer_id', 'Customer UUID from Find Customer by Phone tool', 'string') }}"
+            },
+            {
+              "fieldId": "expert_id",
+              "fieldValue": "={{ $fromAI('expert_id', 'Expert UUID from context', 'string') }}"
+            },
+            {
+              "fieldId": "service_id",
+              "fieldValue": "={{ $fromAI('service_id', 'Service UUID (first service if multiple)', 'string') }}"
+            },
+            {
+              "fieldId": "date",
+              "fieldValue": "={{ $fromAI('date', 'Appointment date in YYYY-MM-DD format', 'string') }}"
+            },
+            {
+              "fieldId": "time",
+              "fieldValue": "={{ $fromAI('time', 'Appointment time in HH:MM format', 'string') }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "beklemede"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [-720, 768],
+      "id": "3875b544-fefd-42f0-be2d-9493573fefea",
+      "name": "Create Appointment",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "appointments",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $fromAI('appointment_id', 'Appointment UUID to cancel', 'string') }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "iptal"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [-520, 768],
+      "id": "f7c4a2e2-420a-429e-b835-6f1cfa734fb4",
+      "name": "Cancel Appointment",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "appointments",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $fromAI('appointment_id', 'Appointment UUID to update', 'string') }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "date",
+              "fieldValue": "={{ $fromAI('date', 'New appointment date YYYY-MM-DD', 'string') }}"
+            },
+            {
+              "fieldId": "time",
+              "fieldValue": "={{ $fromAI('time', 'New appointment time HH:MM', 'string') }}"
+            },
+            {
+              "fieldId": "expert_id",
+              "fieldValue": "={{ $fromAI('expert_id', 'New expert UUID (optional)', 'string') }}"
+            },
+            {
+              "fieldId": "service_id",
+              "fieldValue": "={{ $fromAI('service_id', 'New service UUID (optional)', 'string') }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $fromAI('status', 'New status: beklemede, onaylandi, or iptal (Turkish only)', 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [-320, 768],
+      "id": "cd433c41-f65a-4c8e-9425-b2124b4f3709",
+      "name": "Update Appointment",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI Response - Sadeleistirilmis versiyon\nconst output = $input.item.json.output;\nlet message = '';\n\nif (typeof output === 'object' && output !== null) {\n  message = output.customer_message || output.text || JSON.stringify(output);\n} else if (typeof output === 'string') {\n  try {\n    const cleaned = output.replace(/```json?\\n?/g, '').replace(/```/g, '').trim();\n    if (cleaned.startsWith('{') || cleaned.startsWith('[')) {\n      const parsed = JSON.parse(cleaned);\n      message = parsed.customer_message || output;\n    } else {\n      message = output;\n    }\n  } catch {\n    message = output;\n  }\n} else {\n  message = 'Bir hata olustu. Lutfen tekrar deneyin.';\n}\n\nreturn [{ json: { customer_message: message } }];"
+      },
+      "id": "7f0a471b-b12f-4d26-a999-9cc1558bde65",
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-560, 208]
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('Get Company by WhatsApp').item.json.instance_name }}",
+        "remoteJid": "={{ $('Extract Message Data').item.json.remoteJid }}",
+        "messageText": "={{ $json.customer_message }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api-en.evolutionApi",
+      "typeVersion": 1,
+      "position": [-320, 208],
+      "id": "82aba99c-d33f-44c3-acc1-17e92e549290",
+      "name": "Send WhatsApp Message",
+      "credentials": {
+        "evolutionApi": {
+          "id": "wIR6KlP1wJan8RmF",
+          "name": "randevubot-global"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Error Handler - AI Agent hata durumunda fallback mesaj\nconst error = $input.item.json.error || $input.item.json.message || 'Bilinmeyen hata';\nconsole.error('AI Agent Error:', JSON.stringify(error));\n\nreturn [{\n  json: {\n    customer_message: 'Ozur dileriz, su an bir teknik sorun yasiyoruz. Lutfen birkac dakika sonra tekrar deneyin veya dogrudan salonumuzu arayin.'\n  }\n}];"
+      },
+      "id": "a1000001-0001-0001-0001-000000000021",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-560, 0]
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('Get Company by WhatsApp').item.json.instance_name }}",
+        "remoteJid": "={{ $('Extract Message Data').item.json.remoteJid }}",
+        "messageText": "={{ $json.customer_message }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api-en.evolutionApi",
+      "typeVersion": 1,
+      "position": [-320, 0],
+      "id": "a1000001-0001-0001-0001-000000000022",
+      "name": "Send Error WhatsApp",
+      "credentials": {
+        "evolutionApi": {
+          "id": "wIR6KlP1wJan8RmF",
+          "name": "randevubot-global"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [[{ "node": "Extract Message Data", "type": "main", "index": 0 }]]
+    },
+    "Extract Message Data": {
+      "main": [[{ "node": "Get Company by WhatsApp", "type": "main", "index": 0 }]]
+    },
+    "Get Company by WhatsApp": {
+      "main": [[{ "node": "Company Found?", "type": "main", "index": 0 }]]
+    },
+    "Company Found?": {
+      "main": [
+        [{ "node": "Dedup Check", "type": "main", "index": 0 }],
+        [{ "node": "Error - No Company", "type": "main", "index": 0 }]
+      ]
+    },
+    "Error - No Company": {
+      "main": [[{ "node": "Error Response", "type": "main", "index": 0 }]]
+    },
+    "Dedup Check": {
+      "main": [[{ "node": "Is Duplicate?", "type": "main", "index": 0 }]]
+    },
+    "Is Duplicate?": {
+      "main": [
+        [{ "node": "Pre-fetch Context", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Pre-fetch Context": {
+      "main": [[{ "node": "AI Agent", "type": "main", "index": 0 }]]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [[{ "node": "AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [[{ "node": "AI Agent", "type": "ai_memory", "index": 0 }]]
+    },
+    "Find Customer by Phone": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Create Customer": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Get Expert Appointments": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Get Working Hours": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Get Company Holidays": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Get Expert Services": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Create Appointment": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Cancel Appointment": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Update Appointment": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "AI Agent": {
+      "main": [[{ "node": "Parse AI Response", "type": "main", "index": 0 }]]
+    },
+    "Parse AI Response": {
+      "main": [[{ "node": "Send WhatsApp Message", "type": "main", "index": 0 }]]
+    },
+    "Error Handler": {
+      "main": [[{ "node": "Send Error WhatsApp", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "v3-all-supabase-tool-2026-02-28",
+  "meta": {
+    "instanceId": "5bf69624a39d6d53ef656fb05088202362a2f094009339df5426d88d65c85398"
+  },
+  "id": "randevubot-ana-workflow-v3",
+  "tags": []
+}
