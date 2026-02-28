@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /c/Users/Mehmet/randevubot/*.*)",
+      "Bash(git push origin main)"
+    ]
+  }
+}
