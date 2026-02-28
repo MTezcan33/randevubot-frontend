@@ -349,6 +349,9 @@ const ServicesPage = () => {
     if (value === '__custom__') {
       setIsCustomCategory(true);
       setServiceData({ ...serviceData, category: '' });
+    } else if (value === '__none__') {
+      setIsCustomCategory(false);
+      setServiceData({ ...serviceData, category: '' });
     } else {
       setIsCustomCategory(false);
       setServiceData({ ...serviceData, category: value });
@@ -405,7 +408,7 @@ const ServicesPage = () => {
       company_id: company.id,
       description: serviceData.description.trim(),
       category: serviceData.category || null,
-      expert_id: serviceData.expert_id || null,
+      expert_id: (serviceData.expert_id && serviceData.expert_id !== '__none__') ? serviceData.expert_id : null,
       duration: parseInt(serviceData.duration),
       price: serviceData.price === '' ? null : parseFloat(serviceData.price),
       notes: serviceData.notes || null,
@@ -624,14 +627,14 @@ const ServicesPage = () => {
                   {t('serviceCategory')}
                 </label>
                 <Select
-                  value={isCustomCategory ? '__custom__' : (serviceData.category || '')}
+                  value={isCustomCategory ? '__custom__' : (serviceData.category || '__none__')}
                   onValueChange={handleCategoryChange}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={t('selectCategory')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">{t('selectCategory')}</SelectItem>
+                    <SelectItem value="__none__">{t('selectCategory')}</SelectItem>
                     {BEAUTY_CATEGORIES.map(cat => (
                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
@@ -654,14 +657,14 @@ const ServicesPage = () => {
                   {t('serviceExpert')} <span className="text-slate-400 font-normal">(opsiyonel)</span>
                 </label>
                 <Select
-                  value={serviceData.expert_id || ''}
-                  onValueChange={(v) => setServiceData({ ...serviceData, expert_id: v })}
+                  value={serviceData.expert_id || '__none__'}
+                  onValueChange={(v) => setServiceData({ ...serviceData, expert_id: v === '__none__' ? '' : v })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Uzman Seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Uzman Seçin</SelectItem>
+                    <SelectItem value="__none__">Uzman Seçin</SelectItem>
                     {staff.map(s => (
                       <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                     ))}
