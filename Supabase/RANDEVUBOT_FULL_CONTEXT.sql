@@ -1153,3 +1153,103 @@ CREATE POLICY "Users can manage own appointment_services" ON public.appointment_
       SELECT id FROM companies WHERE owner_id = auth.uid()
     )
   ));
+
+
+-- =============================================================================
+-- BÖLÜM 13: MÜŞTERİ PROFİL SİSTEMİ + RPC FONKSİYONLARI
+-- Tarih: 2026-02-28
+-- Amaç: Müşteri profil detayları, istatistik denormalizasyonu,
+--        çoklu hizmet randevu RPC fonksiyonu
+-- =============================================================================
+
+-- 13a. customers tablosuna profil alanları
+ALTER TABLE public.customers
+  ADD COLUMN IF NOT EXISTS birthday DATE,
+  ADD COLUMN IF NOT EXISTS gender TEXT CHECK (gender IN ('female', 'male', 'other')),
+  ADD COLUMN IF NOT EXISTS tags JSONB DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS is_vip BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS preferred_expert_id UUID REFERENCES public.company_users(id),
+  ADD COLUMN IF NOT EXISTS last_visit_date DATE,
+  ADD COLUMN IF NOT EXISTS total_visits INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS total_spent DECIMAL(10,2) DEFAULT 0;
+
+COMMENT ON COLUMN public.customers.birthday IS 'Doğum tarihi';
+COMMENT ON COLUMN public.customers.gender IS 'Cinsiyet: female/male/other';
+COMMENT ON COLUMN public.customers.tags IS 'Etiketler JSON dizisi: ["VIP", "Düzenli", ...]';
+COMMENT ON COLUMN public.customers.is_vip IS 'VIP müşteri bayrağı';
+COMMENT ON COLUMN public.customers.preferred_expert_id IS 'Tercih edilen uzman';
+COMMENT ON COLUMN public.customers.last_visit_date IS 'Son randevu tarihi (denormalize)';
+COMMENT ON COLUMN public.customers.total_visits IS 'Toplam tamamlanan randevu sayısı (denormalize)';
+COMMENT ON COLUMN public.customers.total_spent IS 'Toplam harcama tutarı (denormalize)';
+
+CREATE INDEX IF NOT EXISTS idx_customers_is_vip ON public.customers(company_id, is_vip);
+CREATE INDEX IF NOT EXISTS idx_customers_last_visit ON public.customers(company_id, last_visit_date DESC);
+CREATE INDEX IF NOT EXISTS idx_customers_tags ON public.customers USING GIN (tags);
+
+-- 13b. transactions tablosuna doğrudan müşteri bağlantısı
+ALTER TABLE public.transactions
+  ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES public.customers(id);
+
+CREATE INDEX IF NOT EXISTS idx_transactions_customer ON public.transactions(customer_id);
+
+-- 13c. Müşteri istatistiklerini yeniden hesaplama RPC fonksiyonu
+CREATE OR REPLACE FUNCTION public.recalculate_customer_stats(p_customer_id UUID)
+RETURNS void AS $$
+DECLARE
+  v_total_visits INTEGER;
+  v_total_spent DECIMAL(10,2);
+  v_last_visit DATE;
+BEGIN
+  SELECT COUNT(*), MAX(date)
+  INTO v_total_visits, v_last_visit
+  FROM public.appointments
+  WHERE customer_id = p_customer_id AND status = 'onaylandı';
+
+  SELECT COALESCE(SUM(t.amount), 0) INTO v_total_spent
+  FROM public.transactions t
+  JOIN public.appointments a ON a.id = t.appointment_id
+  WHERE a.customer_id = p_customer_id AND t.type = 'income';
+
+  UPDATE public.customers SET
+    total_visits = COALESCE(v_total_visits, 0),
+    total_spent = COALESCE(v_total_spent, 0),
+    last_visit_date = v_last_visit
+  WHERE id = p_customer_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 13d. Çoklu hizmet randevu oluşturma RPC fonksiyonu (N8N WhatsApp bot için)
+CREATE OR REPLACE FUNCTION public.create_appointment_multi_service(
+  p_company_id UUID,
+  p_customer_id UUID,
+  p_expert_id UUID,
+  p_service_ids UUID[],
+  p_date DATE,
+  p_time TIME
+)
+RETURNS UUID AS $$
+DECLARE
+  v_total_duration INTEGER;
+  v_appointment_id UUID;
+BEGIN
+  -- Toplam süreyi hesapla
+  SELECT COALESCE(SUM(duration), 0) INTO v_total_duration
+  FROM public.company_services
+  WHERE id = ANY(p_service_ids);
+
+  -- Ana randevuyu oluştur (ilk hizmet backward compat için service_id'ye yazılır)
+  INSERT INTO public.appointments (
+    company_id, customer_id, expert_id, service_id,
+    date, time, status, total_duration
+  ) VALUES (
+    p_company_id, p_customer_id, p_expert_id, p_service_ids[1],
+    p_date, p_time, 'beklemede', v_total_duration
+  ) RETURNING id INTO v_appointment_id;
+
+  -- Junction kayıtlarını oluştur
+  INSERT INTO public.appointment_services (appointment_id, service_id)
+  SELECT v_appointment_id, unnest(p_service_ids);
+
+  RETURN v_appointment_id;
+END;
+$$ LANGUAGE plpgsql;
