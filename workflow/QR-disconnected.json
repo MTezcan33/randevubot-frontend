@@ -1,0 +1,74 @@
+{
+  "name": "QR-disconnected",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "qr-disconnected",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -416,
+        -144
+      ],
+      "id": "b07892cf-6e3e-409c-83ab-4a864a0e1095",
+      "name": "QR-disconnected",
+      "webhookId": "42b2d83c-c365-4ee9-ab81-d30bf5b2d418"
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://evolution.mehmettezcan.uk/instance/delete/{{ $json.body.instance_name }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "Y5eyVcSklZrHN4dt3c9IaMvdtG7nPA62"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -16,
+        -144
+      ],
+      "id": "431ec987-029a-4d30-8f66-66caf77ac002",
+      "name": "QR-disconnected1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "QR-disconnected": {
+      "main": [
+        [
+          {
+            "node": "QR-disconnected1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "QR-disconnected1": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9a07344d-e4fc-4740-893e-ea2a0a0ea804",
+  "meta": {
+    "instanceId": "5bf69624a39d6d53ef656fb05088202362a2f094009339df5426d88d65c85398"
+  },
+  "id": "4EEJzJJcICQi1sem",
+  "tags": []
+}

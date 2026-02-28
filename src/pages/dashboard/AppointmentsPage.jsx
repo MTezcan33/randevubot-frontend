@@ -319,7 +319,7 @@ const AppointmentsPage = () => {
   const fetchServices = async () => {
     if (!company) return;
     try {
-      const { data, error } = await supabase.from('company_services').select('*, expert:expert_id(name)').eq('company_id', company.id);
+      const { data, error } = await supabase.from('company_services').select('*, expert:expert_id(name)').eq('company_id', company.id).eq('is_active', true);
       if (error) throw error;
       setServices(data || []);
     } catch (error) {

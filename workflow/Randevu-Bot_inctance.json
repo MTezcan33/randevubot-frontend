@@ -1,0 +1,300 @@
+{
+  "name": "Randevu-Bot_inctance",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution.mehmettezcan.uk/instance/create",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "Y5eyVcSklZrHN4dt3c9IaMvdtG7nPA62"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"instanceName\": \"{{ $json.body.instance_name }}\",\n  \"integration\": \"WHATSAPP-BAILEYS\",\n  \"webhook\": {\n    \"url\": \"https://n8n.mehmettezcan.uk/webhook/evo-{{ $json.body.company_id }}\",\n    \"headers\": null,\n    \"enabled\": true,\n    \"events\": [\n      \"MESSAGES_UPSERT\",\n      \"QRCODE_UPDATED\",\n      \"CONNECTION_UPDATE\"\n    ],\n    \"webhookByEvents\": true,\n    \"webhookBase64\": true\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        32,
+        352
+      ],
+      "id": "9b8f51d1-003d-460c-9253-2c6689c6232f",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "instance/create",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -192,
+        352
+      ],
+      "id": "0182996d-cac9-4eb9-a12d-edb3e3c5a8f7",
+      "name": "instance_create",
+      "webhookId": "c646dce9-2750-414b-99c1-22c78e0be90e"
+    },
+    {
+      "parameters": {
+        "amount": 4
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        352
+      ],
+      "id": "c98dee41-9218-4d32-8cac-80be4757959f",
+      "name": "Wait",
+      "webhookId": "17f5784b-2a3e-4ef0-8466-f9ae39e242d3"
+    },
+    {
+      "parameters": {
+        "url": "=https://evolution.mehmettezcan.uk/instance/connect/{{ $json.instance.instanceName }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "Y5eyVcSklZrHN4dt3c9IaMvdtG7nPA62"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        352
+      ],
+      "id": "d6c5b208-bd30-48bf-8aa9-a67b9754870d",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "companies",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('instance_create').item.json.body.company_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "qr_code",
+              "fieldValue": "={{ $json.base64 }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        768,
+        352
+      ],
+      "id": "3f6ca214-4fdb-4083-993d-28b305a31850",
+      "name": "Update a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 60
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        992,
+        352
+      ],
+      "id": "f39f2677-6475-4017-9e5d-ac782b2142de",
+      "name": "Wait1",
+      "webhookId": "17f5784b-2a3e-4ef0-8466-f9ae39e242d3"
+    },
+    {
+      "parameters": {
+        "url": "=https://evolution.mehmettezcan.uk/instance/fetchInstances",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "instanceName",
+              "value": "={{ $('Wait').item.json.instance.instanceName }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "Y5eyVcSklZrHN4dt3c9IaMvdtG7nPA62"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1232,
+        352
+      ],
+      "id": "a438b9a9-c3f3-4406-8d59-bb7135cf604d",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "companies",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('instance_create').item.json.body.company_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $json.connectionStatus }}"
+            },
+            {
+              "fieldId": "whatsapp_number",
+              "fieldValue": "={{ $json.ownerJid.split('@')[0] }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1472,
+        352
+      ],
+      "id": "b3120d82-0436-4256-a6ea-36937b1ea408",
+      "name": "Update a row1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "instance_create": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Update a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Update a row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "8abbc4bf-e4bd-4a80-8574-070df7df9bf1",
+  "meta": {
+    "instanceId": "5bf69624a39d6d53ef656fb05088202362a2f094009339df5426d88d65c85398"
+  },
+  "id": "5NYVC2ul3DkXui2E",
+  "tags": []
+}

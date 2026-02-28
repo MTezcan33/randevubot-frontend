@@ -1,0 +1,105 @@
+{
+  "name": "RandevuBot — Hatırlatma Cron (Saatlik)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "minutesInterval": 60 }]
+        }
+      },
+      "name": "Saatlik Cron",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT a.id, a.date, a.time, a.company_id, c.name as customer_name, c.phone as customer_phone, cs.description as service_name, cu.name as expert_name, co.name as salon_name FROM appointments a JOIN customers c ON c.id = a.customer_id JOIN company_services cs ON cs.id = a.service_id JOIN company_users cu ON cu.id = a.expert_id JOIN companies co ON co.id = a.company_id WHERE a.status = 'onaylandı' AND co.service_active = true AND (a.date || ' ' || a.time)::timestamp BETWEEN NOW() + INTERVAL '23 hours 30 minutes' AND NOW() + INTERVAL '24 hours 30 minutes' AND NOT EXISTS (SELECT 1 FROM admin_notifications an WHERE an.related_id = a.id AND an.type = 'daily_summary' AND an.title = 'reminder_24h_sent')"
+      },
+      "name": "24 Saat Sonraki Randevular",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [450, 200],
+      "credentials": { "postgres": { "id": "supabase_pg", "name": "Supabase PostgreSQL" } }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT a.id, a.date, a.time, a.company_id, c.name as customer_name, c.phone as customer_phone, cs.description as service_name, cu.name as expert_name, co.name as salon_name FROM appointments a JOIN customers c ON c.id = a.customer_id JOIN company_services cs ON cs.id = a.service_id JOIN company_users cu ON cu.id = a.expert_id JOIN companies co ON co.id = a.company_id WHERE a.status = 'onaylandı' AND co.service_active = true AND (a.date || ' ' || a.time)::timestamp BETWEEN NOW() + INTERVAL '30 minutes' AND NOW() + INTERVAL '90 minutes' AND NOT EXISTS (SELECT 1 FROM admin_notifications an WHERE an.related_id = a.id AND an.type = 'daily_summary' AND an.title = 'reminder_1h_sent')"
+      },
+      "name": "1 Saat Sonraki Randevular",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [450, 400],
+      "credentials": { "postgres": { "id": "supabase_pg", "name": "Supabase PostgreSQL" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $json.salon_name }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $json.customer_phone }}"
+            },
+            {
+              "name": "text",
+              "value": "=Hatırlatma 📅\nMerhaba {{ $json.customer_name }}, yarın saat {{ $json.time }} için {{ $json.salon_name }}'da randevunuz var.\nHizmet: {{ $json.service_name }} - Uzman: {{ $json.expert_name }}\n\nGörüşmek üzere! 😊"
+            }
+          ]
+        }
+      },
+      "name": "24h WhatsApp Gönder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [700, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $json.salon_name }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $json.customer_phone }}"
+            },
+            {
+              "name": "text",
+              "value": "=⏰ Hatırlatma\nMerhaba {{ $json.customer_name }}, bugün saat {{ $json.time }} için {{ $json.salon_name }}'da randevunuz var. 1 saat kaldı!\n\nSizi bekliyoruz 😊"
+            }
+          ]
+        }
+      },
+      "name": "1h WhatsApp Gönder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [700, 400]
+    }
+  ],
+  "connections": {
+    "Saatlik Cron": {
+      "main": [
+        [
+          { "node": "24 Saat Sonraki Randevular", "type": "main", "index": 0 },
+          { "node": "1 Saat Sonraki Randevular", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "24 Saat Sonraki Randevular": {
+      "main": [[{ "node": "24h WhatsApp Gönder", "type": "main", "index": 0 }]]
+    },
+    "1 Saat Sonraki Randevular": {
+      "main": [[{ "node": "1h WhatsApp Gönder", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

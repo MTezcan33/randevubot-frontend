@@ -1,0 +1,58 @@
+{
+  "name": "RandevuBot — Günlük Özet Rapor (22:00)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 22 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Her Gece 22:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT co.id as company_id, co.name as salon_name, co.whatsapp_number, COUNT(a.id) as total_appointments, COUNT(CASE WHEN a.status = 'onaylandı' THEN 1 END) as confirmed_count, COUNT(CASE WHEN a.status = 'iptal' THEN 1 END) as cancelled_count, COALESCE(SUM(cs.price), 0) as estimated_revenue FROM companies co LEFT JOIN appointments a ON a.company_id = co.id AND a.date = CURRENT_DATE LEFT JOIN company_services cs ON cs.id = a.service_id WHERE co.service_active = true GROUP BY co.id, co.name, co.whatsapp_number"
+      },
+      "name": "Günlük İstatistikler",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [450, 300],
+      "credentials": { "postgres": { "id": "supabase_pg", "name": "Supabase PostgreSQL" } }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "admin_notifications",
+        "columns": "company_id,type,title,message",
+        "additionalFields": {}
+      },
+      "name": "Admin Bildirimi Kaydet",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [700, 300],
+      "credentials": { "postgres": { "id": "supabase_pg", "name": "Supabase PostgreSQL" } },
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO admin_notifications (company_id, type, title, message) SELECT id, 'daily_summary', '📊 Günlük Özet', '📅 Bugün: ' || COALESCE((SELECT COUNT(*) FROM appointments WHERE company_id = companies.id AND date = CURRENT_DATE), 0) || ' randevu | Onaylı: ' || COALESCE((SELECT COUNT(*) FROM appointments WHERE company_id = companies.id AND date = CURRENT_DATE AND status = ''onaylandı''), 0) || ' | İptal: ' || COALESCE((SELECT COUNT(*) FROM appointments WHERE company_id = companies.id AND date = CURRENT_DATE AND status = ''iptal''), 0) FROM companies WHERE service_active = true"
+      }
+    }
+  ],
+  "connections": {
+    "Her Gece 22:00": {
+      "main": [[{ "node": "Günlük İstatistikler", "type": "main", "index": 0 }]]
+    },
+    "Günlük İstatistikler": {
+      "main": [[{ "node": "Admin Bildirimi Kaydet", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

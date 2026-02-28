@@ -45,7 +45,7 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
       const fetchDropdownData = async () => {
         const [customerRes, serviceRes] = await Promise.all([
           supabase.from('customers').select('*').eq('company_id', company.id),
-          supabase.from('company_services').select('*').eq('company_id', company.id),
+          supabase.from('company_services').select('*').eq('company_id', company.id).eq('is_active', true),
         ]);
         if (customerRes.data) setCustomers(customerRes.data);
         if (serviceRes.data) setServices(serviceRes.data);
