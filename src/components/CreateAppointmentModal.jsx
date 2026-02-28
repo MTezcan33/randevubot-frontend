@@ -21,6 +21,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { createAdminNotification, sendAppointmentConfirmation } from '@/services/notificationService';
 
 const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppointmentCreated }) => {
   const { company } = useAuth();
@@ -85,17 +86,50 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
         return;
       }
 
-      const { error: appointmentError } = await supabase.from('appointments').insert({
-        company_id: company.id,
-        customer_id: customerId,
-        service_id: selectedService,
-        expert_id: selectedExpert,
-        date: appointmentDate.toISOString().split('T')[0],
-        time: appointmentTime,
-        status: 'confirmed',
-      });
+      const { data: newAppointment, error: appointmentError } = await supabase
+        .from('appointments')
+        .insert({
+          company_id: company.id,
+          customer_id: customerId,
+          service_id: selectedService,
+          expert_id: selectedExpert,
+          date: appointmentDate.toISOString().split('T')[0],
+          time: appointmentTime,
+          status: 'confirmed',
+        })
+        .select()
+        .single();
 
       if (appointmentError) throw appointmentError;
+
+      // Seçilen müşteri ve hizmet bilgilerini bul
+      const customer = customers.find(c => c.id === customerId);
+      const service = services.find(s => s.id === selectedService);
+      const expert = experts.find(e => e.id === selectedExpert);
+      const dateStr = appointmentDate.toISOString().split('T')[0];
+
+      // Admin bildirimi oluştur
+      await createAdminNotification(
+        company.id,
+        'new_appointment',
+        t('notifNewAppointment'),
+        `${customer?.name || ''} — ${dateStr} ${appointmentTime} — ${service?.description || ''}`,
+        newAppointment?.id
+      );
+
+      // Müşteriye WhatsApp onay mesajı gönder (telefon numarası varsa)
+      if (customer?.phone) {
+        await sendAppointmentConfirmation({
+          company_id: company.id,
+          salon_name: company.name,
+          customer_name: customer.name,
+          customer_phone: customer.phone,
+          date: dateStr,
+          time: appointmentTime,
+          service_name: service?.description || '',
+          expert_name: expert?.name || '',
+        });
+      }
 
       toast({ title: t('success'), description: t('appointmentCreatedSuccess') });
       onAppointmentCreated();

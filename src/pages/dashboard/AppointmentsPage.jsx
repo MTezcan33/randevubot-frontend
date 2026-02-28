@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
 import { Plus, ChevronLeft, ChevronRight, Trash2, Clock } from 'lucide-react';
+import { createIncomeFromAppointment } from '../../services/accountingService';
 import { useTranslation } from 'react-i18next';
 import {
   Dialog,
@@ -104,10 +105,10 @@ const TimeIndicator = ({ companyTimezone }) => {
   return (
     <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{ top: `${topPosition}px` }}>
       <div className="flex items-center">
-        <div className="w-14 bg-blue-500 flex items-center justify-center -ml-0.5">
+        <div className="w-14 bg-[#E91E8C] flex items-center justify-center -ml-0.5">
           <span className="text-white text-[9px] font-semibold">{currentTimeString}</span>
         </div>
-        <div className="flex-grow h-[2px] bg-blue-500 shadow-sm"></div>
+        <div className="flex-grow h-[2px] bg-[#E91E8C] shadow-sm"></div>
       </div>
     </div>
   );
@@ -223,8 +224,8 @@ const MiniCalendar = ({ currentDate, onDateChange }) => {
             className={`
                             h-6 w-6 text-[10px] rounded flex items-center justify-center
                             ${!day ? 'invisible' : ''}
-                            ${isSelected(day) ? 'bg-blue-500 text-white font-bold' : ''}
-                            ${isToday(day) && !isSelected(day) ? 'bg-blue-100 text-blue-700 font-semibold' : ''}
+                            ${isSelected(day) ? 'bg-[#E91E8C] text-white font-bold' : ''}
+                            ${isToday(day) && !isSelected(day) ? 'bg-pink-100 text-[#E91E8C] font-semibold' : ''}
                             ${!isSelected(day) && !isToday(day) ? 'hover:bg-gray-100' : ''}
                             transition-colors
                         `}
@@ -248,6 +249,7 @@ const AppointmentsPage = () => {
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [previousStatus, setPreviousStatus] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newAppointment, setNewAppointment] = useState({
@@ -356,9 +358,25 @@ const AppointmentsPage = () => {
       const { id, service_id, expert_id, date, time, status, customer_id } = selectedAppointment;
       const { error } = await supabase.from('appointments').update({ service_id, expert_id, date, time, status, customer_id }).eq('id', id);
       if (error) throw error;
+
+      // Durum yeni 'onaylandı' olduysa otomatik gelir kaydı oluştur
+      if (status === 'onaylandı' && previousStatus !== 'onaylandı') {
+        const service = services.find(s => s.id === service_id);
+        if (service?.price && service.price > 0) {
+          await createIncomeFromAppointment({
+            companyId: company.id,
+            appointmentId: id,
+            amount: service.price,
+            paymentMethod: 'cash',
+            description: service.description ? `${service.description} - Randevu geliri` : 'Randevu geliri',
+          });
+        }
+      }
+
       toast({ title: t('success'), description: t('updateAppointmentSuccess') });
       setIsDetailModalOpen(false);
       setSelectedAppointment(null);
+      setPreviousStatus(null);
     } catch (error) {
       toast({ title: t('error'), description: t('updateAppointmentError', { error: error.message }), variant: "destructive" });
     }
@@ -394,8 +412,20 @@ const AppointmentsPage = () => {
         customerId = newCustomer.id;
       }
 
-      const { error } = await supabase.from('appointments').insert([{ customer_id: customerId, service_id: newAppointment.service_id, date: newAppointment.date, time: newAppointment.time, expert_id: newAppointment.expert_id, company_id: company.id, status: 'onaylandı' }]);
+      const { data: created, error } = await supabase.from('appointments').insert([{ customer_id: customerId, service_id: newAppointment.service_id, date: newAppointment.date, time: newAppointment.time, expert_id: newAppointment.expert_id, company_id: company.id, status: 'onaylandı' }]).select().single();
       if (error) throw error;
+
+      // Dashboard'dan oluşturulan randevular hep 'onaylandı' — otomatik gelir kaydı oluştur
+      const service = services.find(s => s.id === newAppointment.service_id);
+      if (created && service?.price && service.price > 0) {
+        await createIncomeFromAppointment({
+          companyId: company.id,
+          appointmentId: created.id,
+          amount: service.price,
+          paymentMethod: 'cash',
+          description: service.description ? `${service.description} - Randevu geliri` : 'Randevu geliri',
+        });
+      }
 
       setIsCreateModalOpen(false);
       setNewAppointment({ customer_id: '', customer_name: '', customer_phone: '', service_id: '', expert_id: '', date: currentDate.toISOString().split('T')[0], time: '' });
@@ -443,11 +473,12 @@ const AppointmentsPage = () => {
 
   const openAppointmentDetails = (appointment) => {
     setSelectedAppointment({ ...appointment, customer_name: appointment.customers.name, customer_phone: appointment.customers.phone });
+    setPreviousStatus(appointment.status);
     setIsDetailModalOpen(true);
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-[calc(100vh-6rem)]"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div></div>
+    return <div className="flex justify-center items-center h-[calc(100vh-6rem)]"><div className="w-12 h-12 rounded-full border-4 border-[#E91E8C]/30 border-t-[#E91E8C] animate-spin"></div></div>
   }
 
   return (
@@ -464,7 +495,7 @@ const AppointmentsPage = () => {
 
           <Button
             onClick={() => setIsCreateModalOpen(true)}
-            className="w-full"
+            className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white border-0"
             size="lg"
           >
             <Plus className="w-4 h-4 mr-2" /> {t('createAppointment')}
@@ -472,7 +503,7 @@ const AppointmentsPage = () => {
 
           <div className="bg-white rounded-lg shadow-sm p-2 border">
             <h3 className="text-[10px] font-semibold mb-1 text-gray-600">{t('selectedDate')}</h3>
-            <p className="text-sm font-bold text-blue-600 leading-tight">
+            <p className="text-sm font-bold text-[#E91E8C] leading-tight">
               {currentDate.toLocaleDateString(getLocale(), {
                 day: 'numeric',
                 month: 'long'

@@ -18,6 +18,7 @@ import WorkingHoursPage from '@/pages/dashboard/WorkingHoursPage';
 import BillingPage from '@/pages/dashboard/BillingPage';
 import SettingsPage from '@/pages/dashboard/SettingsPage';
 import SupportPage from '@/pages/dashboard/SupportPage';
+import AccountingPage from '@/pages/dashboard/AccountingPage';
 import LegalPage from '@/pages/LegalPage';
 import { AuthProvider } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -52,6 +53,7 @@ function App() {
             <Route path="appointments" element={<AppointmentsPage />} />
             <Route path="customers" element={<CustomersPage />} />
             <Route path="working-hours" element={<WorkingHoursPage />} />
+            <Route path="accounting" element={<AccountingPage />} />
             <Route path="billing" element={<BillingPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="support" element={<SupportPage />} />
