@@ -1,112 +1,71 @@
+// Aktif sektör kodları (Supabase sectors tablosuyla eşleşmeli)
 export const SECTOR_CODES = {
   "SAĞLIK VE WELLNESS": "AA",
   "GÜZELLİK VE KİŞİSEL BAKIM": "AB",
   "SPOR VE FİTNESS": "AC",
-  "YİYECEK VE İÇECEK": "AD",
-  "EĞİTİM VE DANIŞMANLIK": "AE",
-  "OTOMOTİV": "AF",
-  "EV HİZMETLERİ": "AG",
-  "HAYVAN HİZMETLERİ": "AH",
-  "PROFESYONEL HİZMETLER": "AI",
-  "TURİZM VE KONAKLAMA": "AJ",
   "ETKİNLİK VE EĞLENCE": "AK",
-  "GÖZELEME VE GÜVENLİK": "AL",
-  "SAĞLIK EKİPMANLARI": "AM",
-  "ÇOCUK HİZMETLERİ": "AN",
-  "DİĞER": "ZZ"
 };
 
 const RAW_SECTORS_DATA = {
-  "SAĞLIK VE WELLNESS": [
-    "Sağlık Kliniği", "Diş Kliniği", "Fizyoterapi Merkezi", "Psikoloji / Terapi",
-    "Diyetisyen / Beslenme", "Optisyen / Göz Sağlığı", "Kulak Burun Boğaz (KBB)",
-    "Kardiyoloji", "Dermatoloji / Cilt Sağlığı", "Üroloji", "Kadın Hastalıkları ve Doğum",
-    "Çocuk Sağlığı (Pediatri)", "Osteopati / Kayropraktik", "Akupunktur", "Podoloji / Ayak Sağlığı"
-  ],
   "GÜZELLİK VE KİŞİSEL BAKIM": [
-    "Kuaför / Berber", "Tırnak Salonu", "SPA ve Masaj", "Estetik Merkezi",
-    "Güzellik Salonu", "Epilasyon Merkezi", "Solaryum", "Kalıcı Makyaj",
-    "Kirpik-Kaş Salonu", "Cilt Bakım Merkezi", "Erkek Bakım Merkezi", "Gelinlik Salonu / Kuaförü"
+    "Kuaför / Berber",
+    "Tırnak Salonu",
+    "SPA ve Masaj",
+    "Güzellik Salonu",
+    "Epilasyon Merkezi",
+    "Kalıcı Makyaj",
+    "Kirpik-Kaş Salonu",
+    "Cilt Bakım Merkezi",
+    "Erkek Bakım Merkezi / Berber",
+    "Gelinlik Salonu / Kuaförü",
+    "Solaryum",
+    "Lazer / Fotoepilasyon",
+  ],
+  "SAĞLIK VE WELLNESS": [
+    "Fizyoterapi ve Rehabilitasyon",
+    "Psikoloji / Terapi",
+    "Diyetisyen / Beslenme",
+    "Osteopati / Kayropraktik",
+    "Akupunktur",
+    "Podoloji / Ayak Sağlığı",
+    "Masaj Terapisi",
+    "Medikal Estetik",
+    "Meditasyon / Mindfulness",
   ],
   "SPOR VE FİTNESS": [
-    "Spor Salonu / Gym", "Yoga / Pilates Stüdyosu", "Yüzme Havuzu / Ders", "Crossfit Box",
-    "Boks / Dövüş Sanatları Salonu", "Dans Stüdyosu", "Personal Training",
-    "Spinning / Bisiklet Stüdyosu", "Tırmanış Duvarı / Climbing", "Atletizm Kulübü",
-    "Tenis Kortu", "Squash Salonu"
-  ],
-  "YİYECEK VE İÇECEK": [
-    "Restoran", "Kafe / Kahve Dükkanı", "Pastane / Fırın", "Fast Food", "Bar / Pub",
-    "Gece Kulübü", "Catering / Organizasyon", "Meyve Suyu / Smoothie Bar", "Dondurma Dükkanı",
-    "Şarap Evi / Wine Bar", "Çay Bahçesi", "Vegan / Vejetaryen Restoran", "Balık Restoranı",
-    "Et Restoranı / Steakhouse"
-  ],
-  "EĞİTİM VE DANIŞMANLIK": [
-    "Özel Ders / Dersane", "Yaşam Koçluğu / Kariyer Danışmanlığı", "Müzik Dersi",
-    "Dil Kursu", "Sürücü Kursu", "Bilgisayar / Programlama Kursu", "Sanat Atölyesi",
-    "Fotoğrafçılık Kursu", "Mesleki Eğitim Merkezi", "Akademik Danışmanlık",
-    "İş Danışmanlığı / HR", "Finansal Danışmanlık", "Hukuk Danışmanlığı",
-    "Psikolojik Danışmanlık", "Evlilik / Aile Danışmanlığı"
-  ],
-  "OTOMOTİV": [
-    "Oto Yıkama", "Oto Servis / Bakım", "Lastik Servisi", "Oto Elektrik", "Oto Cam",
-    "Oto Kaporta / Boya", "Oto Döşeme / Kuaför", "Motor Tamiri", "Klima Dolumu / Bakımı",
-    "Akü Değişimi / Şarj", "Araç Muayene İstasyonu", "Oto Kiralama", "Çekici Hizmeti",
-    "Araç Alım-Satım / Ekspertiz"
-  ],
-  "EV HİZMETLERİ": [
-    "Temizlik Hizmeti", "Tesisatçı / Su Kaçağı", "Beyaz Eşya Tamiri", "Elektrikçi",
-    "Boyacı / Badanacı", "Mobilya Montajı", "Nakliyat / Taşımacılık", "Tadilat / Dekorasyon",
-    "Bahçe Bakımı / Peyzaj", "Cam Balkon Montajı", "Klima Montajı / Bakımı", "Çilingir",
-    "Haşere İlaçlama", "Uydu / Anten Kurulumu", "Kombi Bakımı / Tamiri", "Halı Yıkama",
-    "Cam Temizliği", "Çatı Onarımı / İzolasyon"
-  ],
-  "HAYVAN HİZMETLERİ": [
-    "Veteriner Kliniği", "Pet Kuaför", "Evcil Hayvan Oteli", "Eğitim / Davranış Uzmanı",
-    "Pet Shop / Mama Satışı", "Veteriner Ambulansı", "Pet Taksi", "At Binicilik Kulübü",
-    "Kuş Hastanesi", "Akvaryum Bakımı"
-  ],
-  "PROFESYONEL HİZMETLER": [
-    "Hukuk Bürosu", "Muhasebe / Mali Müşavirlik", "Mimarlık Bürosu", "Mühendislik Bürosu",
-    "Gayrimenkul Danışmanlığı", "Sigorta Acentesi", "Noterlik", "Çeviri Bürosu",
-    "Reklamcılık Ajansı", "Grafik Tasarım Stüdyosu", "Fotoğraf Stüdyosu",
-    "Video Prodüksiyon", "Web Tasarım / Yazılım", "Sosyal Medya Yönetimi", "Etkinlik Organizasyonu"
-  ],
-  "TURİZM VE KONAKLAMA": [
-    "Otel", "Apart Otel", "Pansiyon / Butik Otel", "Hostel", "Kamp Alanı", "Tatil Köyü / Resort",
-    "Seyahat Acentesi", "Tur Operatörü", "Rehberli Turlar", "Araç Kiralama (Turizm)",
-    "Tekne Turu", "Balon Turu", "Dalgıç Okulu", "Safari / Doğa Turları"
+    "Spor Salonu / Gym",
+    "Yoga / Pilates Stüdyosu",
+    "Personal Training",
+    "Dans Stüdyosu",
+    "Boks / Dövüş Sanatları Salonu",
+    "Spinning / Bisiklet Stüdyosu",
+    "Yüzme Dersi",
+    "Crossfit Box",
+    "Tenis / Padel Kortu",
+    "Squash Salonu",
   ],
   "ETKİNLİK VE EĞLENCE": [
-    "Sinema", "Tiyatro", "Konser Salonu", "Müze", "Tema Parkı", "Kaçış Odası (Escape Room)",
-    "Bowling Salonu", "Bilardo Salonu", "Okçuluk / Atış Poligonu", "Go-Kart Pisti",
-    "Paintball Sahası", "Laser Tag Arenası", "Oyun Salonu / E-spor Cafe", "Trambolin Park",
-    "Doğum Günü Organizasyonu"
+    "Kaçış Odası (Escape Room)",
+    "Bowling Salonu",
+    "Laser Tag Arenası",
+    "Go-Kart Pisti",
+    "Trambolin Park",
+    "Paintball Sahası",
+    "Okçuluk / Atış Poligonu",
+    "E-spor Cafe",
+    "Doğum Günü Organizasyonu",
   ],
-  "GÖZELEME VE GÜVENLİK": [
-    "Güvenlik Şirketi", "Kamera Sistemi Kurulumu", "Alarm Sistemi", "Özel Koruma / Bodyguard",
-    "Yangın Söndürme Sistemleri", "Dedektiflik"
-  ],
-  "SAĞLIK EKİPMANLARI": [
-    "Medikal Cihaz Satışı", "Ortopedik Ürünler", "İşitme Cihazı", "Optik",
-    "Hasta Bakım Hizmetleri", "Ambulans Hizmeti", "Oksijen Tüpü Kiralama"
-  ],
-  "ÇOCUK HİZMETLERİ": [
-    "Kreş / Anaokulu", "Oyun Alanı / Oyun Evi", "Çocuk Gelişim Merkezi", "Bebek Bakıcısı / Dadı",
-    "Doğum Sonrası Bakım (Lohusa)", "Çocuk Etkinlik Merkezi"
-  ],
-  "DİĞER": []
 };
 
-// Transform the raw data into the desired structured format
+// Supabase sectors/sub_sectors tablolarıyla uyumlu yapıya dönüştür
 export const sectors = Object.entries(RAW_SECTORS_DATA).map(([mainSectorName, subSectorNames]) => {
   const mainSectorCode = SECTOR_CODES[mainSectorName];
   return {
     name: mainSectorName,
-    code: mainSectorCode, // Add code for the main sector if needed elsewhere
+    code: mainSectorCode,
     subSectors: subSectorNames.map((subSectorName, index) => ({
       name: subSectorName,
-      // Generate a unique code for each sub-sector, e.g., AA01, AA02
-      code: `${mainSectorCode}${(index + 1).toString().padStart(2, '0')}`,
+      code: `${mainSectorCode}${(index + 1).toString().padStart(2, "0")}`,
     })),
   };
 });
