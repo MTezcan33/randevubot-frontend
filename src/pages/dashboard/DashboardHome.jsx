@@ -37,10 +37,10 @@ const StatCard = ({ label, value, icon, bgColor, iconColor, trend, trendLabel })
   const trendColor = trend > 0 ? 'text-emerald-600' : trend < 0 ? 'text-red-500' : 'text-gray-400';
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-start justify-between hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 flex items-start justify-between hover:shadow-md transition-shadow">
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">{label}</p>
-        <p className="text-3xl font-bold text-gray-800 mt-1">{value}</p>
+        <p className="text-xs text-stone-500 font-medium uppercase tracking-wide mb-1">{label}</p>
+        <p className="text-3xl font-bold text-stone-800 mt-1">{value}</p>
         {trendLabel && (
           <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${trendColor}`}>
             <TrendIcon className="w-3.5 h-3.5" />
@@ -70,7 +70,7 @@ const TodayAppointmentRow = ({ appointment, t }) => {
   };
 
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0">
+    <div className="flex items-center gap-3 py-2.5 border-b border-stone-50 last:border-0">
       {/* Renkli nokta + saat */}
       <div className="flex flex-col items-center gap-1 w-12 flex-shrink-0">
         <div
@@ -82,9 +82,9 @@ const TodayAppointmentRow = ({ appointment, t }) => {
 
       {/* Bilgiler */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-800 truncate">{customerName}</p>
+        <p className="text-sm font-semibold text-stone-800 truncate">{customerName}</p>
         <div className="flex items-center gap-1.5 mt-0.5">
-          <span className="text-xs text-gray-500 truncate">{serviceName}</span>
+          <span className="text-xs text-stone-500 truncate">{serviceName}</span>
           <span className="text-gray-300">·</span>
           <span className="text-xs text-gray-400">{duration} dk</span>
         </div>
@@ -102,7 +102,7 @@ const TodayAppointmentRow = ({ appointment, t }) => {
 
       {/* Durum badge */}
       <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
-        statusColors[appointment.status] || 'bg-gray-100 text-gray-600'
+        statusColors[appointment.status] || 'bg-stone-100 text-gray-600'
       }`}>
         {t(`status.${appointment.status}`) || appointment.status}
       </span>
@@ -114,9 +114,9 @@ const TodayAppointmentRow = ({ appointment, t }) => {
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white border border-gray-100 rounded-xl shadow-lg px-4 py-3 text-sm">
+      <div className="bg-white border border-stone-100 rounded-xl shadow-lg px-4 py-3 text-sm">
         <p className="font-semibold text-gray-700 mb-1">{label}</p>
-        <p className="text-[#E91E8C] font-bold">{payload[0].value} randevu</p>
+        <p className="text-emerald-700 font-bold">{payload[0].value} randevu</p>
       </div>
     );
   }
@@ -412,7 +412,7 @@ const DashboardHome = () => {
 
   const getPerformanceColor = (rate) => {
     if (rate >= 80) return 'text-emerald-600';
-    if (rate >= 60) return 'text-blue-600';
+    if (rate >= 60) return 'text-teal-600';
     if (rate >= 40) return 'text-amber-600';
     return 'text-red-500';
   };
@@ -431,7 +431,7 @@ const DashboardHome = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="w-8 h-8 rounded-full border-4 border-[#E91E8C]/30 border-t-[#E91E8C] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-4 border-emerald-700/30 border-t-emerald-700 animate-spin" />
       </div>
     );
   }
@@ -450,8 +450,8 @@ const DashboardHome = () => {
             label={t('todayAppointments')}
             value={todayCount}
             icon={<Calendar className="w-6 h-6" />}
-            bgColor="bg-pink-100"
-            iconColor="text-[#E91E8C]"
+            bgColor="bg-emerald-100"
+            iconColor="text-emerald-700"
             trend={todayTrend}
             trendLabel={`${Math.abs(todayTrend)} ${t('vsYesterday')}`}
           />
@@ -468,8 +468,8 @@ const DashboardHome = () => {
             label={t('totalCustomers')}
             value={totalCustomers}
             icon={<Users className="w-6 h-6" />}
-            bgColor="bg-purple-100"
-            iconColor="text-purple-600"
+            bgColor="bg-teal-100"
+            iconColor="text-teal-700"
             trend={newCustomers > 0 ? 1 : 0}
             trendLabel={newCustomers > 0 ? `+${newCustomers} ${t('newThisMonth')}` : undefined}
           />
@@ -487,22 +487,22 @@ const DashboardHome = () => {
         {/* ── Orta Satır: Bugünkü Program + Hızlı İşlemler / Haftalık Chart ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Bugünkü Program (sol, 2/3) */}
-          <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-[#E91E8C]" />
+              <h3 className="text-base font-semibold text-stone-800 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-emerald-700" />
                 {t('todaySchedule')}
               </h3>
               <Button
                 size="sm"
                 onClick={() => navigate('/dashboard/appointments')}
-                className="bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 text-xs px-3 h-8"
+                className="bg-gradient-to-r from-emerald-800 to-teal-700 text-white hover:opacity-90 text-xs px-3 h-8"
               >
                 <Plus className="w-3.5 h-3.5 mr-1" />
                 {t('newAppointment')}
               </Button>
             </div>
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-stone-50">
               {todayAppointments.length > 0 ? (
                 todayAppointments.map(app => (
                   <TodayAppointmentRow key={app.id} appointment={app} t={t} />
@@ -519,24 +519,24 @@ const DashboardHome = () => {
           {/* Sağ Kolon: Hızlı İşlemler + Haftalık Chart */}
           <div className="flex flex-col gap-4">
             {/* Hızlı İşlemler */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-              <h3 className="text-base font-semibold text-gray-800 mb-3">{t('quickActions')}</h3>
+            <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
+              <h3 className="text-base font-semibold text-stone-800 mb-3">{t('quickActions')}</h3>
               <div className="space-y-2">
                 <button
                   onClick={() => navigate('/dashboard/appointments')}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-pink-50 to-purple-50 hover:from-pink-100 hover:to-purple-100 transition-colors text-left"
+                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 transition-colors text-left"
                 >
-                  <div className="w-8 h-8 bg-[#E91E8C]/15 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Calendar className="w-4 h-4 text-[#E91E8C]" />
+                  <div className="w-8 h-8 bg-emerald-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Calendar className="w-4 h-4 text-emerald-700" />
                   </div>
                   <span className="text-sm font-medium text-gray-700">{t('appointments')}</span>
                 </button>
                 <button
                   onClick={() => navigate('/dashboard/customers')}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors text-left"
+                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-teal-50 hover:bg-teal-100 transition-colors text-left"
                 >
-                  <div className="w-8 h-8 bg-purple-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Users className="w-4 h-4 text-purple-600" />
+                  <div className="w-8 h-8 bg-teal-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Users className="w-4 h-4 text-teal-700" />
                   </div>
                   <span className="text-sm font-medium text-gray-700">{t('customers')}</span>
                 </button>
@@ -553,9 +553,9 @@ const DashboardHome = () => {
             </div>
 
             {/* Haftalık Chart */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex-1">
-              <h3 className="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-purple-600" />
+            <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 flex-1">
+              <h3 className="text-base font-semibold text-stone-800 mb-3 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-teal-700" />
                 {t('weeklyAppointments')}
               </h3>
               <div className="h-36">
@@ -582,8 +582,8 @@ const DashboardHome = () => {
                     />
                     <defs>
                       <linearGradient id="pinkPurple" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#E91E8C" stopOpacity={0.9} />
-                        <stop offset="100%" stopColor="#9333ea" stopOpacity={0.7} />
+                        <stop offset="0%" stopColor="#065f46" stopOpacity={0.9} />
+                        <stop offset="100%" stopColor="#0f766e" stopOpacity={0.7} />
                       </linearGradient>
                     </defs>
                   </BarChart>
@@ -595,13 +595,13 @@ const DashboardHome = () => {
 
         {/* ── Dönem Analizi Başlığı ─────────────────────────────────────── */}
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-800">{t('expertPerformanceAnalysis')}</h2>
+          <h2 className="text-lg font-semibold text-stone-800">{t('expertPerformanceAnalysis')}</h2>
           <div className="flex items-center gap-2">
             <Button
               size="sm"
               variant={period === 'weekly' ? 'default' : 'outline'}
               onClick={() => setPeriod('weekly')}
-              className={period === 'weekly' ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white border-0' : ''}
+              className={period === 'weekly' ? 'bg-gradient-to-r from-emerald-800 to-teal-700 text-white border-0' : ''}
             >
               {t('weekly')}
             </Button>
@@ -609,7 +609,7 @@ const DashboardHome = () => {
               size="sm"
               variant={period === 'monthly' ? 'default' : 'outline'}
               onClick={() => setPeriod('monthly')}
-              className={period === 'monthly' ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white border-0' : ''}
+              className={period === 'monthly' ? 'bg-gradient-to-r from-emerald-800 to-teal-700 text-white border-0' : ''}
             >
               {t('monthly')}
             </Button>
@@ -618,43 +618,43 @@ const DashboardHome = () => {
 
         {/* ── Dönem Özet Kartları ──────────────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500">{t('totalAppointments')}</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">{totalAppointments}</p>
+              <p className="text-xs text-stone-500">{t('totalAppointments')}</p>
+              <p className="text-2xl font-bold text-stone-800 mt-1">{totalAppointments}</p>
             </div>
-            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-teal-600" />
             </div>
           </div>
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500">{t('estimatedRevenue')}</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">₺{estimatedRevenue.toLocaleString('tr-TR')}</p>
+              <p className="text-xs text-stone-500">{t('estimatedRevenue')}</p>
+              <p className="text-2xl font-bold text-stone-800 mt-1">₺{estimatedRevenue.toLocaleString('tr-TR')}</p>
             </div>
             <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
               <DollarSign className="w-5 h-5 text-emerald-600" />
             </div>
           </div>
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500">{t('newCustomers')}</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">{newCustomers}</p>
+              <p className="text-xs text-stone-500">{t('newCustomers')}</p>
+              <p className="text-2xl font-bold text-stone-800 mt-1">{newCustomers}</p>
             </div>
-            <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-              <Users className="w-5 h-5 text-purple-600" />
+            <div className="w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center">
+              <Users className="w-5 h-5 text-teal-700" />
             </div>
           </div>
         </div>
 
         {/* ── Uzman Performans Detayları ────────────────────────────────── */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-purple-600" />
+            <h3 className="text-base font-semibold text-stone-800 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-teal-700" />
               {t('expertPerformanceAnalysis')}
             </h3>
-            <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
+            <span className="text-xs text-gray-400 bg-stone-100 px-2.5 py-1 rounded-full">
               {t('lastDays', { days: period === 'weekly' ? 7 : 30 })}
             </span>
           </div>
@@ -663,7 +663,7 @@ const DashboardHome = () => {
             {expertPerformance.map(expert => (
               <div
                 key={expert.expertId}
-                className="p-4 bg-gray-50/80 rounded-xl border-l-4 hover:shadow-sm transition-shadow"
+                className="p-4 bg-stone-50/80 rounded-xl border-l-4 hover:shadow-sm transition-shadow"
                 style={{ borderLeftColor: expert.expertColor || '#9333ea' }}
               >
                 {/* Üst Satır */}
@@ -672,25 +672,25 @@ const DashboardHome = () => {
                     <h4 className="font-semibold text-base" style={{ color: expert.expertColor }}>
                       {expert.expertName}
                     </h4>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-stone-500 mt-0.5">
                       {expert.totalAppointments} {t('appointments').toLowerCase()} · {expert.customerRetention} {t('customers').toLowerCase()}
                     </p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-gray-500">{t('occupancyRate')}</p>
+                    <p className="text-xs text-stone-500">{t('occupancyRate')}</p>
                     <p className={`text-lg font-bold ${getPerformanceColor(expert.occupancyRate)}`}>
                       {expert.occupancyRate}%
                     </p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-gray-500">{t('expectedRevenue')}</p>
+                    <p className="text-xs text-stone-500">{t('expectedRevenue')}</p>
                     <p className="text-lg font-bold text-emerald-600">
                       ₺{expert.totalRevenue.toLocaleString('tr-TR')}
                     </p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-gray-500">{t('revenuePerHour')}</p>
-                    <p className="text-lg font-bold text-blue-600">
+                    <p className="text-xs text-stone-500">{t('revenuePerHour')}</p>
+                    <p className="text-lg font-bold text-teal-600">
                       ₺{expert.revenuePerHour}
                     </p>
                   </div>
@@ -736,7 +736,7 @@ const DashboardHome = () => {
                           key={service}
                           className="px-2 py-0.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600"
                         >
-                          {service}: <strong className="text-gray-800">{count}</strong>
+                          {service}: <strong className="text-stone-800">{count}</strong>
                         </span>
                       ))}
                     </div>

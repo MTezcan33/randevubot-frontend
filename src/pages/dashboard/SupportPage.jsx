@@ -21,7 +21,7 @@ const StarRating = ({ rating }) => (
 
 // Durum badge renkleri
 const STATUS_COLORS = {
-  new: 'bg-blue-100 text-blue-700',
+  new: 'bg-teal-100 text-teal-700',
   reviewing: 'bg-yellow-100 text-yellow-700',
   resolved: 'bg-green-100 text-green-700',
 };
@@ -138,7 +138,7 @@ const SupportPage = () => {
             onClick={() => setActiveTab('feedback')}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'feedback'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-emerald-500 text-emerald-700'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -149,7 +149,7 @@ const SupportPage = () => {
             onClick={() => setActiveTab('faq')}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'faq'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-emerald-500 text-emerald-700'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -181,7 +181,7 @@ const SupportPage = () => {
                   onClick={() => setFilter(opt.key)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                     filter === opt.key
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-emerald-700 text-white'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
@@ -227,9 +227,9 @@ const SupportPage = () => {
 
                     {/* Admin yanıtı */}
                     {fb.admin_response && (
-                      <div className="bg-blue-50 rounded p-2">
-                        <p className="text-xs text-blue-600 font-medium mb-1">{t('feedbackAdminResponse')}</p>
-                        <p className="text-sm text-blue-800">{fb.admin_response}</p>
+                      <div className="bg-emerald-50 rounded p-2">
+                        <p className="text-xs text-emerald-700 font-medium mb-1">{t('feedbackAdminResponse')}</p>
+                        <p className="text-sm text-emerald-900">{fb.admin_response}</p>
                       </div>
                     )}
 
@@ -268,7 +268,7 @@ const SupportPage = () => {
                           value={responseText}
                           onChange={e => setResponseText(e.target.value)}
                           placeholder={t('feedbackAddResponse')}
-                          className="w-full text-sm border rounded-lg p-2 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full text-sm border rounded-lg p-2 resize-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                           rows={3}
                         />
                         <div className="flex gap-2">

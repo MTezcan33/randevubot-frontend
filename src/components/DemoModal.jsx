@@ -158,8 +158,8 @@ const DemoModal = ({ open, onClose, contentType = 'law_office' }) => {
           </button>
         </div>
 
-        <div className="bg-blue-50 p-4 text-center border-t">
-          <p className="text-sm text-blue-900">
+        <div className="bg-emerald-50 p-4 text-center border-t">
+          <p className="text-sm text-emerald-900">
             {t('demoDisclaimer')}
           </p>
         </div>

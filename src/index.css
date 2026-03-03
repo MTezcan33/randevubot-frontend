@@ -9,7 +9,7 @@ html {
 }
 
 body {
-  @apply bg-gradient-to-br from-slate-50 via-white to-blue-50 text-slate-900;
+  @apply bg-gradient-to-br from-stone-50 via-white to-emerald-50/20 text-stone-900;
   font-family: 'Inter', sans-serif;
 }
 
@@ -21,7 +21,7 @@ body {
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
+    --primary: 160 84% 39%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -33,7 +33,7 @@ body {
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --ring: 160 84% 39%;
     --radius: 0.5rem;
   }
 }
@@ -44,6 +44,6 @@ body {
   }
   
   .gradient-text {
-    @apply bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-emerald-800 via-teal-700 to-emerald-600 bg-clip-text text-transparent;
   }
 }

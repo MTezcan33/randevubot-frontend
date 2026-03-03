@@ -141,7 +141,7 @@ const MapSelector = ({ onLocationSelect }) => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={t('mapSearchPlaceholder')}
-          className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
         />
         <Button type="submit">{t('search')}</Button>
       </form>

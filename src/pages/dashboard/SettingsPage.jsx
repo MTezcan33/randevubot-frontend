@@ -615,7 +615,7 @@ const SettingsPage = () => {
 
     return (
       <div className="text-center">
-        <div className="bg-white p-4 rounded-xl border-2 border-blue-500 inline-block">
+        <div className="bg-white p-4 rounded-xl border-2 border-emerald-500 inline-block">
           <img
             src={qrCodeData}
             alt="WhatsApp QR Code"
@@ -694,7 +694,7 @@ const SettingsPage = () => {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 />
               </div>
 
@@ -709,7 +709,7 @@ const SettingsPage = () => {
                   placeholder="+905551234567"
                   value={formData.manager_phone}
                   onChange={(e) => setFormData({ ...formData, manager_phone: e.target.value })}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 />
                 <p className="text-[10px] text-slate-500 mt-1">
                   {t('managerPhoneHint', 'Yönetici iletişim numarası')}
@@ -727,7 +727,7 @@ const SettingsPage = () => {
                   placeholder="+905551234567"
                   value={formData.whatsapp_number}
                   onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value })}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 />
                 <p className="text-[10px] text-slate-500 mt-1">
                   {t('useInternationalFormat')}
@@ -743,7 +743,7 @@ const SettingsPage = () => {
                 <textarea
                   value={formData.address}
                   onChange={handleAddressChange}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   rows={2}
                 />
               </div>
@@ -758,7 +758,7 @@ const SettingsPage = () => {
                   <select
                     value={formData.country}
                     onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   >
                     {countries.map(country => (
                       <option key={country.code} value={country.name}>{country.name}</option>
@@ -774,14 +774,14 @@ const SettingsPage = () => {
                   <select
                     value={formData.timezone}
                     onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   >
                     {timezones.map(tz => (
                       <option key={tz.text} value={tz.text}>{tz.text}</option>
                     ))}
                   </select>
                   {currentTime && (
-                    <p className="text-[10px] text-blue-600 font-semibold mt-1">
+                    <p className="text-[10px] text-emerald-700 font-semibold mt-1">
                       {t('currentTime', { time: currentTime })}
                     </p>
                   )}
@@ -800,7 +800,7 @@ const SettingsPage = () => {
                     min="1"
                     value={formData.reminder_hours_before}
                     onChange={(e) => setFormData({ ...formData, reminder_hours_before: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -813,7 +813,7 @@ const SettingsPage = () => {
                     min="1"
                     value={formData.cancellation_hours_before}
                     onChange={(e) => setFormData({ ...formData, cancellation_hours_before: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -865,11 +865,11 @@ const SettingsPage = () => {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-3">
-                      <AlertCircle className="w-8 h-8 text-blue-600" />
+                    <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
+                      <AlertCircle className="w-8 h-8 text-emerald-700" />
                     </div>
-                    <h3 className="font-semibold text-base text-blue-900 mb-1">{t('connectionRequired')}</h3>
-                    <p className="text-sm text-blue-700 max-w-xs">
+                    <h3 className="font-semibold text-base text-emerald-900 mb-1">{t('connectionRequired')}</h3>
+                    <p className="text-sm text-emerald-700 max-w-xs">
                       {t('connectWhatsApp')}
                     </p>
                   </div>
@@ -878,12 +878,12 @@ const SettingsPage = () => {
 
               {/* Durum Mesajı */}
               {connectionStatus === 'qr_pending' && qrCodeData && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <AlertCircle className="w-4 h-4 text-emerald-700 mt-0.5 flex-shrink-0" />
                     <div>
-                      <h4 className="font-semibold text-sm text-blue-900">{t('connectionRequired')}</h4>
-                      <p className="text-xs text-blue-700">{t('scanQRToConnect')}</p>
+                      <h4 className="font-semibold text-sm text-emerald-900">{t('connectionRequired')}</h4>
+                      <p className="text-xs text-emerald-700">{t('scanQRToConnect')}</p>
                     </div>
                   </div>
                 </div>

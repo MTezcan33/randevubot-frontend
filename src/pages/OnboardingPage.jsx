@@ -67,7 +67,7 @@ const WelcomeStep = ({ companyName, onNext, t }) => {
                 transition={{ type: "spring", delay: 0.2, stiffness: 200 }}
                 className="mb-8"
             >
-                <div className="w-24 h-24 mx-auto bg-gradient-to-br from-yellow-400 to-orange-500 rounded-3xl flex items-center justify-center shadow-lg shadow-orange-200/50">
+                <div className="w-24 h-24 mx-auto bg-gradient-to-br from-emerald-700 to-teal-600 rounded-3xl flex items-center justify-center shadow-lg shadow-emerald-200/50">
                     <Sparkles className="w-12 h-12 text-white" />
                 </div>
             </motion.div>
@@ -104,9 +104,9 @@ const WelcomeStep = ({ companyName, onNext, t }) => {
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 0.5 + index * 0.1 }}
-                            className="bg-slate-50 rounded-xl p-4 text-left border border-slate-100 hover:border-blue-200 hover:bg-blue-50/50 transition-all duration-200 cursor-default"
+                            className="bg-slate-50 rounded-xl p-4 text-left border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/50 transition-all duration-200 cursor-default"
                         >
-                            <IconComponent className="w-6 h-6 text-blue-600 mb-2" />
+                            <IconComponent className="w-6 h-6 text-emerald-700 mb-2" />
                             <h3 className="font-semibold text-slate-800 text-sm">{feature.title}</h3>
                             <p className="text-xs text-slate-500 mt-1">{feature.description}</p>
                         </motion.div>
@@ -122,7 +122,7 @@ const WelcomeStep = ({ companyName, onNext, t }) => {
                 <Button
                     size="lg"
                     onClick={onNext}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-blue-200/50 hover:shadow-xl hover:shadow-blue-300/50 transition-all duration-200"
+                    className="bg-emerald-700 hover:bg-emerald-800 text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-emerald-200/50 hover:shadow-xl hover:shadow-emerald-300/50 transition-all duration-200"
                 >
                     {t('onboarding.startSetup', 'Kuruluma Başla')}
                     <ArrowRight className="ml-2 w-5 h-5" />
@@ -180,7 +180,7 @@ const CompanyInfoStep = ({ company, onSave, loading, t }) => {
                 transition={{ type: "spring", delay: 0.2 }}
                 className="mb-8 text-center"
             >
-                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200/50">
+                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-emerald-800 to-teal-700 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200/50">
                     <Building2 className="w-10 h-10 text-white" />
                 </div>
             </motion.div>
@@ -214,7 +214,7 @@ const CompanyInfoStep = ({ company, onSave, loading, t }) => {
                 {/* 1. Firma Adı */}
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1 flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-blue-500" />
+                        <Building2 className="w-4 h-4 text-emerald-600" />
                         {t('companyName', 'İşletme Adı')}
                     </label>
                     <Input
@@ -222,7 +222,7 @@ const CompanyInfoStep = ({ company, onSave, loading, t }) => {
                         placeholder={t('onboarding.companyNamePlaceholder', 'Örn: MT Güzellik Salonu')}
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full px-5 py-6 text-lg border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200"
+                        className="w-full px-5 py-6 text-lg border-2 border-slate-200 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all duration-200"
                         autoFocus
                     />
                 </div>
@@ -231,14 +231,14 @@ const CompanyInfoStep = ({ company, onSave, loading, t }) => {
                     {/* 2. Ülke Seçimi */}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1 flex items-center gap-2">
-                            <Globe className="w-4 h-4 text-blue-500" />
+                            <Globe className="w-4 h-4 text-emerald-600" />
                             {t('country', 'Ülke')}
                         </label>
                         <div className="relative">
                             <select
                                 value={country}
                                 onChange={(e) => setCountry(e.target.value)}
-                                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none appearance-none cursor-pointer text-sm"
+                                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none appearance-none cursor-pointer text-sm"
                             >
                                 <option value="">Seçiniz...</option>
                                 {countries.map(c => (
@@ -255,14 +255,14 @@ const CompanyInfoStep = ({ company, onSave, loading, t }) => {
                     {/* 3. Zaman Dilimi Seçimi */}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1 flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-blue-500" />
+                            <Clock className="w-4 h-4 text-emerald-600" />
                             {t('timezone', 'Saat Dilimi')}
                         </label>
                         <div className="relative">
                             <select
                                 value={timezone}
                                 onChange={(e) => setTimezone(e.target.value)}
-                                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none appearance-none cursor-pointer text-sm"
+                                className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none appearance-none cursor-pointer text-sm"
                             >
                                 <option value="">Seçiniz...</option>
                                 {timezones.map(tz => (
@@ -283,27 +283,27 @@ const CompanyInfoStep = ({ company, onSave, loading, t }) => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 mb-8 border border-blue-100"
+                className="bg-gradient-to-r from-emerald-50 to-teal-50/50 rounded-xl p-5 mb-8 border border-emerald-100"
             >
-                <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                <h4 className="font-semibold text-emerald-900 mb-3 flex items-center gap-2">
                     <Rocket className="w-5 h-5" />
                     {t('onboarding.laterSettingsTitle', 'Sonra Tamamlayacağınız Ayarlar:')}
                 </h4>
-                <ul className="space-y-2 text-sm text-blue-800">
+                <ul className="space-y-2 text-sm text-emerald-800">
                     <li className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                         {t('onboarding.laterItem1', 'Çalışma saatleri ve tatil günleri')}
                     </li>
                     <li className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                         {t('onboarding.laterItem2', 'Personel ve uzman bilgileri')}
                     </li>
                     <li className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                         {t('onboarding.laterItem3', 'Sunduğunuz hizmetler ve fiyatlar')}
                     </li>
                     <li className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                         {t('onboarding.laterItem4', 'WhatsApp bağlantısı (QR kod)')}
                     </li>
                 </ul>
@@ -448,9 +448,9 @@ const OnboardingPage = () => {
     // Loading state
     if (pageLoading || !company) {
         return (
-            <div className="w-full h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+            <div className="w-full h-screen flex items-center justify-center bg-gradient-to-br from-stone-50 via-emerald-50/20 to-stone-100/30">
                 <div className="text-center">
-                    <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+                    <Loader2 className="w-12 h-12 animate-spin text-emerald-700 mx-auto mb-4" />
                     <p className="text-slate-600">{t('loading', 'Yükleniyor...')}</p>
                 </div>
             </div>
@@ -463,7 +463,7 @@ const OnboardingPage = () => {
                 <title>{t('onboarding.title', 'Hoş Geldiniz')} - RandevuBot</title>
             </Helmet>
 
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex flex-col">
+            <div className="min-h-screen bg-gradient-to-br from-stone-50 via-emerald-50/20 to-stone-100/30 flex flex-col">
                 {/* Progress Bar */}
                 <div className="w-full bg-white/50 backdrop-blur-sm border-b border-slate-200/50 sticky top-0 z-10">
                     <div className="max-w-4xl mx-auto px-4 py-4">
@@ -481,7 +481,7 @@ const OnboardingPage = () => {
                                                     ${currentStep > step.id
                                                         ? 'bg-emerald-500 text-white'
                                                         : currentStep === step.id
-                                                            ? 'bg-blue-600 text-white ring-4 ring-blue-100'
+                                                            ? 'bg-emerald-700 text-white ring-4 ring-emerald-100'
                                                             : 'bg-white text-slate-400 border-2 border-slate-200'
                                                     }
                                                 `}
@@ -527,7 +527,7 @@ const OnboardingPage = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -20 }}
                                 transition={{ duration: 0.4 }}
-                                className="bg-white rounded-3xl shadow-xl shadow-blue-100/50 p-8 sm:p-12 border border-slate-100"
+                                className="bg-white rounded-3xl shadow-xl shadow-emerald-100/50 p-8 sm:p-12 border border-slate-100"
                             >
                                 {renderStepContent()}
                             </motion.div>

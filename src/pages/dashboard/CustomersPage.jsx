@@ -33,7 +33,7 @@ const ITEMS_PER_PAGE = 20;
 const TAG_COLORS = {
   VIP: 'bg-amber-100 text-amber-800 border-amber-300',
   Düzenli: 'bg-green-100 text-green-800 border-green-300',
-  Yeni: 'bg-blue-100 text-blue-800 border-blue-300',
+  Yeni: 'bg-teal-100 text-teal-800 border-teal-300',
   Risk: 'bg-red-100 text-red-800 border-red-300',
 };
 const PREDEFINED_TAGS = ['VIP', 'Düzenli', 'Yeni', 'Risk'];
@@ -175,7 +175,7 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
   };
 
   const feedbackStatusColors = {
-    'new': 'bg-blue-100 text-blue-700',
+    'new': 'bg-teal-100 text-teal-700',
     'reviewing': 'bg-amber-100 text-amber-700',
     'resolved': 'bg-green-100 text-green-700',
   };
@@ -203,7 +203,7 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-pink-500 to-purple-600 p-5 text-white">
+            <div className="bg-gradient-to-r from-emerald-800 to-teal-700 p-5 text-white">
               <button onClick={onClose} className="absolute right-4 top-4 text-white/80 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
@@ -256,7 +256,7 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                   onClick={() => setActiveTab(tab)}
                   className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === tab
-                      ? 'border-pink-500 text-pink-600'
+                      ? 'border-emerald-500 text-emerald-600'
                       : 'border-transparent text-slate-500 hover:text-slate-700'
                   }`}
                 >
@@ -271,7 +271,7 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
             <div className="flex-1 overflow-y-auto p-4">
               {drawerLoading ? (
                 <div className="flex justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500" />
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
                 </div>
               ) : (
                 <>
@@ -303,7 +303,7 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                           <button
                             onClick={() => setHistoryFilter(historyFilter === 'upcoming' ? 'all' : 'upcoming')}
                             className={`flex items-center gap-1.5 p-2 rounded-lg border text-xs font-medium transition-all ${
-                              historyFilter === 'upcoming' ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200'
+                              historyFilter === 'upcoming' ? 'bg-teal-50 border-teal-300 text-teal-700' : 'bg-white border-slate-200 text-slate-600 hover:border-teal-200'
                             }`}
                           >
                             <CalendarClock className="w-3.5 h-3.5" />
@@ -359,13 +359,13 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                                   <div key={appt.id} className="relative pl-9">
                                     {/* Timeline dot */}
                                     <div className={`absolute left-[9px] top-3 w-3 h-3 rounded-full border-2 border-white z-10 ${
-                                      appt.status === 'iptal' ? 'bg-red-400' : isUpcoming ? 'bg-blue-400' : 'bg-green-400'
+                                      appt.status === 'iptal' ? 'bg-red-400' : isUpcoming ? 'bg-teal-400' : 'bg-green-400'
                                     }`} />
 
                                     <div
                                       className={`border rounded-xl overflow-hidden transition-all cursor-pointer ${
-                                        isExpanded ? 'border-pink-300 shadow-sm' : 'border-slate-200 hover:border-pink-200'
-                                      } ${isUpcoming ? 'bg-blue-50/30' : ''}`}
+                                        isExpanded ? 'border-emerald-300 shadow-sm' : 'border-slate-200 hover:border-emerald-200'
+                                      } ${isUpcoming ? 'bg-teal-50/30' : ''}`}
                                       onClick={() => setExpandedApptId(isExpanded ? null : appt.id)}
                                     >
                                       {/* Özet satır */}
@@ -391,7 +391,7 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                                           <span className="flex items-center gap-1.5 text-xs text-slate-500">
                                             {appt.company_users && (
                                               <>
-                                                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: appt.company_users.color || '#9333EA' }} />
+                                                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: appt.company_users.color || '#059669' }} />
                                                 {appt.company_users.name}
                                               </>
                                             )}
@@ -422,7 +422,7 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                                                     {serviceList.map((svc, idx) => (
                                                       <div key={idx} className="flex items-center justify-between bg-slate-50 rounded-lg px-2.5 py-1.5">
                                                         <div className="flex items-center gap-2">
-                                                          <Scissors className="w-3.5 h-3.5 text-purple-400" />
+                                                          <Scissors className="w-3.5 h-3.5 text-emerald-600" />
                                                           <span className="text-xs font-medium text-slate-700">{svc.description}</span>
                                                           {svc.category && <span className="text-[10px] text-slate-400">({svc.category})</span>}
                                                         </div>
@@ -441,7 +441,7 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                                                 <div className="flex items-center gap-2 mb-2 text-xs text-slate-600">
                                                   <User className="w-3.5 h-3.5 text-slate-400" />
                                                   <span>{t('expert') || 'Uzman'}:</span>
-                                                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: appt.company_users.color || '#9333EA' }} />
+                                                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: appt.company_users.color || '#059669' }} />
                                                   <span className="font-medium">{appt.company_users.name}</span>
                                                 </div>
                                               )}
@@ -525,9 +525,9 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                             )}
                             {/* Admin yanıtı */}
                             {fb.admin_response ? (
-                              <div className="bg-purple-50 rounded-lg p-2 mt-2 border border-purple-100">
-                                <p className="text-xs font-medium text-purple-700 mb-1">{t('adminResponse')}:</p>
-                                <p className="text-sm text-purple-900">{fb.admin_response}</p>
+                              <div className="bg-emerald-50 rounded-lg p-2 mt-2 border border-emerald-100">
+                                <p className="text-xs font-medium text-emerald-700 mb-1">{t('adminResponse')}:</p>
+                                <p className="text-sm text-emerald-900">{fb.admin_response}</p>
                               </div>
                             ) : (
                               respondingFeedbackId === fb.id ? (
@@ -537,10 +537,10 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                                     onChange={e => setAdminResponseText(e.target.value)}
                                     placeholder={t('respondToFeedback')}
                                     rows={2}
-                                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none"
+                                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
                                   />
                                   <div className="flex gap-2">
-                                    <Button size="sm" onClick={() => handleFeedbackRespond(fb.id)} className="bg-purple-600 hover:bg-purple-700 text-xs h-7">
+                                    <Button size="sm" onClick={() => handleFeedbackRespond(fb.id)} className="bg-emerald-700 hover:bg-emerald-800 text-xs h-7">
                                       {t('save')}
                                     </Button>
                                     <Button size="sm" variant="outline" onClick={() => { setRespondingFeedbackId(null); setAdminResponseText(''); }} className="text-xs h-7">
@@ -551,7 +551,7 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                               ) : (
                                 <button
                                   onClick={() => setRespondingFeedbackId(fb.id)}
-                                  className="text-xs text-purple-600 hover:text-purple-800 font-medium mt-1"
+                                  className="text-xs text-emerald-700 hover:text-emerald-800 font-medium mt-1"
                                 >
                                   {t('respondToFeedback')}
                                 </button>
@@ -607,7 +607,7 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                           type="date"
                           value={profileEdit.birthday || ''}
                           onChange={e => setProfileEdit({ ...profileEdit, birthday: e.target.value })}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
                         />
                       </div>
 
@@ -617,7 +617,7 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                         <select
                           value={profileEdit.gender || ''}
                           onChange={e => setProfileEdit({ ...profileEdit, gender: e.target.value })}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
                         >
                           <option value="">-</option>
                           <option value="female">{t('genderFemale')}</option>
@@ -632,7 +632,7 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                         <select
                           value={profileEdit.preferred_expert_id || ''}
                           onChange={e => setProfileEdit({ ...profileEdit, preferred_expert_id: e.target.value })}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
                         >
                           <option value="">-</option>
                           {staff?.map(s => (
@@ -648,7 +648,7 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                           type="text"
                           value={profileEdit.address || ''}
                           onChange={e => setProfileEdit({ ...profileEdit, address: e.target.value })}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
                         />
                       </div>
 
@@ -659,7 +659,7 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                           type="text"
                           value={profileEdit.tckn || ''}
                           onChange={e => setProfileEdit({ ...profileEdit, tckn: e.target.value })}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
                         />
                       </div>
 
@@ -670,7 +670,7 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                           value={profileEdit.notes || ''}
                           onChange={e => setProfileEdit({ ...profileEdit, notes: e.target.value })}
                           rows={3}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm resize-none"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm resize-none"
                         />
                       </div>
 
@@ -678,7 +678,7 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                       <Button
                         onClick={handleSaveProfile}
                         disabled={savingProfile}
-                        className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
+                        className="w-full bg-gradient-to-r from-emerald-800 to-teal-700 hover:from-emerald-900 hover:to-teal-800"
                       >
                         {savingProfile ? '...' : t('save')}
                       </Button>
@@ -934,15 +934,15 @@ const CustomersPage = () => {
         {/* Başlık */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-emerald-800 to-teal-700 bg-clip-text text-transparent">
               {t('customersTitle')}
             </h1>
             <p className="text-slate-600">{t('customersSubtitle')}</p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2 px-4 py-2 bg-pink-50 rounded-lg border border-pink-200">
-              <Users className="w-5 h-5 text-pink-600" />
-              <span className="font-semibold text-pink-900">{filteredCustomers.length}</span>
+            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-lg border border-emerald-200">
+              <Users className="w-5 h-5 text-emerald-600" />
+              <span className="font-semibold text-emerald-900">{filteredCustomers.length}</span>
             </div>
             <Button variant="outline" onClick={() => setIsImportModalOpen(true)}>
               <Upload className="w-4 h-4 mr-2" />{t('import')}
@@ -950,7 +950,7 @@ const CustomersPage = () => {
             <Button variant="outline" onClick={exportToCSV} disabled={filteredCustomers.length === 0}>
               <Download className="w-4 h-4 mr-2" />{t('export')}
             </Button>
-            <Button onClick={() => openModal()} className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700">
+            <Button onClick={() => openModal()} className="bg-gradient-to-r from-emerald-800 to-teal-700 hover:from-emerald-900 hover:to-teal-800">
               <Plus className="w-4 h-4 mr-2" />{t('addCustomer')}
             </Button>
           </div>
@@ -965,14 +965,14 @@ const CustomersPage = () => {
               placeholder={t('searchCustomers')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+              className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             />
           </div>
           <div className="relative">
             <select
               value={tagFilter}
               onChange={(e) => setTagFilter(e.target.value)}
-              className="appearance-none pl-9 pr-8 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm bg-white"
+              className="appearance-none pl-9 pr-8 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm bg-white"
             >
               <option value="">{t('filterAll')}</option>
               <option value="VIP">VIP</option>
@@ -989,7 +989,7 @@ const CustomersPage = () => {
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500" />
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500" />
             </div>
           ) : filteredCustomers.length === 0 ? (
             <div className="p-12 text-center">
@@ -1020,7 +1020,7 @@ const CustomersPage = () => {
                     {currentCustomers.map((customer, index) => (
                       <tr
                         key={customer.id}
-                        className={`hover:bg-pink-50/50 transition-colors cursor-pointer ${index % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}
+                        className={`hover:bg-emerald-50/50 transition-colors cursor-pointer ${index % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}
                         onClick={(e) => {
                           // Aksiyonlara tıklama olayını engelleme
                           if (e.target.closest('[data-action]')) return;
@@ -1029,7 +1029,7 @@ const CustomersPage = () => {
                       >
                         <td className="px-5 py-3.5 whitespace-nowrap">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                            <div className="w-10 h-10 bg-gradient-to-br from-emerald-800 to-teal-700 rounded-full flex items-center justify-center flex-shrink-0">
                               <span className="text-white font-semibold text-sm">{customer.name?.charAt(0)}</span>
                             </div>
                             <div>
@@ -1055,7 +1055,7 @@ const CustomersPage = () => {
                         </td>
                         <td className="px-5 py-3.5 text-center hidden md:table-cell">
                           {customer.total_visits > 0 ? (
-                            <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold">
+                            <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
                               {customer.total_visits}
                             </span>
                           ) : <span className="text-slate-300">0</span>}
@@ -1076,10 +1076,10 @@ const CustomersPage = () => {
                         </td>
                         <td className="px-5 py-3.5 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-1" data-action>
-                            <Button variant="ghost" size="sm" onClick={() => openDrawer(customer)} className="hover:bg-pink-100 hover:text-pink-700 h-8 w-8 p-0">
+                            <Button variant="ghost" size="sm" onClick={() => openDrawer(customer)} className="hover:bg-emerald-100 hover:text-emerald-700 h-8 w-8 p-0">
                               <Eye className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => openModal(customer)} className="hover:bg-blue-100 hover:text-blue-700 h-8 w-8 p-0">
+                            <Button variant="ghost" size="sm" onClick={() => openModal(customer)} className="hover:bg-emerald-100 hover:text-emerald-700 h-8 w-8 p-0">
                               <Edit className="w-4 h-4" />
                             </Button>
                             <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(customer.id)} className="hover:bg-red-100 hover:text-red-700 h-8 w-8 p-0">
@@ -1105,7 +1105,7 @@ const CustomersPage = () => {
                         if (pageNum === 1 || pageNum === totalPages || (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)) {
                           return (
                             <Button key={pageNum} variant={currentPage === pageNum ? 'default' : 'outline'} size="sm" onClick={() => setCurrentPage(pageNum)}
-                              className={currentPage === pageNum ? 'bg-gradient-to-r from-pink-500 to-purple-600' : ''}>{pageNum}</Button>
+                              className={currentPage === pageNum ? 'bg-gradient-to-r from-emerald-800 to-teal-700' : ''}>{pageNum}</Button>
                           );
                         } else if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
                           return <span key={pageNum} className="px-2">...</span>;
@@ -1127,7 +1127,7 @@ const CustomersPage = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-emerald-800 to-teal-700 rounded-lg flex items-center justify-center">
                 <User className="w-5 h-5 text-white" />
               </div>
               {editingCustomer ? t('editCustomer') : t('newCustomer')}
@@ -1139,7 +1139,7 @@ const CustomersPage = () => {
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input type="text" placeholder={t('customerName')} value={customerData.name} onChange={handleNameInputChange}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-pink-500 focus:border-transparent" />
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
               </div>
             </div>
             <div>
@@ -1147,7 +1147,7 @@ const CustomersPage = () => {
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input type="tel" placeholder="+90 555 123 4567" value={customerData.phone} onChange={(e) => setCustomerData({ ...customerData, phone: e.target.value })}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-pink-500 focus:border-transparent" />
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
               </div>
             </div>
             <div>
@@ -1155,18 +1155,18 @@ const CustomersPage = () => {
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input type="email" placeholder="ornek@email.com" value={customerData.email} onChange={(e) => setCustomerData({ ...customerData, email: e.target.value })}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-pink-500 focus:border-transparent" />
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">{t('customerNotes')}</label>
               <textarea placeholder={t('customerNotesPlaceholder')} value={customerData.notes} onChange={(e) => setCustomerData({ ...customerData, notes: e.target.value })}
-                rows={3} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none" />
+                rows={3} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none" />
             </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>{t('cancel')}</Button>
-            <Button onClick={handleSave} className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700">{t('save')}</Button>
+            <Button onClick={handleSave} className="bg-gradient-to-r from-emerald-800 to-teal-700 hover:from-emerald-900 hover:to-teal-800">{t('save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1184,7 +1184,7 @@ const CustomersPage = () => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm text-slate-600">{t('importCustomersDesc')}</p>
-            <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center cursor-pointer hover:border-pink-400 transition-colors"
+            <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center cursor-pointer hover:border-emerald-400 transition-colors"
               onClick={() => fileInputRef.current?.click()}>
               <input ref={fileInputRef} type="file" accept=".xlsx, .xls, .csv" className="hidden" onChange={handleFileChange} />
               <FileSpreadsheet className="w-10 h-10 text-slate-400 mx-auto mb-2" />
@@ -1196,7 +1196,7 @@ const CustomersPage = () => {
                 <Button variant="ghost" size="sm" onClick={() => setFileToImport(null)}><X className="w-4 h-4" /></Button>
               </div>
             )}
-            <a href="/Musteri_Iceri_Aktarma_Sablonu.xlsx" download className="text-sm text-pink-600 hover:underline">{t('downloadTemplate')}</a>
+            <a href="/Musteri_Iceri_Aktarma_Sablonu.xlsx" download className="text-sm text-emerald-600 hover:underline">{t('downloadTemplate')}</a>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={closeImportModal}>{t('cancel')}</Button>

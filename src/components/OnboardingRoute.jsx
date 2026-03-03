@@ -7,8 +7,8 @@ const OnboardingRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-stone-50 via-white to-emerald-50/20">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-700"></div>
       </div>
     );
   }

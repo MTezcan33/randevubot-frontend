@@ -5,7 +5,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
 import { useTranslation } from 'react-i18next';
 import {
-  Scissors,
+  Leaf,
   LayoutDashboard,
   Briefcase,
   Users,
@@ -164,14 +164,14 @@ const DashboardLayout = () => {
             className="flex items-center gap-2"
             onClick={isMobile ? () => setMobileOpen(false) : undefined}
           >
-            <div className="w-8 h-8 bg-[#E91E8C] rounded-lg flex items-center justify-center flex-shrink-0">
-              <Scissors className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 bg-gradient-to-br from-emerald-800 to-teal-700 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Leaf className="w-4 h-4 text-white" />
             </div>
             <span className="text-white font-bold text-lg">RandevuBot</span>
           </Link>
         ) : (
-          <Link to="/" className="flex items-center justify-center w-8 h-8 bg-[#E91E8C] rounded-lg mx-auto">
-            <Scissors className="w-4 h-4 text-white" />
+          <Link to="/" className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-emerald-800 to-teal-700 rounded-lg mx-auto">
+            <Leaf className="w-4 h-4 text-white" />
           </Link>
         )}
 
@@ -204,7 +204,7 @@ const DashboardLayout = () => {
                 className="w-8 h-8 rounded-full object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-8 h-8 bg-[#E91E8C]/30 rounded-full flex items-center justify-center flex-shrink-0 border border-[#E91E8C]/40">
+              <div className="w-8 h-8 bg-emerald-700/30 rounded-full flex items-center justify-center flex-shrink-0 border border-emerald-600/40">
                 <span className="text-white text-xs font-bold">
                   {company?.name?.charAt(0)?.toUpperCase() || 'R'}
                 </span>
@@ -234,7 +234,7 @@ const DashboardLayout = () => {
                 w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-sm font-medium
                 border-l-[3px]
                 ${isActive
-                  ? 'bg-white/15 border-[#E91E8C] text-white'
+                  ? 'bg-white/15 border-emerald-500 text-white'
                   : 'border-transparent text-white/70 hover:bg-white/10 hover:text-white'
                 }
                 ${!isMobile && collapsed ? 'justify-center px-2' : ''}
@@ -273,11 +273,11 @@ const DashboardLayout = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50/80">
+    <div className="min-h-screen bg-stone-50/80">
       {/* Desktop Sidebar — sabit, sol */}
       <aside className={`
         fixed top-0 left-0 h-full z-50
-        bg-gradient-to-b from-[#1A1A2E] to-[#2D1B69]
+        bg-gradient-to-b from-stone-900 to-emerald-950
         hidden lg:block transition-all duration-300
         ${collapsed ? 'w-[72px]' : 'w-[260px]'}
       `}>
@@ -302,7 +302,7 @@ const DashboardLayout = () => {
         {/* Drawer paneli */}
         <aside className={`
           absolute top-0 left-0 h-full w-[260px]
-          bg-gradient-to-b from-[#1A1A2E] to-[#2D1B69]
+          bg-gradient-to-b from-stone-900 to-emerald-950
           transition-transform duration-300
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
@@ -312,7 +312,7 @@ const DashboardLayout = () => {
 
       {/* Header — üstte sabit */}
       <header className={`
-        fixed top-0 right-0 h-16 bg-white border-b border-gray-100 z-40
+        fixed top-0 right-0 h-16 bg-white border-b border-stone-200 z-40
         flex items-center justify-between px-4 lg:px-6
         transition-all duration-300
         left-0 ${collapsed ? 'lg:left-[72px]' : 'lg:left-[260px]'}
@@ -321,11 +321,11 @@ const DashboardLayout = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileOpen(true)}
-            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+            className="lg:hidden p-2 rounded-lg hover:bg-stone-100 text-stone-500 transition-colors"
           >
             <Menu className="w-5 h-5" />
           </button>
-          <h1 className="text-base lg:text-lg font-semibold text-gray-800 truncate">{pageTitle}</h1>
+          <h1 className="text-base lg:text-lg font-semibold text-stone-800 truncate">{pageTitle}</h1>
         </div>
 
         {/* Sağ: dil + bildirim zili */}
@@ -337,10 +337,10 @@ const DashboardLayout = () => {
           {/* Bildirim Zili */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="relative p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors">
+              <button className="relative p-2 rounded-lg hover:bg-stone-100 text-stone-500 hover:text-stone-700 transition-colors">
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#E91E8C] text-[10px] text-white font-bold leading-none">
+                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-emerald-800 to-teal-700 text-[10px] text-white font-bold leading-none">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -352,7 +352,7 @@ const DashboardLayout = () => {
                 {unreadCount > 0 && (
                   <button
                     onClick={handleMarkAllRead}
-                    className="flex items-center gap-1 text-xs text-[#E91E8C] hover:text-pink-700 transition-colors"
+                    className="flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-800 transition-colors"
                   >
                     <CheckCheck className="w-3 h-3" />
                     {t('markAllRead')}
@@ -366,10 +366,10 @@ const DashboardLayout = () => {
                     <DropdownMenuItem
                       key={n.id}
                       onClick={() => handleNotificationClick(n)}
-                      className={`flex items-start gap-2 cursor-pointer ${!n.is_read ? 'bg-pink-50' : ''}`}
+                      className={`flex items-start gap-2 cursor-pointer ${!n.is_read ? 'bg-emerald-50' : ''}`}
                     >
                       <div className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${
-                        !n.is_read ? 'bg-[#E91E8C]' : 'bg-transparent'
+                        !n.is_read ? 'bg-gradient-to-br from-emerald-800 to-teal-700' : 'bg-transparent'
                       }`} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{n.title}</p>

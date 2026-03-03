@@ -95,7 +95,7 @@ const WorkingHoursEditor = ({ expert, companyId, refreshExpertData, t, currentLa
   if (loading) return (
     <div className="bg-white rounded-xl shadow-sm border p-6">
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-700"></div>
       </div>
     </div>
   );
@@ -103,7 +103,7 @@ const WorkingHoursEditor = ({ expert, companyId, refreshExpertData, t, currentLa
   return (
     <div className="bg-white rounded-xl shadow-sm border hover:shadow-md transition-shadow">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4 rounded-t-xl">
+      <div className="bg-gradient-to-r from-emerald-800 to-teal-700 p-4 rounded-t-xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
@@ -138,7 +138,7 @@ const WorkingHoursEditor = ({ expert, companyId, refreshExpertData, t, currentLa
                 key={day.id} 
                 className={`rounded-lg p-3 transition-all ${
                   day.is_open 
-                    ? 'bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200' 
+                    ? 'bg-gradient-to-r from-emerald-50 to-teal-50/30 border border-emerald-200' 
                     : 'bg-slate-50 border border-slate-200'
                 }`}
               >
@@ -152,7 +152,7 @@ const WorkingHoursEditor = ({ expert, companyId, refreshExpertData, t, currentLa
                       type="checkbox" 
                       checked={day.is_open} 
                       onChange={(e) => handleUpdate(day.id, { is_open: e.target.checked })} 
-                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
+                      className="w-4 h-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500" 
                     />
                     <span className={`text-xs font-medium ${day.is_open ? 'text-green-600' : 'text-slate-500'}`}>
                       {day.is_open ? t('open') : t('closed')}
@@ -210,7 +210,7 @@ const WorkingHoursEditor = ({ expert, companyId, refreshExpertData, t, currentLa
           </div>
 
           {/* Holidays */}
-          <div className="bg-gradient-to-r from-red-50 to-pink-50 rounded-lg p-3 border border-red-200">
+          <div className="bg-gradient-to-r from-stone-50 to-emerald-50/30 rounded-lg p-3 border border-red-200">
             <div className="flex items-center gap-2 mb-2">
               <Calendar className="w-4 h-4 text-red-600" />
               <h4 className="font-semibold text-sm text-red-900">{t('holidays')}</h4>
@@ -265,7 +265,7 @@ const WorkingHoursEditor = ({ expert, companyId, refreshExpertData, t, currentLa
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4 text-blue-500" />
+                <Clock className="w-4 h-4 text-emerald-600" />
                 <span className="text-slate-600">
                   {hours.find(h => h.is_open)?.start_time} - {hours.find(h => h.is_open)?.end_time}
                 </span>
@@ -302,7 +302,7 @@ const WorkingHoursPage = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-emerald-800 to-teal-700 bg-clip-text text-transparent">
               {t('workingHoursTitle')}
             </h1>
             <p className="text-slate-600">{t('workingHoursSubtitle')}</p>

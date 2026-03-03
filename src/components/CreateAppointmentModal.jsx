@@ -357,13 +357,13 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
                       onClick={() => toggleServiceSelection(service.id)}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all
                         ${isSelected
-                          ? 'bg-pink-50 border border-pink-300 text-pink-800'
-                          : 'bg-white border border-slate-200 text-slate-700 hover:border-pink-200'
+                          ? 'bg-emerald-50 border border-emerald-300 text-emerald-800'
+                          : 'bg-white border border-slate-200 text-slate-700 hover:border-emerald-200'
                         }`}
                     >
                       <div className="flex items-center gap-2">
                         <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0
-                          ${isSelected ? 'bg-[#E91E8C] border-[#E91E8C]' : 'border-slate-300'}`}>
+                          ${isSelected ? 'bg-emerald-700 border-emerald-700' : 'border-slate-300'}`}>
                           {isSelected && <Check className="w-3 h-3 text-white" />}
                         </div>
                         <span className="font-medium text-left">{service.description}</span>
@@ -382,17 +382,17 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
 
             {/* Toplam süre ve fiyat özeti */}
             {selectedServiceIds.length > 0 && (
-              <div className="flex items-center justify-between px-3 py-2 bg-pink-50 border border-pink-200 rounded-xl text-sm">
-                <span className="text-pink-700 font-medium">
+              <div className="flex items-center justify-between px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm">
+                <span className="text-emerald-700 font-medium">
                   {t('selectedServices', { count: selectedServiceIds.length })}
                 </span>
                 <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1 text-pink-600">
+                  <span className="flex items-center gap-1 text-emerald-600">
                     <Clock className="w-3.5 h-3.5" />
                     {totalDuration} dk
                   </span>
                   {totalPrice > 0 && (
-                    <span className="text-pink-600 font-medium">
+                    <span className="text-emerald-600 font-medium">
                       {totalPrice.toLocaleString('tr-TR')} TL
                     </span>
                   )}
@@ -444,7 +444,7 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
             type="submit"
             onClick={handleCreateAppointment}
             disabled={isSubmitting}
-            className="bg-[#E91E8C] hover:bg-[#C91A7A] text-white"
+            className="bg-emerald-700 hover:bg-emerald-800 text-white"
           >
             {isSubmitting ? t('creating') : t('createAppointment')}
           </Button>

@@ -111,10 +111,10 @@ const TimeIndicator = ({ companyTimezone }) => {
   return (
     <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{ top: `${topPosition}px` }}>
       <div className="flex items-center">
-        <div className="w-14 bg-[#E91E8C] flex items-center justify-center -ml-0.5">
+        <div className="w-14 bg-emerald-600 flex items-center justify-center -ml-0.5">
           <span className="text-white text-[9px] font-semibold">{currentTimeString}</span>
         </div>
-        <div className="flex-grow h-[2px] bg-[#E91E8C] shadow-sm"></div>
+        <div className="flex-grow h-[2px] bg-emerald-600 shadow-sm"></div>
       </div>
     </div>
   );
@@ -230,8 +230,8 @@ const MiniCalendar = ({ currentDate, onDateChange }) => {
             className={`
                             h-6 w-6 text-[10px] rounded flex items-center justify-center
                             ${!day ? 'invisible' : ''}
-                            ${isSelected(day) ? 'bg-[#E91E8C] text-white font-bold' : ''}
-                            ${isToday(day) && !isSelected(day) ? 'bg-pink-100 text-[#E91E8C] font-semibold' : ''}
+                            ${isSelected(day) ? 'bg-emerald-600 text-white font-bold' : ''}
+                            ${isToday(day) && !isSelected(day) ? 'bg-emerald-100 text-emerald-700 font-semibold' : ''}
                             ${!isSelected(day) && !isToday(day) ? 'hover:bg-gray-100' : ''}
                             transition-colors
                         `}
@@ -601,7 +601,7 @@ const AppointmentsPage = () => {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-[calc(100vh-6rem)]"><div className="w-12 h-12 rounded-full border-4 border-[#E91E8C]/30 border-t-[#E91E8C] animate-spin"></div></div>
+    return <div className="flex justify-center items-center h-[calc(100vh-6rem)]"><div className="w-12 h-12 rounded-full border-4 border-emerald-600/30 border-t-emerald-700 animate-spin"></div></div>
   }
 
   return (
@@ -618,7 +618,7 @@ const AppointmentsPage = () => {
 
           <Button
             onClick={() => setIsCreateModalOpen(true)}
-            className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white border-0"
+            className="w-full bg-gradient-to-r from-emerald-800 to-teal-700 hover:opacity-90 text-white border-0"
             size="lg"
           >
             <Plus className="w-4 h-4 mr-2" /> {t('createAppointment')}
@@ -626,7 +626,7 @@ const AppointmentsPage = () => {
 
           <div className="bg-white rounded-lg shadow-sm p-2 border">
             <h3 className="text-[10px] font-semibold mb-1 text-gray-600">{t('selectedDate')}</h3>
-            <p className="text-sm font-bold text-[#E91E8C] leading-tight">
+            <p className="text-sm font-bold text-emerald-700 leading-tight">
               {currentDate.toLocaleDateString(getLocale(), {
                 day: 'numeric',
                 month: 'long'
@@ -752,7 +752,7 @@ const AppointmentsPage = () => {
                   </p>
                 )}
                 {selectedAppointment.total_duration && (
-                  <p className="text-xs text-pink-600 font-medium mt-1">
+                  <p className="text-xs text-emerald-600 font-medium mt-1">
                     {t('totalDuration')}: {selectedAppointment.total_duration} dk
                   </p>
                 )}
@@ -885,13 +885,13 @@ const AppointmentsPage = () => {
                         onClick={() => toggleNewService(service.id)}
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all
                           ${isSelected
-                            ? 'bg-pink-50 border border-pink-300 text-pink-800'
-                            : 'bg-white border border-slate-200 text-slate-700 hover:border-pink-200'
+                            ? 'bg-emerald-50 border border-emerald-300 text-emerald-800'
+                            : 'bg-white border border-slate-200 text-slate-700 hover:border-emerald-200'
                           }`}
                       >
                         <div className="flex items-center gap-2">
                           <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0
-                            ${isSelected ? 'bg-[#E91E8C] border-[#E91E8C]' : 'border-slate-300'}`}>
+                            ${isSelected ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'}`}>
                             {isSelected && <Check className="w-3 h-3 text-white" />}
                           </div>
                           <span className="font-medium text-left">{service.description}</span>
@@ -910,17 +910,17 @@ const AppointmentsPage = () => {
 
               {/* Toplam süre ve fiyat özeti */}
               {newAppointment.service_ids.length > 0 && (
-                <div className="flex items-center justify-between px-3 py-2 bg-pink-50 border border-pink-200 rounded-xl text-sm">
-                  <span className="text-pink-700 font-medium">
+                <div className="flex items-center justify-between px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm">
+                  <span className="text-emerald-700 font-medium">
                     {t('selectedServices', { count: newAppointment.service_ids.length })}
                   </span>
                   <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1 text-pink-600">
+                    <span className="flex items-center gap-1 text-emerald-600">
                       <Clock className="w-3.5 h-3.5" />
                       {newTotalDuration} dk
                     </span>
                     {newTotalPrice > 0 && (
-                      <span className="text-pink-600 font-medium">
+                      <span className="text-emerald-600 font-medium">
                         {newTotalPrice.toLocaleString('tr-TR')} TL
                       </span>
                     )}

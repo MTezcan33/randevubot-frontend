@@ -362,7 +362,7 @@ const StaffPage = () => {
                   {staffServiceCounts[staffMember.id] > 0 && (
                     <div className="flex items-center">
                       <Briefcase className="w-4 h-4 mr-2 text-slate-400" />
-                      <span className="text-purple-600 font-medium">
+                      <span className="text-emerald-700 font-medium">
                         {t('servicesAssigned', { count: staffServiceCounts[staffMember.id] })}
                       </span>
                     </div>
@@ -420,7 +420,7 @@ const StaffPage = () => {
                 <h4 className="text-sm font-semibold text-slate-700">
                   {t('expertServices')}
                 </h4>
-                <span className="text-xs text-purple-600 font-medium">
+                <span className="text-xs text-emerald-700 font-medium">
                   {t('servicesSelected', { count: selectedServiceIds.size })}
                 </span>
               </div>
@@ -438,7 +438,7 @@ const StaffPage = () => {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       className="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 text-sm
-                        focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400"
+                        focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500"
                       placeholder={t('searchServices')}
                       value={serviceSearchQuery}
                       onChange={(e) => setServiceSearchQuery(e.target.value)}
@@ -448,7 +448,7 @@ const StaffPage = () => {
                   {/* Toplu seçim butonları */}
                   <div className="flex items-center gap-2">
                     <button type="button" onClick={selectAllServices}
-                      className="text-xs text-purple-600 hover:text-purple-800 font-medium px-2 py-1 rounded hover:bg-purple-50 transition-colors">
+                      className="text-xs text-emerald-700 hover:text-emerald-800 font-medium px-2 py-1 rounded hover:bg-emerald-50 transition-colors">
                       {t('selectAll')}
                     </button>
                     <span className="text-slate-300">|</span>
@@ -475,17 +475,17 @@ const StaffPage = () => {
                                 onClick={() => toggleService(service.id)}
                                 className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all
                                   ${isSelected
-                                    ? 'bg-purple-50 border border-purple-300 text-purple-800'
-                                    : 'bg-white border border-slate-200 text-slate-700 hover:border-purple-200 hover:bg-purple-50/30'
+                                    ? 'bg-emerald-50 border border-emerald-300 text-emerald-800'
+                                    : 'bg-white border border-slate-200 text-slate-700 hover:border-emerald-200 hover:bg-emerald-50/30'
                                   }`}
                               >
                                 <div className="flex items-center gap-2">
                                   <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0
-                                    ${isSelected ? 'bg-purple-600 border-purple-600' : 'border-slate-300'}`}>
+                                    ${isSelected ? 'bg-emerald-700 border-emerald-700' : 'border-slate-300'}`}>
                                     {isSelected && <Check className="w-3 h-3 text-white" />}
                                   </div>
                                   <div className="w-2 h-2 rounded-full flex-shrink-0"
-                                    style={{ backgroundColor: service.color || '#9333EA' }} />
+                                    style={{ backgroundColor: service.color || '#059669' }} />
                                   <span className="font-medium text-left">{service.description}</span>
                                 </div>
                                 <div className="flex items-center gap-2 flex-shrink-0 ml-2">
@@ -508,7 +508,7 @@ const StaffPage = () => {
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={handleCloseModal}>{t('cancel')}</Button>
               <Button type="submit" disabled={loading}
-                className="bg-[#E91E8C] hover:bg-[#C91A7A] text-white">
+                className="bg-emerald-700 hover:bg-emerald-800 text-white">
                 {loading ? `${t('save')}...` : t('save')}
               </Button>
             </DialogFooter>

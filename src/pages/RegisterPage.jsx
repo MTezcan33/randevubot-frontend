@@ -137,14 +137,14 @@ const RegisterPage = () => {
         <meta name="description" content={t('registerDescription')} />
       </Helmet>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/20 to-stone-100/30 flex items-center justify-center p-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
           <div className="glass-effect rounded-3xl p-8">
             <Link to="/" className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900 mb-6">
               <ArrowLeft className="w-4 h-4 mr-2" /> {t('backToHome')}
             </Link>
             <div className="flex items-center justify-center mb-8">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-emerald-800 to-teal-700 rounded-2xl flex items-center justify-center">
                 <MessageCircle className="w-8 h-8 text-white" />
               </div>
             </div>
@@ -156,7 +156,7 @@ const RegisterPage = () => {
                 <label className="block text-sm font-medium mb-2">{t('sector')}</label>
                 <div className="relative">
                   <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <select required value={formData.sectorId} onChange={(e) => handleSectorChange(e.target.value)} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                  <select required value={formData.sectorId} onChange={(e) => handleSectorChange(e.target.value)} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
                     <option value="" disabled>{t('selectSector')}</option>
                     {sectors.map(sector => <option key={sector.id} value={sector.id}>{sector.name}</option>)}
                      <option value="DİĞER">{t('otherSpecify')}</option>
@@ -165,7 +165,7 @@ const RegisterPage = () => {
               </div>
 
               {formData.sectorId === 'DİĞER' && (
-                <input type="text" required value={formData.otherSector} onChange={(e) => setFormData({ ...formData, otherSector: e.target.value })} className="w-full mt-2 px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder={t('newSectorPlaceholder')}/>
+                <input type="text" required value={formData.otherSector} onChange={(e) => setFormData({ ...formData, otherSector: e.target.value })} className="w-full mt-2 px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder={t('newSectorPlaceholder')}/>
               )}
 
               {formData.sectorId && formData.sectorId !== 'DİĞER' && (
@@ -173,7 +173,7 @@ const RegisterPage = () => {
                   <label className="block text-sm font-medium mb-2">{t('subSector')}</label>
                   <div className="relative">
                     <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <select required value={formData.subSectorId} onChange={(e) => setFormData({ ...formData, subSectorId: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <select required value={formData.subSectorId} onChange={(e) => setFormData({ ...formData, subSectorId: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
                       <option value="" disabled>{t('selectSubSector')}</option>
                       {subSectors.map(sub => <option key={sub.id} value={sub.id}>{sub.name}</option>)}
                       <option value="DİĞER">{t('otherSpecify')}</option>
@@ -183,14 +183,14 @@ const RegisterPage = () => {
               )}
               
               {formData.subSectorId === 'DİĞER' && (
-                <input type="text" required value={formData.otherSubSector} onChange={(e) => setFormData({ ...formData, otherSubSector: e.target.value })} className="w-full mt-2 px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder={t('newSubSectorPlaceholder')}/>
+                <input type="text" required value={formData.otherSubSector} onChange={(e) => setFormData({ ...formData, otherSubSector: e.target.value })} className="w-full mt-2 px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder={t('newSubSectorPlaceholder')}/>
               )}
 
               <div>
                 <label className="block text-sm font-medium mb-2">{t('companyName')}</label>
                 <div className="relative">
                   <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <input type="text" required value={formData.companyName} onChange={(e) => setFormData({ ...formData, companyName: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder={t('companyName')}/>
+                  <input type="text" required value={formData.companyName} onChange={(e) => setFormData({ ...formData, companyName: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder={t('companyName')}/>
                 </div>
               </div>
 
@@ -198,7 +198,7 @@ const RegisterPage = () => {
                 <label className="block text-sm font-medium mb-2">{t('fullName')}</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <input type="text" required value={formData.fullName} onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder={t('fullName')}/>
+                  <input type="text" required value={formData.fullName} onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder={t('fullName')}/>
                 </div>
               </div>
 
@@ -206,7 +206,7 @@ const RegisterPage = () => {
                 <label className="block text-sm font-medium mb-2">Telefon Numarası (Opsiyonel)</label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <input type="tel" value={formData.userPhone} onChange={(e) => setFormData({ ...formData, userPhone: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+90 555 123 4567"/>
+                  <input type="tel" value={formData.userPhone} onChange={(e) => setFormData({ ...formData, userPhone: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="+90 555 123 4567"/>
                 </div>
               </div>
 
@@ -214,7 +214,7 @@ const RegisterPage = () => {
                 <label className="block text-sm font-medium mb-2">İşletme WhatsApp Numarası (Opsiyonel)</label>
                 <div className="relative">
                   <Whatsapp className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <input type="tel" value={formData.companyWhatsApp} onChange={(e) => setFormData({ ...formData, companyWhatsApp: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+90 555 987 6543"/>
+                  <input type="tel" value={formData.companyWhatsApp} onChange={(e) => setFormData({ ...formData, companyWhatsApp: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="+90 555 987 6543"/>
                 </div>
               </div>
 
@@ -222,7 +222,7 @@ const RegisterPage = () => {
                 <label className="block text-sm font-medium mb-2">{t('emailAddress')}</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <input type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="ornek@email.com"/>
+                  <input type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="ornek@email.com"/>
                 </div>
               </div>
 
@@ -230,7 +230,7 @@ const RegisterPage = () => {
                 <label className="block text-sm font-medium mb-2">{t('passwordMinChar')}</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <input type="password" required minLength={8} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••••••"/>
+                  <input type="password" required minLength={8} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="••••••••"/>
                 </div>
               </div>
 
@@ -241,7 +241,7 @@ const RegisterPage = () => {
 
             <div className="mt-6 text-center text-sm">
               <span className="text-slate-600">{t('alreadyHaveAccount')} </span>
-              <Link to="/login" className="text-blue-600 hover:text-blue-700 font-semibold">{t('login')}</Link>
+              <Link to="/login" className="text-emerald-700 hover:text-emerald-800 font-semibold">{t('login')}</Link>
             </div>
           </div>
         </motion.div>

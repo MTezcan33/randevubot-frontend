@@ -109,7 +109,7 @@ const SERVICE_CATALOG = [
   },
   {
     category: 'Epilasyon',
-    color: '#9333EA',
+    color: '#059669',
     items: [
       { name: 'Ağda — Bacak (Tam)', duration: 45 },
       { name: 'Ağda — Koltuk Altı', duration: 15 },
@@ -142,17 +142,17 @@ function ServiceCard({ service, onEdit, onDelete, onToggleActive }) {
       animate={{ opacity: 1, y: 0 }}
       className={`bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden
         transition-all hover:shadow-md ${!service.is_active ? 'opacity-60' : ''}`}
-      style={{ borderTop: `3px solid ${service.color || '#9333EA'}` }}
+      style={{ borderTop: `3px solid ${service.color || '#059669'}` }}
     >
       {/* Kart Başlığı */}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-2 flex-wrap flex-1">
             <div className="w-3 h-3 rounded-full flex-shrink-0"
-              style={{ backgroundColor: service.color || '#9333EA' }} />
+              style={{ backgroundColor: service.color || '#059669' }} />
             {service.category && (
               <span className="text-xs font-medium px-2 py-0.5 rounded-full
-                bg-pink-50 text-pink-700 border border-pink-200">
+                bg-emerald-50 text-emerald-700 border border-emerald-200">
                 {service.category}
               </span>
             )}
@@ -199,7 +199,7 @@ function ServiceCard({ service, onEdit, onDelete, onToggleActive }) {
           <p className="text-sm text-slate-500 line-clamp-1">{service.service_content}</p>
         )}
         {(service.service_content || service.preparation_info || service.contraindications) && (
-          <span className="inline-flex items-center gap-1 mt-1 text-xs text-purple-600">
+          <span className="inline-flex items-center gap-1 mt-1 text-xs text-emerald-700">
             <Info className="w-3 h-3" />
             {t('hasDetailedInfo')}
           </span>
@@ -232,15 +232,15 @@ function ServiceCard({ service, onEdit, onDelete, onToggleActive }) {
       <div className="px-4 pb-4 flex items-center justify-between gap-2 border-t border-slate-50 pt-3">
         {service.pdf_url ? (
           <a href={service.pdf_url} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs text-[#9333EA] hover:underline">
+            className="flex items-center gap-1.5 text-xs text-teal-700 hover:underline">
             <FileText className="w-3.5 h-3.5" />
             {t('viewPdf')}
           </a>
         ) : <div />}
         <div className="flex items-center gap-2">
           <button onClick={() => onEdit(service)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600
-              hover:bg-blue-50 transition-colors">
+            className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-700
+              hover:bg-emerald-50 transition-colors">
             <Edit className="w-4 h-4" />
           </button>
           <button onClick={() => onDelete(service)}
@@ -291,7 +291,7 @@ function ServiceListView({ services, onEdit, onDelete, onToggleActive }) {
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: service.color || '#9333EA' }} />
+                    style={{ backgroundColor: service.color || '#059669' }} />
                   <span className="font-medium text-slate-800 text-sm">{service.description}</span>
                   {!service.is_active && (
                     <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">
@@ -302,7 +302,7 @@ function ServiceListView({ services, onEdit, onDelete, onToggleActive }) {
               </td>
               <td className="px-4 py-3 hidden md:table-cell">
                 {service.category
-                  ? <span className="text-xs px-2 py-0.5 rounded-full bg-pink-50 text-pink-700 border border-pink-200">
+                  ? <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                       {service.category}
                     </span>
                   : <span className="text-slate-400 text-xs">—</span>
@@ -310,7 +310,7 @@ function ServiceListView({ services, onEdit, onDelete, onToggleActive }) {
               </td>
               <td className="px-4 py-3 text-sm text-slate-600 hidden lg:table-cell">
                 {(service.service_content || service.preparation_info || service.contraindications)
-                  ? <span className="inline-flex items-center gap-1 text-xs text-purple-600"><Info className="w-3 h-3" />{t('hasDetailedInfo')}</span>
+                  ? <span className="inline-flex items-center gap-1 text-xs text-emerald-700"><Info className="w-3 h-3" />{t('hasDetailedInfo')}</span>
                   : <span className="text-slate-400">—</span>
                 }
               </td>
@@ -325,12 +325,12 @@ function ServiceListView({ services, onEdit, onDelete, onToggleActive }) {
                 <div className="flex items-center justify-end gap-1">
                   {service.pdf_url && (
                     <a href={service.pdf_url} target="_blank" rel="noopener noreferrer"
-                      className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                      className="p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors">
                       <FileText className="w-4 h-4" />
                     </a>
                   )}
                   <button onClick={() => onEdit(service)}
-                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                    className="p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors">
                     <Edit className="w-4 h-4" />
                   </button>
                   <button onClick={() => onDelete(service)}
@@ -375,7 +375,7 @@ const ServicesPage = () => {
     service_content: '',        // Hizmet İçeriği
     preparation_info: '',       // Hazırlık Talimatları
     contraindications: '',      // Kontra-endikasyonlar
-    color: '#9333EA',
+    color: '#059669',
     is_active: true,
     pdf_url: '',
   });
@@ -422,7 +422,7 @@ const ServicesPage = () => {
       description: '', category: '',
       duration: 30, price: '', notes: '',
       service_content: '', preparation_info: '', contraindications: '',
-      color: '#9333EA', is_active: true, pdf_url: '',
+      color: '#059669', is_active: true, pdf_url: '',
     });
     setPdfFile(null);
     setIsCustomCategory(false);
@@ -441,7 +441,7 @@ const ServicesPage = () => {
       service_content: service.service_content || '',
       preparation_info: service.preparation_info || '',
       contraindications: service.contraindications || '',
-      color: service.color || '#9333EA',
+      color: service.color || '#059669',
       is_active: service.is_active !== false,
       pdf_url: service.pdf_url || '',
     });
@@ -522,7 +522,7 @@ const ServicesPage = () => {
       service_content: serviceData.service_content || null,
       preparation_info: serviceData.preparation_info || null,
       contraindications: serviceData.contraindications || null,
-      color: serviceData.color || '#9333EA',
+      color: serviceData.color || '#059669',
       is_active: serviceData.is_active,
       pdf_url: finalPdfUrl || null,
     };
@@ -662,12 +662,12 @@ const ServicesPage = () => {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setIsCatalogOpen(true)}
-            className="border-slate-200 text-slate-700 hover:border-purple-300 hover:text-purple-700">
+            className="border-slate-200 text-slate-700 hover:border-emerald-300 hover:text-emerald-700">
             <BookOpen className="w-4 h-4 mr-2" />
             Katalogdan Ekle
           </Button>
           <Button onClick={openModalForCreate}
-            className="bg-[#E91E8C] hover:bg-[#C91A7A] text-white shadow-sm">
+            className="bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm">
             <Plus className="w-4 h-4 mr-2" />
             {t('addService')}
           </Button>
@@ -680,7 +680,7 @@ const ServicesPage = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-white text-sm
-              focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-[#E91E8C]"
+              focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600"
             placeholder={t('searchServices')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -689,13 +689,13 @@ const ServicesPage = () => {
         <div className="flex border border-slate-200 rounded-xl overflow-hidden bg-white">
           <button onClick={() => setViewMode('grid')}
             className={`p-2 transition-colors ${viewMode === 'grid'
-              ? 'bg-pink-50 text-[#E91E8C]' : 'text-slate-400 hover:text-slate-600'}`}
+              ? 'bg-emerald-50 text-emerald-700' : 'text-slate-400 hover:text-slate-600'}`}
             title={t('gridView')}>
             <LayoutGrid className="w-4 h-4" />
           </button>
           <button onClick={() => setViewMode('list')}
             className={`p-2 transition-colors ${viewMode === 'list'
-              ? 'bg-pink-50 text-[#E91E8C]' : 'text-slate-400 hover:text-slate-600'}`}
+              ? 'bg-emerald-50 text-emerald-700' : 'text-slate-400 hover:text-slate-600'}`}
             title={t('listView')}>
             <List className="w-4 h-4" />
           </button>
@@ -708,16 +708,16 @@ const ServicesPage = () => {
           <button onClick={() => setActiveCategory('all')}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors
               ${activeCategory === 'all'
-                ? 'bg-[#E91E8C] text-white shadow-sm'
-                : 'bg-white border border-slate-200 text-slate-600 hover:border-pink-300'}`}>
+                ? 'bg-emerald-700 text-white shadow-sm'
+                : 'bg-white border border-slate-200 text-slate-600 hover:border-emerald-300'}`}>
             {t('allCategories')} ({services.length})
           </button>
           {uniqueCategories.map(cat => (
             <button key={cat} onClick={() => setActiveCategory(cat)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors
                 ${activeCategory === cat
-                  ? 'bg-[#E91E8C] text-white shadow-sm'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:border-pink-300'}`}>
+                  ? 'bg-emerald-700 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:border-emerald-300'}`}>
               {cat} ({services.filter(s => s.category === cat).length})
             </button>
           ))}
@@ -727,20 +727,20 @@ const ServicesPage = () => {
       {/* İçerik */}
       {loading ? (
         <div className="flex justify-center py-16">
-          <div className="w-8 h-8 border-4 border-pink-200 border-t-[#E91E8C] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-emerald-200 border-t-emerald-700 rounded-full animate-spin" />
         </div>
       ) : filteredServices.length === 0 ? (
         /* Boş Durum */
         <div className="text-center py-16">
-          <div className="w-16 h-16 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Briefcase className="w-8 h-8 text-[#E91E8C]" />
+          <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Briefcase className="w-8 h-8 text-emerald-600" />
           </div>
           <h3 className="text-lg font-semibold text-slate-700 mb-2">
             {searchQuery || activeCategory !== 'all' ? 'Sonuç bulunamadı' : t('noService')}
           </h3>
           {!searchQuery && activeCategory === 'all' && (
             <Button onClick={openModalForCreate}
-              className="mt-4 bg-[#E91E8C] hover:bg-[#C91A7A] text-white">
+              className="mt-4 bg-emerald-700 hover:bg-emerald-800 text-white">
               <Plus className="w-4 h-4 mr-2" />
               {t('addFirstService')}
             </Button>
@@ -895,7 +895,7 @@ const ServicesPage = () => {
                 </label>
                 <textarea
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm
-                    focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-[#E91E8C]
+                    focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600
                     resize-none min-h-[60px]"
                   placeholder={t('serviceContentPlaceholder')}
                   value={serviceData.service_content}
@@ -910,7 +910,7 @@ const ServicesPage = () => {
                 </label>
                 <textarea
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm
-                    focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-[#E91E8C]
+                    focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600
                     resize-none min-h-[60px]"
                   placeholder={t('preparationInfoPlaceholder')}
                   value={serviceData.preparation_info}
@@ -925,7 +925,7 @@ const ServicesPage = () => {
                 </label>
                 <textarea
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm
-                    focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-[#E91E8C]
+                    focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600
                     resize-none min-h-[60px]"
                   placeholder={t('contraindicationsPlaceholder')}
                   value={serviceData.contraindications}
@@ -940,7 +940,7 @@ const ServicesPage = () => {
                 </label>
                 <textarea
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm
-                    focus:outline-none focus:ring-2 focus:ring-pink-200 focus:border-[#E91E8C]
+                    focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600
                     resize-none min-h-[60px]"
                   placeholder={t('serviceNotesPlaceholder')}
                   value={serviceData.notes}
@@ -956,13 +956,13 @@ const ServicesPage = () => {
               </h4>
               {serviceData.pdf_url && !pdfFile && (
                 <a href={serviceData.pdf_url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-[#9333EA] hover:underline">
+                  className="flex items-center gap-2 text-sm text-teal-700 hover:underline">
                   <FileText className="w-4 h-4" />
                   Mevcut PDF'yi görüntüle
                 </a>
               )}
               <div className="border-2 border-dashed border-slate-200 rounded-xl p-4
-                hover:border-pink-300 transition-colors">
+                hover:border-emerald-300 transition-colors">
                 <label className="cursor-pointer block">
                   <div className="flex flex-col items-center gap-2 text-center">
                     <Upload className="w-6 h-6 text-slate-400" />
@@ -988,7 +988,7 @@ const ServicesPage = () => {
             <Button
               onClick={handleSaveService}
               disabled={saving || uploadingPdf}
-              className="bg-[#E91E8C] hover:bg-[#C91A7A] text-white"
+              className="bg-emerald-700 hover:bg-emerald-800 text-white"
             >
               {(saving || uploadingPdf)
                 ? (uploadingPdf ? t('uploadingPdf') : `${t('save')}...`)
@@ -1007,7 +1007,7 @@ const ServicesPage = () => {
         <DialogContent className="sm:max-w-[640px] max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-[#9333EA]" />
+              <BookOpen className="w-5 h-5 text-teal-700" />
               Hizmet Kataloğu
             </DialogTitle>
           </DialogHeader>
@@ -1017,7 +1017,7 @@ const ServicesPage = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-sm
-                focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-[#9333EA]"
+                focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600"
               placeholder="Hizmet ara..."
               value={catalogSearch}
               onChange={(e) => setCatalogSearch(e.target.value)}
@@ -1026,13 +1026,13 @@ const ServicesPage = () => {
 
           {/* Seçim özeti */}
           {selectedCatalogItems.length > 0 && (
-            <div className="flex items-center justify-between px-3 py-2 bg-purple-50
-              border border-purple-200 rounded-xl text-sm">
-              <span className="text-purple-700 font-medium">
+            <div className="flex items-center justify-between px-3 py-2 bg-emerald-50
+              border border-emerald-200 rounded-xl text-sm">
+              <span className="text-emerald-700 font-medium">
                 {selectedCatalogItems.length} hizmet seçildi
               </span>
               <button onClick={() => setSelectedCatalogItems([])}
-                className="text-purple-500 hover:text-purple-700 text-xs underline">
+                className="text-emerald-600 hover:text-emerald-800 text-xs underline">
                 Temizle
               </button>
             </div>
@@ -1056,14 +1056,14 @@ const ServicesPage = () => {
                         className={`flex items-center justify-between px-3 py-2 rounded-xl
                           border text-left transition-all text-sm
                           ${selected
-                            ? 'bg-purple-50 border-purple-300 text-purple-800'
-                            : 'bg-white border-slate-200 text-slate-700 hover:border-purple-200 hover:bg-purple-50/50'
+                            ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                            : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-200 hover:bg-emerald-50/50'
                           }`}
                       >
                         <span className="font-medium">{item.name}</span>
                         <span className="flex items-center gap-1.5 flex-shrink-0 ml-2">
                           <span className="text-xs text-slate-400">{item.duration} dk</span>
-                          {selected && <Check className="w-3.5 h-3.5 text-purple-600" />}
+                          {selected && <Check className="w-3.5 h-3.5 text-emerald-700" />}
                         </span>
                       </button>
                     );
@@ -1080,7 +1080,7 @@ const ServicesPage = () => {
             <Button
               onClick={handleAddFromCatalog}
               disabled={selectedCatalogItems.length === 0 || saving}
-              className="bg-[#9333EA] hover:bg-[#7C28C5] text-white"
+              className="bg-teal-700 hover:bg-teal-800 text-white"
             >
               {saving ? 'Ekleniyor...' : `${selectedCatalogItems.length || ''} Hizmet Ekle`}
             </Button>

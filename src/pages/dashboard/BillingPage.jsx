@@ -158,15 +158,15 @@ const BillingPage = () => {
             </div>
             <div className="text-right">
               <p className="text-xs text-slate-600">{t('expertCalendarLimit')}</p>
-              <p className="text-xl font-bold text-blue-600">{company?.expert_limit || 1}</p>
+              <p className="text-xl font-bold text-emerald-700">{company?.expert_limit || 1}</p>
             </div>
           </div>
         </div>
 
         {/* Trial ve Şube İndirimi Bilgisi */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
-          <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-          <div className="text-xs text-blue-700 space-y-0.5">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex items-start gap-2">
+          <Info className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-emerald-700 space-y-0.5">
             <p>{t('trialInfoText')}</p>
             <p>{t('branchDiscountText')}</p>
           </div>
@@ -183,7 +183,7 @@ const BillingPage = () => {
               placeholder={t('enterCouponCode')}
               value={couponCode}
               onChange={(e) => setCouponCode(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             />
             <Button onClick={handleApplyCoupon} size="sm">{t('apply')}</Button>
           </div>
@@ -196,16 +196,16 @@ const BillingPage = () => {
               key={index}
               className={`bg-white rounded-lg shadow-sm border p-5 flex flex-col transition-all hover:shadow-md relative ${
                 company?.subscription_plan === plan.planKey
-                  ? 'ring-2 ring-blue-500 shadow-md'
+                  ? 'ring-2 ring-emerald-500 shadow-md'
                   : plan.highlighted
-                  ? 'ring-2 ring-purple-500'
+                  ? 'ring-2 ring-emerald-600'
                   : ''
               }`}
             >
               {/* En Popüler rozeti */}
               {plan.highlighted && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="bg-purple-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                  <span className="bg-emerald-700 text-white text-xs font-semibold px-3 py-1 rounded-full">
                     En Popüler
                   </span>
                 </div>

@@ -57,7 +57,7 @@ import {
 } from '@/services/accountingService';
 
 // Pasta grafiği renkleri
-const PIE_COLORS = ['#E91E8C', '#9333EA', '#F59E0B', '#10B981', '#3B82F6', '#EF4444', '#8B5CF6', '#06B6D4'];
+const PIE_COLORS = ['#065f46', '#0f766e', '#F59E0B', '#10B981', '#3B82F6', '#EF4444', '#8B5CF6', '#06B6D4'];
 
 // Para formatı
 const formatCurrency = (amount) =>
@@ -143,7 +143,7 @@ const AccountingPage = () => {
   const [categories, setCategories] = useState([]);
   const [catLoading, setCatLoading] = useState(false);
   const [addCatOpen, setAddCatOpen] = useState(false);
-  const [newCat, setNewCat] = useState({ name: '', type: 'income', icon: '💼', color: '#E91E8C' });
+  const [newCat, setNewCat] = useState({ name: '', type: 'income', icon: '💼', color: '#059669' });
   const [catSaving, setCatSaving] = useState(false);
 
   // ────────────────────────────────────────────────────
@@ -327,7 +327,7 @@ const AccountingPage = () => {
       await addCategory(company.id, newCat);
       toast({ title: t('success'), description: t('categoryAdded') });
       setAddCatOpen(false);
-      setNewCat({ name: '', type: 'income', icon: '💼', color: '#E91E8C' });
+      setNewCat({ name: '', type: 'income', icon: '💼', color: '#059669' });
       loadCategories();
     } catch (err) {
       toast({ title: t('error'), description: err.message, variant: 'destructive' });
@@ -456,21 +456,21 @@ const AccountingPage = () => {
         {/* Sayfa başlığı */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Calculator className="w-6 h-6 text-purple-600" />
+            <Calculator className="w-6 h-6 text-emerald-700" />
             {t('accounting')}
           </h1>
           <p className="text-slate-500 text-sm mt-1">{t('accountingSubtitle')}</p>
         </div>
 
         {/* Tab navigasyonu */}
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-6 overflow-x-auto">
+        <div className="flex gap-1 bg-stone-100 p-1 rounded-xl mb-6 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                 activeTab === tab.id
-                  ? 'bg-white text-purple-700 shadow-sm'
+                  ? 'bg-white text-emerald-700 shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -502,7 +502,7 @@ const AccountingPage = () => {
                 {cashRegister?.status !== 'closed' && (
                   <Button
                     size="sm"
-                    className="bg-purple-600 hover:bg-purple-700 text-white border-0"
+                    className="bg-emerald-700 hover:bg-emerald-800 text-white border-0"
                     onClick={() => setCloseModalOpen(true)}
                   >
                     {t('closeRegister')}
@@ -516,8 +516,8 @@ const AccountingPage = () => {
               <SummaryCard
                 title={t('openingBalance')}
                 amount={cashRegister?.opening_balance}
-                icon={<Wallet className="w-5 h-5 text-blue-600" />}
-                color="bg-blue-50"
+                icon={<Wallet className="w-5 h-5 text-stone-600" />}
+                color="bg-stone-50"
               />
               <SummaryCard
                 title={t('totalIncome')}
@@ -535,8 +535,8 @@ const AccountingPage = () => {
               <SummaryCard
                 title={t('currentBalance')}
                 amount={currentBalance}
-                icon={<Calculator className="w-5 h-5 text-purple-600" />}
-                color="bg-purple-50"
+                icon={<Calculator className="w-5 h-5 text-emerald-700" />}
+                color="bg-emerald-50"
               />
             </div>
 
@@ -669,7 +669,7 @@ const AccountingPage = () => {
             <div className="flex gap-3">
               <Button
                 onClick={() => setAddTxOpen(true)}
-                className="bg-purple-600 hover:bg-purple-700 text-white border-0"
+                className="bg-emerald-700 hover:bg-emerald-800 text-white border-0"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 {t('addTransaction')}
@@ -687,7 +687,7 @@ const AccountingPage = () => {
                 <div className="grid grid-cols-3 gap-4">
                   <SummaryCard title={t('totalIncome')} amount={s.totalIncome} icon={<TrendingUp className="w-5 h-5 text-green-600" />} color="bg-green-50" />
                   <SummaryCard title={t('totalExpense')} amount={s.totalExpense} icon={<TrendingDown className="w-5 h-5 text-red-600" />} color="bg-red-50" />
-                  <SummaryCard title={t('netProfit')} amount={s.netProfit} icon={<Calculator className="w-5 h-5 text-purple-600" />} color="bg-purple-50" />
+                  <SummaryCard title={t('netProfit')} amount={s.netProfit} icon={<Calculator className="w-5 h-5 text-emerald-700" />} color="bg-emerald-50" />
                 </div>
               );
             })()}
@@ -792,7 +792,7 @@ const AccountingPage = () => {
             <div className="grid grid-cols-3 gap-4">
               <SummaryCard title={t('totalIncome')} amount={reportSummary.totalIncome} icon={<TrendingUp className="w-5 h-5 text-green-600" />} color="bg-green-50" />
               <SummaryCard title={t('totalExpense')} amount={reportSummary.totalExpense} icon={<TrendingDown className="w-5 h-5 text-red-600" />} color="bg-red-50" />
-              <SummaryCard title={t('netProfit')} amount={reportSummary.netProfit} icon={<Calculator className="w-5 h-5 text-purple-600" />} color="bg-purple-50" />
+              <SummaryCard title={t('netProfit')} amount={reportSummary.netProfit} icon={<Calculator className="w-5 h-5 text-emerald-700" />} color="bg-emerald-50" />
             </div>
 
             {/* Günlük bar chart */}
@@ -906,7 +906,7 @@ const AccountingPage = () => {
             <div className="flex justify-end">
               <Button
                 onClick={() => setAddCatOpen(true)}
-                className="bg-purple-600 hover:bg-purple-700 text-white border-0"
+                className="bg-emerald-700 hover:bg-emerald-800 text-white border-0"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 {t('addCategory')}
@@ -1029,7 +1029,7 @@ const AccountingPage = () => {
             <Button
               onClick={handleCloseRegister}
               disabled={closingLoading}
-              className="bg-purple-600 hover:bg-purple-700 text-white border-0"
+              className="bg-emerald-700 hover:bg-emerald-800 text-white border-0"
             >
               {closingLoading ? t('saving') : t('closeRegister')}
             </Button>
@@ -1132,7 +1132,7 @@ const AccountingPage = () => {
             <Button
               onClick={handleAddTransaction}
               disabled={txSaving}
-              className="bg-purple-600 hover:bg-purple-700 text-white border-0"
+              className="bg-emerald-700 hover:bg-emerald-800 text-white border-0"
             >
               {txSaving ? t('saving') : t('save')}
             </Button>
@@ -1193,7 +1193,7 @@ const AccountingPage = () => {
             <Button
               onClick={handleAddCategory}
               disabled={catSaving}
-              className="bg-purple-600 hover:bg-purple-700 text-white border-0"
+              className="bg-emerald-700 hover:bg-emerald-800 text-white border-0"
             >
               {catSaving ? t('saving') : t('save')}
             </Button>

@@ -11,7 +11,7 @@ const LegalPage = () => {
         <meta name="description" content="Gizlilik politikası ve kullanım şartları" />
       </Helmet>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/20 to-stone-100/30 p-4">
         <div className="max-w-4xl mx-auto py-8">
           <Link to="/" className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900 mb-6">
             <ArrowLeft className="w-4 h-4 mr-2" />

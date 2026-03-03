@@ -46,7 +46,7 @@ const ResetPasswordPage = () => {
         <meta name="description" content="Şifrenizi sıfırlayın" />
       </Helmet>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/20 to-stone-100/30 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -59,7 +59,7 @@ const ResetPasswordPage = () => {
             </Link>
 
             <div className="flex items-center justify-center mb-8">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-emerald-800 to-teal-700 rounded-2xl flex items-center justify-center">
                 <MessageCircle className="w-8 h-8 text-white" />
               </div>
             </div>
@@ -83,7 +83,7 @@ const ResetPasswordPage = () => {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       placeholder="ornek@email.com"
                     />
                   </div>
