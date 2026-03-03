@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useTranslation, Trans } from 'react-i18next';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import HeroImage from '@/components/HeroImage';
 import {
   MessageCircle,
   Bell,
@@ -19,7 +18,7 @@ import {
   Star,
   ChevronDown,
   ChevronUp,
-  Scissors,
+  Leaf,
   Send,
   DollarSign,
 } from 'lucide-react';
@@ -34,7 +33,7 @@ const LandingPage = () => {
   const demoRef = useRef(null);
   const { t, i18n } = useTranslation();
 
-  // Güzellik sektörüne özel 6 özellik kartı
+  // Guzellik sektorune ozel 6 ozellik karti
   const features = [
     {
       icon: <MessageCircle className="w-6 h-6" />,
@@ -68,7 +67,7 @@ const LandingPage = () => {
     },
   ];
 
-  // 3 abonelik planı (AGENT-2 spec)
+  // 3 abonelik plani
   const plans = [
     {
       name: t('planStarter'),
@@ -114,7 +113,7 @@ const LandingPage = () => {
     },
   ];
 
-  // Sorun-Çözüm kartları
+  // Sorun-Cozum kartlari
   const problems = [
     {
       emoji: '📞',
@@ -136,7 +135,7 @@ const LandingPage = () => {
     },
   ];
 
-  // Müşteri yorumları (placeholder)
+  // Musteri yorumlari
   const testimonials = [
     {
       name: t('testimonial1Name'),
@@ -168,7 +167,7 @@ const LandingPage = () => {
     { q: t('faqLanding6Q'), a: t('faqLanding6A') },
   ];
 
-  // Güzellik salonu WhatsApp demo konuşması
+  // Guzellik salonu WhatsApp demo konusmasi
   const demoFlow = [
     { sender: 'user', text: t('guzellikDemoUser1') },
     { sender: 'bot', text: t('guzellikDemoBot1') },
@@ -182,7 +181,7 @@ const LandingPage = () => {
     { sender: 'bot', text: t('guzellikDemoBot5') },
   ];
 
-  // Demo bölümü görünür olduğunda otomatik başlat
+  // Demo bolumu gorunur oldugunda otomatik baslat
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -196,7 +195,7 @@ const LandingPage = () => {
     return () => observer.disconnect();
   }, [demoStarted]);
 
-  // Demo mesajlarını sırayla göster
+  // Demo mesajlarini sirayla goster
   useEffect(() => {
     if (demoStarted && demoStep < demoFlow.length) {
       const timer = setTimeout(
@@ -217,9 +216,9 @@ const LandingPage = () => {
         <meta name="description" content={t('metaDescription')} />
       </Helmet>
 
-      <div className="min-h-screen" style={{ backgroundColor: '#FFFBF5' }}>
-        {/* ─── NAVİGASYON ─── */}
-        <nav className="fixed top-0 w-full backdrop-blur-md bg-white/85 border-b border-pink-100 z-50 shadow-sm">
+      <div className="min-h-screen" style={{ backgroundColor: '#FAF8F5' }}>
+        {/* --- NAVIGASYON --- */}
+        <nav className="fixed top-0 w-full backdrop-blur-md bg-white/85 border-b border-stone-200 z-50 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <motion.div
@@ -227,10 +226,10 @@ const LandingPage = () => {
                 animate={{ opacity: 1, x: 0 }}
                 className="flex items-center space-x-2"
               >
-                <div className="w-8 h-8 bg-gradient-to-br from-pink-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <Scissors className="w-4 h-4 text-white" />
+                <div className="w-8 h-8 bg-gradient-to-br from-emerald-800 to-teal-700 rounded-lg flex items-center justify-center">
+                  <Leaf className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                <span className="text-xl font-bold bg-gradient-to-r from-emerald-800 to-teal-700 bg-clip-text text-transparent">
                   RandevuBot
                 </span>
               </motion.div>
@@ -241,7 +240,7 @@ const LandingPage = () => {
                   {t('login')}
                 </Button>
                 <Button
-                  className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white border-0"
+                  className="bg-gradient-to-r from-emerald-800 to-teal-700 hover:from-emerald-900 hover:to-teal-800 text-white border-0"
                   onClick={() => navigate('/register')}
                 >
                   {t('heroCta')}
@@ -257,7 +256,7 @@ const LandingPage = () => {
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="md:hidden py-4 space-y-2 border-t border-pink-100"
+                className="md:hidden py-4 space-y-2 border-t border-stone-200"
               >
                 <LanguageSwitcher />
                 <Button
@@ -271,7 +270,7 @@ const LandingPage = () => {
                   {t('login')}
                 </Button>
                 <Button
-                  className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white border-0"
+                  className="w-full bg-gradient-to-r from-emerald-800 to-teal-700 text-white border-0"
                   onClick={() => {
                     navigate('/register');
                     setMobileMenuOpen(false);
@@ -284,87 +283,85 @@ const LandingPage = () => {
           </div>
         </nav>
 
-        {/* ─── HERO ─── */}
-        <section className="pt-40 pb-24 px-4 bg-gradient-to-b from-white via-rose-50/40 to-pink-50/30">
-          <div className="max-w-7xl mx-auto text-center">
+        {/* --- HERO --- */}
+        <section className="relative min-h-[90vh] flex items-center justify-center px-4 overflow-hidden bg-gradient-to-b from-white via-emerald-50/20 to-stone-100/30">
+          {/* Dekoratif blob'lar */}
+          <div className="absolute top-20 -left-32 w-96 h-96 bg-emerald-200/15 rounded-full blur-3xl" />
+          <div className="absolute bottom-10 -right-32 w-80 h-80 bg-teal-200/15 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-100/10 rounded-full blur-3xl" />
+
+          <div className="max-w-4xl mx-auto text-center relative z-10">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 1.0, ease: 'easeOut' }}
             >
-              {/* Üst etiket */}
-              <div className="inline-flex items-center gap-2 bg-pink-100 text-pink-700 rounded-full px-4 py-1.5 text-sm font-medium mb-6">
+              {/* Ust etiket */}
+              <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 rounded-full px-4 py-1.5 text-sm font-medium mb-8 border border-emerald-100">
                 <Sparkles className="w-4 h-4" />
                 <span>{t('heroTag')}</span>
               </div>
 
-              <h1 className="text-4xl md:text-6xl font-bold mb-6 text-gray-900 leading-tight">
+              <h1 className="text-5xl md:text-7xl font-light mb-8 text-stone-900 leading-tight tracking-tight">
                 <Trans
                   i18nKey="heroTitle"
                   components={[
-                    <span className="bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent" />,
+                    <span className="bg-gradient-to-r from-emerald-800 to-teal-700 bg-clip-text text-transparent font-normal" />,
                   ]}
                 />
               </h1>
 
-              <p className="text-xl md:text-2xl text-slate-600 mt-4 mb-10 max-w-3xl mx-auto leading-relaxed">
+              <p className="text-xl md:text-2xl text-stone-500 font-light mt-4 mb-12 max-w-2xl mx-auto leading-relaxed">
                 {t('heroSubtitle')}
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
                   size="lg"
-                  className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white border-0 text-lg px-8 py-6 rounded-xl shadow-lg"
+                  className="bg-gradient-to-r from-emerald-800 to-teal-700 hover:from-emerald-900 hover:to-teal-800 text-white border-0 text-lg px-10 py-6 rounded-2xl shadow-lg shadow-emerald-900/20"
                   onClick={() => navigate('/register')}
                 >
                   {t('heroCta')}
                 </Button>
               </div>
 
-              {/* Güven rozetleri */}
-              <div className="flex flex-wrap justify-center gap-8 mt-12">
+              {/* Guven rozetleri */}
+              <div className="flex flex-wrap justify-center gap-8 mt-16">
                 {[
                   { emoji: '💆‍♀️', label: t('trustBadge1') },
                   { emoji: '📅', label: t('trustBadge2') },
                   { emoji: '🟢', label: t('trustBadge3') },
                 ].map((badge, i) => (
-                  <div key={i} className="flex items-center gap-2 text-slate-600 font-medium">
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.8 + i * 0.15 }}
+                    className="flex items-center gap-2 text-stone-500 font-medium"
+                  >
                     <span className="text-2xl">{badge.emoji}</span>
                     <span>{badge.label}</span>
-                  </div>
+                  </motion.div>
                 ))}
-              </div>
-            </motion.div>
-
-            {/* Hero Görseli */}
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="mt-16"
-            >
-              <div className="rounded-3xl shadow-2xl mx-auto w-full max-w-7xl overflow-hidden ring-1 ring-black/5">
-                <div className="aspect-[16/9] w-full">
-                  <HeroImage />
-                </div>
               </div>
             </motion.div>
           </div>
         </section>
 
-        {/* ─── SORUN-ÇÖZÜM ─── */}
-        <section className="py-20 px-4 bg-white">
+        {/* --- SORUN-COZUM --- */}
+        <section className="py-24 px-4 bg-white">
           <div className="max-w-7xl mx-auto">
             <motion.div
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
               className="text-center mb-16"
             >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+              <h2 className="text-3xl md:text-4xl font-semibold mb-4 text-stone-900">
                 {t('problemTitle')}
               </h2>
-              <p className="text-slate-600 text-lg">{t('problemSubtitle')}</p>
+              <p className="text-stone-600 text-lg">{t('problemSubtitle')}</p>
             </motion.div>
 
             <div className="grid md:grid-cols-3 gap-8">
@@ -374,37 +371,38 @@ const LandingPage = () => {
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="bg-gradient-to-br from-rose-50 to-pink-50 border border-pink-100 p-6 rounded-2xl"
+                  transition={{ delay: index * 0.1, duration: 0.8 }}
+                  className="bg-gradient-to-br from-stone-50 to-emerald-50/30 border border-stone-200 p-6 rounded-2xl"
                 >
                   <div className="text-4xl mb-4">{prob.emoji}</div>
-                  <h3 className="text-xl font-semibold mb-2 text-gray-900">{prob.title}</h3>
-                  <p className="text-slate-600 mb-4">{prob.desc}</p>
-                  <p className="text-green-600 font-medium text-sm">{prob.solution}</p>
+                  <h3 className="text-xl font-semibold mb-2 text-stone-900">{prob.title}</h3>
+                  <p className="text-stone-600 mb-4">{prob.desc}</p>
+                  <p className="text-emerald-700 font-medium text-sm">{prob.solution}</p>
                 </motion.div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ─── ÖZELLİKLER ─── */}
-        <section id="features" className="py-20 px-4 bg-gradient-to-b from-white to-rose-50/60">
+        {/* --- OZELLIKLER --- */}
+        <section id="features" className="py-24 px-4 bg-gradient-to-b from-white to-stone-50/60">
           <div className="max-w-7xl mx-auto">
             <motion.div
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
               className="text-center mb-16"
             >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+              <h2 className="text-3xl md:text-4xl font-semibold mb-4 text-stone-900">
                 <Trans
                   i18nKey="featuresTitle"
                   components={[
-                    <span className="bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent" />,
+                    <span className="bg-gradient-to-r from-emerald-800 to-teal-700 bg-clip-text text-transparent" />,
                   ]}
                 />
               </h2>
-              <p className="text-slate-600 text-lg">{t('featuresSubtitle')}</p>
+              <p className="text-stone-600 text-lg">{t('featuresSubtitle')}</p>
             </motion.div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -414,52 +412,54 @@ const LandingPage = () => {
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="bg-white border border-pink-100 p-6 rounded-2xl hover:shadow-xl hover:border-pink-300 transition-all duration-300"
+                  transition={{ delay: index * 0.1, duration: 0.8 }}
+                  className="bg-white border border-stone-200 p-6 rounded-2xl hover:shadow-lg hover:border-emerald-200 transition-all duration-300"
                 >
-                  <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-purple-600 rounded-xl flex items-center justify-center text-white mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-emerald-800 to-teal-700 rounded-xl flex items-center justify-center text-white mb-4">
                     {feature.icon}
                   </div>
-                  <h3 className="text-xl font-semibold mb-2 text-gray-900">{feature.title}</h3>
-                  <p className="text-slate-600">{feature.description}</p>
+                  <h3 className="text-xl font-semibold mb-2 text-stone-900">{feature.title}</h3>
+                  <p className="text-stone-600">{feature.description}</p>
                 </motion.div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ─── DEMO (TELEFON MOCKUP) ─── */}
-        <section className="py-20 px-4 bg-white" ref={demoRef}>
+        {/* --- DEMO (TELEFON MOCKUP) --- */}
+        <section className="py-24 px-4 bg-white" ref={demoRef}>
           <div className="max-w-7xl mx-auto">
             <motion.div
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
               className="text-center mb-16"
             >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+              <h2 className="text-3xl md:text-4xl font-semibold mb-4 text-stone-900">
                 <Trans
                   i18nKey="demoSectionTitle"
                   components={[
-                    <span className="bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent" />,
+                    <span className="bg-gradient-to-r from-emerald-800 to-teal-700 bg-clip-text text-transparent" />,
                   ]}
                 />
               </h2>
-              <p className="text-slate-600 text-lg">{t('demoSectionSubtitle')}</p>
+              <p className="text-stone-600 text-lg">{t('demoSectionSubtitle')}</p>
             </motion.div>
 
             <div className="flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-20">
-              {/* Telefon çerçevesi */}
+              {/* Telefon cercevesi */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
+                transition={{ duration: 0.8 }}
                 className="w-[300px] bg-gray-900 rounded-[42px] p-3 shadow-2xl ring-4 ring-gray-800 flex-shrink-0"
               >
                 <div className="bg-gray-800 rounded-[36px] overflow-hidden">
                   {/* WhatsApp header */}
                   <div className="bg-green-600 flex items-center p-3 gap-2">
-                    <div className="w-9 h-9 bg-pink-200 rounded-full flex items-center justify-center text-lg">
+                    <div className="w-9 h-9 bg-emerald-200 rounded-full flex items-center justify-center text-lg">
                       💅
                     </div>
                     <div>
@@ -511,7 +511,7 @@ const LandingPage = () => {
                     )}
                   </div>
 
-                  {/* Input alanı */}
+                  {/* Input alani */}
                   <div className="bg-[#F0F0F0] flex items-center gap-2 p-2">
                     <div className="flex-1 bg-white rounded-full px-3 py-1.5 text-xs text-gray-400">
                       {t('demoPlaceholder')}
@@ -523,24 +523,25 @@ const LandingPage = () => {
                 </div>
               </motion.div>
 
-              {/* Demo açıklaması */}
+              {/* Demo aciklamasi */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
+                transition={{ duration: 0.8 }}
                 className="max-w-sm text-left"
               >
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">{t('demoSideTitle')}</h3>
+                <h3 className="text-2xl font-semibold text-stone-900 mb-6">{t('demoSideTitle')}</h3>
                 <ul className="space-y-4">
                   {[t('demoPoint1'), t('demoPoint2'), t('demoPoint3')].map((point, i) => (
                     <li key={i} className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-slate-600">{point}</span>
+                      <Check className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <span className="text-stone-600">{point}</span>
                     </li>
                   ))}
                 </ul>
                 <Button
-                  className="mt-8 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white border-0"
+                  className="mt-8 bg-gradient-to-r from-emerald-800 to-teal-700 hover:from-emerald-900 hover:to-teal-800 text-white border-0"
                   onClick={() => navigate('/register')}
                 >
                   {t('heroCta')}
@@ -550,25 +551,26 @@ const LandingPage = () => {
           </div>
         </section>
 
-        {/* ─── FİYATLANDIRMA ─── */}
-        <section id="pricing" className="py-20 px-4 bg-gradient-to-b from-rose-50/60 to-white">
+        {/* --- FIYATLANDIRMA --- */}
+        <section id="pricing" className="py-24 px-4 bg-gradient-to-b from-stone-50/60 to-white">
           <div className="max-w-5xl mx-auto">
             <motion.div
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
               className="text-center mb-16"
             >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+              <h2 className="text-3xl md:text-4xl font-semibold mb-4 text-stone-900">
                 <Trans
                   i18nKey="pricingTitle"
                   components={[
-                    <span className="bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent" />,
+                    <span className="bg-gradient-to-r from-emerald-800 to-teal-700 bg-clip-text text-transparent" />,
                   ]}
                 />
               </h2>
-              <p className="text-slate-600 text-lg mb-3">{t('pricingSubtitle')}</p>
-              <span className="inline-block bg-pink-100 text-pink-700 text-sm font-medium px-4 py-1.5 rounded-full">
+              <p className="text-stone-600 text-lg mb-3">{t('pricingSubtitle')}</p>
+              <span className="inline-block bg-emerald-50 text-emerald-700 text-sm font-medium px-4 py-1.5 rounded-full border border-emerald-100">
                 {t('pricingTrialNote')}
               </span>
             </motion.div>
@@ -580,29 +582,29 @@ const LandingPage = () => {
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
+                  transition={{ delay: index * 0.1, duration: 0.8 }}
                   className={`relative bg-white rounded-2xl p-8 flex flex-col ${
                     plan.popular
-                      ? 'ring-2 ring-pink-500 shadow-2xl scale-105'
-                      : 'border border-gray-200 shadow-lg'
+                      ? 'ring-2 ring-emerald-600 shadow-2xl scale-105'
+                      : 'border border-stone-200 shadow-lg'
                   }`}
                 >
                   {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-sm font-semibold px-4 py-1 rounded-full whitespace-nowrap">
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-emerald-700 text-white text-sm font-semibold px-4 py-1 rounded-full whitespace-nowrap">
                       {t('planMostPopular')}
                     </div>
                   )}
 
-                  <h3 className="text-2xl font-bold mb-2 text-gray-900">{plan.name}</h3>
+                  <h3 className="text-2xl font-bold mb-2 text-stone-900">{plan.name}</h3>
                   <div className="mb-6">
-                    <span className="text-4xl font-bold text-gray-900">${plan.price}</span>
-                    <span className="text-slate-500 ml-1">{plan.duration}</span>
+                    <span className="text-4xl font-bold text-stone-900">${plan.price}</span>
+                    <span className="text-stone-500 ml-1">{plan.duration}</span>
                   </div>
 
                   <ul className="space-y-3 mb-8 flex-grow">
                     {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-start text-sm text-gray-700">
-                        <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <li key={i} className="flex items-start text-sm text-stone-700">
+                        <Check className="w-5 h-5 text-emerald-600 mr-2 flex-shrink-0 mt-0.5" />
                         <span>{feature}</span>
                       </li>
                     ))}
@@ -611,7 +613,7 @@ const LandingPage = () => {
                   <Button
                     className={`w-full mt-auto ${
                       plan.popular
-                        ? 'bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white border-0'
+                        ? 'bg-gradient-to-r from-emerald-800 to-teal-700 hover:from-emerald-900 hover:to-teal-800 text-white border-0'
                         : ''
                     }`}
                     variant={plan.popular ? 'default' : 'outline'}
@@ -623,22 +625,23 @@ const LandingPage = () => {
               ))}
             </div>
 
-            <p className="text-center text-slate-500 text-sm mt-10">
+            <p className="text-center text-stone-500 text-sm mt-10">
               ✓ {t('pricingAllPlansNote')}
             </p>
           </div>
         </section>
 
-        {/* ─── MÜŞTERİ YORUMLARI ─── */}
-        <section className="py-20 px-4 bg-white">
+        {/* --- MUSTERI YORUMLARI --- */}
+        <section className="py-24 px-4 bg-white">
           <div className="max-w-7xl mx-auto">
             <motion.div
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
               className="text-center mb-16"
             >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+              <h2 className="text-3xl md:text-4xl font-semibold mb-4 text-stone-900">
                 {t('testimonialsTitle')}
               </h2>
             </motion.div>
@@ -650,18 +653,18 @@ const LandingPage = () => {
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="bg-gradient-to-br from-rose-50 to-pink-50 border border-pink-100 p-6 rounded-2xl"
+                  transition={{ delay: index * 0.1, duration: 0.8 }}
+                  className="bg-gradient-to-br from-stone-50 to-emerald-50/30 border border-stone-200 p-6 rounded-2xl"
                 >
                   <div className="flex gap-1 mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
                       <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />
                     ))}
                   </div>
-                  <p className="text-slate-700 mb-4 italic">"{testimonial.text}"</p>
+                  <p className="text-stone-700 mb-4 italic">"{testimonial.text}"</p>
                   <div>
-                    <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                    <p className="text-sm text-pink-600">{testimonial.business}</p>
+                    <p className="font-semibold text-stone-900">{testimonial.name}</p>
+                    <p className="text-sm text-emerald-700">{testimonial.business}</p>
                   </div>
                 </motion.div>
               ))}
@@ -669,16 +672,17 @@ const LandingPage = () => {
           </div>
         </section>
 
-        {/* ─── SSS (FAQ) ─── */}
-        <section className="py-20 px-4 bg-gradient-to-b from-white to-rose-50/60">
+        {/* --- SSS (FAQ) --- */}
+        <section className="py-24 px-4 bg-gradient-to-b from-white to-stone-50/60">
           <div className="max-w-3xl mx-auto">
             <motion.div
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
               className="text-center mb-16"
             >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+              <h2 className="text-3xl md:text-4xl font-semibold mb-4 text-stone-900">
                 {t('faqLandingTitle')}
               </h2>
             </motion.div>
@@ -690,25 +694,25 @@ const LandingPage = () => {
                   initial={{ opacity: 0, y: 10 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.05 }}
-                  className="bg-white border border-pink-100 rounded-xl overflow-hidden shadow-sm"
+                  transition={{ delay: index * 0.05, duration: 0.8 }}
+                  className="bg-white border border-stone-200 rounded-xl overflow-hidden shadow-sm"
                 >
                   <button
-                    className="w-full flex justify-between items-center p-5 text-left font-semibold text-gray-900 hover:bg-pink-50 transition-colors"
+                    className="w-full flex justify-between items-center p-5 text-left font-semibold text-stone-900 hover:bg-stone-50 transition-colors"
                     onClick={() => setOpenFaq(openFaq === index ? null : index)}
                   >
                     <span className="pr-4">{faq.q}</span>
                     {openFaq === index ? (
-                      <ChevronUp className="w-5 h-5 text-pink-500 flex-shrink-0" />
+                      <ChevronUp className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                     ) : (
-                      <ChevronDown className="w-5 h-5 text-pink-500 flex-shrink-0" />
+                      <ChevronDown className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                     )}
                   </button>
                   {openFaq === index && (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="px-5 pb-5 text-slate-600 leading-relaxed"
+                      className="px-5 pb-5 text-stone-600 leading-relaxed"
                     >
                       {faq.a}
                     </motion.div>
@@ -719,20 +723,21 @@ const LandingPage = () => {
           </div>
         </section>
 
-        {/* ─── SON CTA ─── */}
-        <section className="py-20 px-4 bg-gradient-to-r from-pink-600 to-purple-700">
+        {/* --- SON CTA --- */}
+        <section className="py-24 px-4 bg-gradient-to-r from-emerald-800 to-teal-700">
           <div className="max-w-3xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
             >
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{t('ctaTitle')}</h2>
-              <p className="text-pink-100 text-lg mb-8">{t('ctaSubtitle')}</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-white mb-4">{t('ctaTitle')}</h2>
+              <p className="text-emerald-100 text-lg mb-8">{t('ctaSubtitle')}</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
                   size="lg"
-                  className="bg-white text-pink-600 hover:bg-pink-50 border-0 text-lg px-8 py-6 rounded-xl shadow-lg font-semibold"
+                  className="bg-white text-emerald-800 hover:bg-emerald-50 border-0 text-lg px-8 py-6 rounded-xl shadow-lg font-semibold"
                   onClick={() => navigate('/register')}
                 >
                   {t('ctaButton')}
@@ -749,22 +754,22 @@ const LandingPage = () => {
           </div>
         </section>
 
-        {/* ─── FOOTER ─── */}
-        <footer className="bg-gray-900 text-white py-12 px-4">
+        {/* --- FOOTER --- */}
+        <footer className="bg-stone-900 text-white py-12 px-4">
           <div className="max-w-7xl mx-auto">
             <div className="grid md:grid-cols-4 gap-8 mb-8">
               <div>
                 <div className="flex items-center space-x-2 mb-4">
-                  <div className="w-7 h-7 bg-gradient-to-br from-pink-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <Scissors className="w-3.5 h-3.5 text-white" />
+                  <div className="w-7 h-7 bg-gradient-to-br from-emerald-800 to-teal-700 rounded-lg flex items-center justify-center">
+                    <Leaf className="w-3.5 h-3.5 text-white" />
                   </div>
                   <span className="font-bold text-lg">RandevuBot</span>
                 </div>
-                <p className="text-slate-400 text-sm">{t('footerDesc')}</p>
+                <p className="text-stone-400 text-sm">{t('footerDesc')}</p>
               </div>
               <div>
                 <h4 className="font-semibold mb-4">{t('footerProduct')}</h4>
-                <ul className="space-y-2 text-sm text-slate-400">
+                <ul className="space-y-2 text-sm text-stone-400">
                   <li>
                     <a href="#features" className="hover:text-white transition-colors">
                       {t('footerFeatures')}
@@ -795,7 +800,7 @@ const LandingPage = () => {
               </div>
               <div>
                 <h4 className="font-semibold mb-4">{t('footerCompany')}</h4>
-                <ul className="space-y-2 text-sm text-slate-400">
+                <ul className="space-y-2 text-sm text-stone-400">
                   <li>
                     <a href="/legal" className="hover:text-white transition-colors">
                       {t('footerAbout')}
@@ -815,7 +820,7 @@ const LandingPage = () => {
               </div>
               <div>
                 <h4 className="font-semibold mb-4">{t('footerLegal')}</h4>
-                <ul className="space-y-2 text-sm text-slate-400">
+                <ul className="space-y-2 text-sm text-stone-400">
                   <li>
                     <a href="/legal" className="hover:text-white transition-colors">
                       {t('footerPrivacy')}
@@ -834,7 +839,7 @@ const LandingPage = () => {
                 </ul>
               </div>
             </div>
-            <div className="border-t border-gray-800 pt-8 text-center text-sm text-slate-400">
+            <div className="border-t border-stone-800 pt-8 text-center text-sm text-stone-400">
               <p>{t('copyright')}</p>
             </div>
           </div>
