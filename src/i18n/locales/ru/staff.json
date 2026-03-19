@@ -15,5 +15,15 @@
   "deleteStaffConfirm": "Вы уверены, что хотите удалить этого специалиста? Это действие нельзя отменить.",
   "staffName": "Имя и фамилия",
   "expertRevenue": "Доход по специалистам",
-  "expertCalendarLimit": "Лимит календарей специалистов"
+  "expertCalendarLimit": "Лимит календарей специалистов",
+  "expertLimitReached": "Достигнут лимит специалистов. Обновите план для добавления.",
+  "pinCode": "PIN-код",
+  "panelRoles": "Роли панели",
+  "panelLogin": "Вход в панель",
+  "panelLogout": "Выход из панели",
+  "mySchedule": "Моё расписание",
+  "myAppointments": "Мои записи",
+  "payments": "Платежи",
+  "checkIn": "Прибыл",
+  "adminPinRequired": "Требуется PIN администратора"
 }

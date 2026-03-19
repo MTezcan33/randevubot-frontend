@@ -15,5 +15,15 @@
   "deleteStaffConfirm": "adlı uzmanı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
   "staffName": "İsim Soyisim",
   "expertRevenue": "Uzman Bazlı Ciro",
-  "expertCalendarLimit": "Uzman Takvim Limiti"
+  "expertCalendarLimit": "Uzman Takvim Limiti",
+  "expertLimitReached": "Uzman limitinize ulaştınız. Daha fazla uzman eklemek için planınızı yükseltin.",
+  "pinCode": "PIN Kodu",
+  "panelRoles": "Panel Rolleri",
+  "panelLogin": "Panel Girişi",
+  "panelLogout": "Panel Çıkış",
+  "mySchedule": "Programım",
+  "myAppointments": "Randevularım",
+  "payments": "Ödemeler",
+  "checkIn": "Geldi",
+  "adminPinRequired": "Yönetici PIN Gerekli"
 }

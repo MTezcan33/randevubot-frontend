@@ -44,6 +44,8 @@ const StaffPage = () => {
     phone: '',
     role: 'Uzman',
     color: getRandomColor(),
+    pin_code: '',
+    panel_roles: [],
   });
 
   // Hizmet seçimi state'leri
@@ -109,6 +111,8 @@ const StaffPage = () => {
         phone: editingStaff.phone || '',
         role: editingStaff.role,
         color: editingStaff.color || getRandomColor(),
+        pin_code: editingStaff.pin_code || '',
+        panel_roles: editingStaff.panel_roles || [],
       });
     } else {
       resetForm();
@@ -122,6 +126,8 @@ const StaffPage = () => {
       phone: '',
       role: 'Uzman',
       color: getRandomColor(),
+      pin_code: '',
+      panel_roles: [],
     });
     setSelectedServiceIds(new Set());
     setServiceSearchQuery('');
@@ -426,6 +432,50 @@ const StaffPage = () => {
                     onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                     className="w-10 h-10 p-0 border-none rounded-lg cursor-pointer"
                   />
+              </div>
+            </div>
+
+            {/* PIN ve Panel Rolleri */}
+            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+              <div>
+                <label className="block text-sm font-medium mb-2">{t('pinCode') || 'PIN Kodu'}</label>
+                <input
+                  type="text"
+                  maxLength={4}
+                  placeholder="4 haneli PIN"
+                  value={formData.pin_code}
+                  onChange={(e) => setFormData({ ...formData, pin_code: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+                  className="w-full px-4 py-2 rounded-lg border text-center tracking-widest font-mono text-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">{t('panelRoles') || 'Panel Rolleri'}</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {['uzman', 'resepsiyonist', 'kasa'].map(role => {
+                    const isSelected = formData.panel_roles.includes(role);
+                    return (
+                      <button
+                        key={role}
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            panel_roles: isSelected
+                              ? prev.panel_roles.filter(r => r !== role)
+                              : [...prev.panel_roles, role],
+                          }));
+                        }}
+                        className={`px-2.5 py-1 text-xs rounded-full border transition-all ${
+                          isSelected
+                            ? 'bg-emerald-100 border-emerald-300 text-emerald-700'
+                            : 'bg-white border-slate-200 text-slate-500'
+                        }`}
+                      >
+                        {role.charAt(0).toUpperCase() + role.slice(1)}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 

@@ -15,5 +15,15 @@
   "deleteStaffConfirm": "Are you sure you want to delete this expert? This action cannot be undone.",
   "staffName": "Full Name",
   "expertRevenue": "Revenue by Expert",
-  "expertCalendarLimit": "Expert Calendar Limit"
+  "expertCalendarLimit": "Expert Calendar Limit",
+  "expertLimitReached": "You have reached your expert limit. Upgrade your plan to add more experts.",
+  "pinCode": "PIN Code",
+  "panelRoles": "Panel Roles",
+  "panelLogin": "Panel Login",
+  "panelLogout": "Panel Logout",
+  "mySchedule": "My Schedule",
+  "myAppointments": "My Appointments",
+  "payments": "Payments",
+  "checkIn": "Arrived",
+  "adminPinRequired": "Admin PIN Required"
 }

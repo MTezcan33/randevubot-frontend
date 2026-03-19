@@ -41,6 +41,13 @@
       "description": "Automatic report system: report_settings JSONB on companies, report_send_log table",
       "applied_at": null,
       "status": "pending"
+    },
+    {
+      "id": "006",
+      "file": "migrations/006_panel_system.sql",
+      "description": "Panel system: PIN-based role login for staff (pin_code, panel_roles columns + panel_login RPC)",
+      "applied_at": null,
+      "status": "pending"
     }
   ]
 }

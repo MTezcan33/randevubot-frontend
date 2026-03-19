@@ -23,6 +23,7 @@ import LegalPage from '@/pages/LegalPage';
 import { AuthProvider } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import OnboardingRoute from '@/components/OnboardingRoute';
+import PanelApp from '@/panel/PanelApp';
 
 function App() {
   return (
@@ -59,6 +60,7 @@ function App() {
             <Route path="support" element={<SupportPage />} />
           </Route>
 
+          <Route path="/panel/*" element={<PanelApp />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <Toaster />
