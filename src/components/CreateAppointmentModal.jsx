@@ -80,6 +80,15 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
     }, 0);
   }, [selectedServiceIds, allServices]);
 
+  // Seçili hizmetlerden herhangi biri uzman gerektiriyor mu?
+  const requiresExpert = useMemo(() => {
+    if (selectedServiceIds.length === 0) return true; // Varsayılan: uzman gerekli
+    return selectedServiceIds.some(sId => {
+      const svc = allServices.find(s => s.id === sId);
+      return svc?.requires_expert !== false; // requires_expert null veya true ise uzman gerekli
+    });
+  }, [selectedServiceIds, allServices]);
+
   // Seçili uzmanın yapabildiği hizmetleri filtrele
   const availableServices = useMemo(() => {
     if (!selectedExpert) return allServices;
@@ -287,7 +296,13 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
         customerId = newCustomer.id;
       }
 
-      if (!customerId || selectedServiceIds.length === 0 || !selectedExpert || !appointmentDate || !appointmentTime) {
+      // Uzman gerektiren hizmetler seçilmişse uzman zorunlu, değilse opsiyonel
+      if (!customerId || selectedServiceIds.length === 0 || !appointmentDate || !appointmentTime) {
+        toast({ title: t('error'), description: t('allFieldsRequired'), variant: 'destructive' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (requiresExpert && !selectedExpert) {
         toast({ title: t('error'), description: t('allFieldsRequired'), variant: 'destructive' });
         setIsSubmitting(false);
         return;
@@ -298,12 +313,16 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
         company_id: company.id,
         customer_id: customerId,
         service_id: selectedServiceIds[0], // backward compat
-        expert_id: selectedExpert,
         date: appointmentDate.toISOString().split('T')[0],
         time: appointmentTime,
         status: 'onaylandı',
         total_duration: totalDuration,
       };
+
+      // Uzman seçildiyse ekle (self-service hizmetlerde uzman opsiyonel)
+      if (selectedExpert) {
+        appointmentPayload.expert_id = selectedExpert;
+      }
 
       // Otomatik atanan alan varsa ekle
       if (assignedSpace?.id) {
@@ -435,16 +454,24 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
           )}
 
           {/* Uzman seçimi */}
-          <Select onValueChange={setSelectedExpert} value={selectedExpert}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('selectExpert')} />
-            </SelectTrigger>
-            <SelectContent>
-              {experts.map(e => (
-                <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div>
+            <Select onValueChange={(val) => setSelectedExpert(val === 'none' ? '' : val)} value={selectedExpert || 'none'}>
+              <SelectTrigger>
+                <SelectValue placeholder={t('selectExpert')} />
+              </SelectTrigger>
+              <SelectContent>
+                {!requiresExpert && (
+                  <SelectItem value="none">— {t('selfService') || 'Self Servis'} —</SelectItem>
+                )}
+                {experts.map(e => (
+                  <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {!requiresExpert && !selectedExpert && (
+              <p className="text-xs text-amber-600 mt-1">{t('selfService')}</p>
+            )}
+          </div>
 
           {/* Çoklu hizmet seçimi */}
           <div className="space-y-2">
@@ -560,20 +587,50 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
             </div>
           )}
 
-          {/* Otomatik atanan kaynak bilgisi */}
-          {!conflictWarning && resourceConflicts.length === 0 && assignedSpace && (
-            <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 flex items-center gap-2">
-              <DoorOpen className="w-4 h-4 text-purple-600 flex-shrink-0" />
-              <div className="flex items-center gap-2 flex-wrap text-sm">
-                <span className="text-purple-800 font-medium">{assignedSpace.name}</span>
-                {assignedEquipment.length > 0 && (
-                  <>
-                    <span className="text-purple-300">•</span>
-                    <Wrench className="w-3.5 h-3.5 text-purple-500" />
-                    <span className="text-purple-600 text-xs">{assignedEquipment.length} {t('equipment').toLowerCase()}</span>
-                  </>
+          {/* Kaynak Atama bölümü — alanlar tanımlıysa ve çakışma yoksa göster */}
+          {hasResources && !conflictWarning && allSpaces.length > 0 && (
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <DoorOpen className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                <span className="text-sm font-medium text-purple-800">{t('spaceRequired')}</span>
+                {assignedSpace && (
+                  <span className="text-xs bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded-full ml-auto">
+                    {t('autoAssigned')}
+                  </span>
                 )}
               </div>
+              <Select
+                value={assignedSpace?.id || 'none'}
+                onValueChange={(val) => {
+                  if (val === 'none') {
+                    setAssignedSpace(null);
+                  } else {
+                    const space = allSpaces.find(s => s.id === val);
+                    setAssignedSpace(space ? { id: space.id, name: space.name, color: space.color } : null);
+                  }
+                }}
+              >
+                <SelectTrigger className="bg-white border-purple-200 text-sm h-9">
+                  <SelectValue placeholder={t('selectSpace')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— {t('noSpace') || 'Alan seçme'} —</SelectItem>
+                  {allSpaces.map(s => (
+                    <SelectItem key={s.id} value={s.id}>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color || '#6366F1' }} />
+                        {s.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {assignedEquipment.length > 0 && (
+                <div className="flex items-center gap-1.5 text-xs text-purple-600">
+                  <Wrench className="w-3.5 h-3.5" />
+                  <span>{assignedEquipment.length} {t('equipment').toLowerCase()}</span>
+                </div>
+              )}
             </div>
           )}
         </div>
