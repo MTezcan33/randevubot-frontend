@@ -33,6 +33,7 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
   const [customers, setCustomers] = useState([]);
   const [allServices, setAllServices] = useState([]);
   const [expertServiceIds, setExpertServiceIds] = useState(new Set());
+  const [expertServicesLoaded, setExpertServicesLoaded] = useState(false);
 
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [newCustomerName, setNewCustomerName] = useState('');
@@ -81,9 +82,11 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
 
   // Seçili uzmanın yapabildiği hizmetleri filtrele
   const availableServices = useMemo(() => {
-    if (!selectedExpert || expertServiceIds.size === 0) return allServices;
+    if (!selectedExpert) return allServices;
+    if (!expertServicesLoaded) return []; // Henüz yüklenmedi, boş göster
+    if (expertServiceIds.size === 0) return []; // Uzmanın hiç hizmeti yok
     return allServices.filter(s => expertServiceIds.has(s.id));
-  }, [allServices, selectedExpert, expertServiceIds]);
+  }, [allServices, selectedExpert, expertServiceIds, expertServicesLoaded]);
 
   useEffect(() => {
     if (isOpen && company) {
@@ -108,6 +111,7 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
   // Uzman seçildiğinde o uzmanın hizmetlerini çek
   useEffect(() => {
     if (selectedExpert && company) {
+      setExpertServicesLoaded(false); // Yükleme başladı
       const fetchExpertServices = async () => {
         const { data } = await supabase
           .from('expert_services')
@@ -119,12 +123,12 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
         } else {
           setExpertServiceIds(new Set());
         }
+        setExpertServicesLoaded(true); // Yükleme bitti
       };
       fetchExpertServices();
-      // Uzman değiştiğinde, o uzmanın yapamadığı hizmetleri seçimden kaldır
-      // (expert_services henüz yüklenmediği için bunu aşağıdaki effect'te yapıyoruz)
     } else {
       setExpertServiceIds(new Set());
+      setExpertServicesLoaded(false);
     }
   }, [selectedExpert, company]);
 
@@ -388,6 +392,7 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
     setAppointmentTime('');
     setConflictWarning(null);
     setExpertServiceIds(new Set());
+    setExpertServicesLoaded(false);
     setAssignedSpace(null);
     setAssignedEquipment([]);
     setResourceConflicts([]);

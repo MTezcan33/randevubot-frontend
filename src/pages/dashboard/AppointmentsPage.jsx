@@ -268,6 +268,7 @@ const AppointmentsPage = () => {
     time: ''
   });
   const [newExpertServiceIds, setNewExpertServiceIds] = useState(new Set());
+  const [newExpertServicesLoaded, setNewExpertServicesLoaded] = useState(false);
   const [newConflictWarning, setNewConflictWarning] = useState(null);
   const companyTimezone = company?.timezone || 'UTC';
 
@@ -415,6 +416,7 @@ const AppointmentsPage = () => {
   // Yeni randevu modalında uzman seçildiğinde hizmetlerini çek
   const handleNewExpertChange = async (expertId) => {
     setNewAppointment(prev => ({ ...prev, expert_id: expertId, service_ids: [] }));
+    setNewExpertServicesLoaded(false);
     if (expertId && company) {
       const { data } = await supabase
         .from('expert_services')
@@ -422,6 +424,7 @@ const AppointmentsPage = () => {
         .eq('expert_id', expertId)
         .eq('company_id', company.id);
       setNewExpertServiceIds(new Set(data?.map(d => d.service_id) || []));
+      setNewExpertServicesLoaded(true);
     } else {
       setNewExpertServiceIds(new Set());
     }
@@ -445,9 +448,11 @@ const AppointmentsPage = () => {
 
   // Yeni randevu için kullanılabilir hizmetler (uzmanın yapabileceği)
   const newAvailableServices = useMemo(() => {
-    if (!newAppointment.expert_id || newExpertServiceIds.size === 0) return services;
+    if (!newAppointment.expert_id) return services;
+    if (!newExpertServicesLoaded) return []; // Henüz yüklenmedi
+    if (newExpertServiceIds.size === 0) return []; // Uzmanın hiç hizmeti yok
     return services.filter(s => newExpertServiceIds.has(s.id));
-  }, [services, newAppointment.expert_id, newExpertServiceIds]);
+  }, [services, newAppointment.expert_id, newExpertServiceIds, newExpertServicesLoaded]);
 
   // Yeni randevu çakışma kontrolü
   useEffect(() => {
