@@ -37,7 +37,7 @@ export const validateCoupon = async (code, companyId, currentPlan) => {
     if (coupon.valid_from && new Date(coupon.valid_from) > now) {
       return { valid: false, coupon: null, error: 'Bu kupon henuz gecerli degil', discount: null };
     }
-    if (coupon.expires_at && new Date(coupon.expires_at) < now) {
+    if (coupon.expiry_date && new Date(coupon.expiry_date) < now) {
       return { valid: false, coupon: null, error: 'Bu kuponun suresi dolmus', discount: null };
     }
 

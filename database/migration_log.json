@@ -55,6 +55,13 @@
       "description": "Coupon expansion (type, applicable_plans, max_uses, usage tracking) + referral codes + loyalty/sadakat system (settings, points, transactions) + company slug",
       "applied_at": null,
       "status": "pending"
+    },
+    {
+      "id": "008",
+      "file": "migrations/008_bugfix_missing_columns.sql",
+      "description": "Bugfix: customers.average_rating, companies.booking_* columns, appointments default status to beklemede",
+      "applied_at": null,
+      "status": "pending"
     }
   ]
 }

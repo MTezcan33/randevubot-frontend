@@ -203,12 +203,19 @@ export default function ResepsiyonistRandevular() {
                   )}
                   {appt.status === 'onaylandı' && (
                     <button
-                      onClick={() => updateStatus(appt.id, 'arrived')}
-                      disabled={isUpdating}
-                      className="flex items-center gap-1 px-3 py-2 rounded-lg bg-teal-600 text-white text-xs min-h-[44px] active:bg-teal-700 disabled:opacity-50"
+                      onClick={async () => {
+                        setUpdating(appt.id);
+                        try {
+                          const checkInNote = `Geldi: ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`;
+                          await supabase.from('appointments').update({ notes: checkInNote }).eq('id', appt.id);
+                          setAppointments(prev => prev.map(a => a.id === appt.id ? { ...a, notes: checkInNote } : a));
+                        } catch (err) { console.error(err); } finally { setUpdating(null); }
+                      }}
+                      disabled={isUpdating || appt.notes?.startsWith('Geldi:')}
+                      className={`flex items-center gap-1 px-3 py-2 rounded-lg text-white text-xs min-h-[44px] disabled:opacity-50 ${appt.notes?.startsWith('Geldi:') ? 'bg-gray-400' : 'bg-teal-600 active:bg-teal-700'}`}
                     >
                       {isUpdating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserCheck className="w-3.5 h-3.5" />}
-                      {t('checkIn') || 'Geldi'}
+                      {appt.notes?.startsWith('Geldi:') ? appt.notes : (t('checkIn') || 'Geldi')}
                     </button>
                   )}
                   {appt.customers?.phone && (
