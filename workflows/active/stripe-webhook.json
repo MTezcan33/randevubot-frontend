@@ -28,7 +28,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer sk_test_51SGkUR92VZmvCSVXoLGSHHt8dn59x19vJ1HNCIrwNtzgl4fKPZq9m2AQ75na1nmZ5SV4xVPOaPkrrfZ1XvTpxObY00z6uhKab7"
+              "value": "Bearer {{$env.STRIPE_SECRET_KEY}}"
             }
           ]
         },
