@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
-import { Building, MapPin, Globe, Clock, Upload, Image, Phone, MessageCircle, BellRing, Ban, QrCode, Power, Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Building, MapPin, Globe, Clock, Upload, Image, Phone, MessageCircle, BellRing, Ban, QrCode, Power, Loader2, CheckCircle2, XCircle, AlertCircle, DoorOpen, Shield } from 'lucide-react';
 import timezones from '@/lib/timezones.json';
 import countries from '@/lib/countries.json';
 import { useTranslation } from 'react-i18next';
@@ -36,6 +36,7 @@ const SettingsPage = () => {
     reminder_hours_before: 24,
     cancellation_hours_before: 4,
     whatsapp_notification_enabled: true,
+    resource_enforcement: 'optional',
   });
 
   // Instance name oluşturma fonksiyonu
@@ -154,6 +155,7 @@ const SettingsPage = () => {
         reminder_hours_before: company.reminder_hours_before || 24,
         cancellation_hours_before: company.cancellation_hours_before || 4,
         whatsapp_notification_enabled: company.whatsapp_notification_enabled !== false,
+        resource_enforcement: company.resource_enforcement || 'optional',
       });
 
       // QR kodunu güvenli şekilde işle
@@ -532,7 +534,8 @@ const SettingsPage = () => {
         manager_phone,
         reminder_hours_before,
         cancellation_hours_before,
-        whatsapp_notification_enabled
+        whatsapp_notification_enabled,
+        resource_enforcement
       } = formData;
 
       // Instance name'i de güncelle (eğer firma adı değiştiyse)
@@ -551,6 +554,7 @@ const SettingsPage = () => {
           reminder_hours_before,
           cancellation_hours_before,
           whatsapp_notification_enabled,
+          resource_enforcement,
           instance_name: instanceName
         })
         .eq('id', company.id);
@@ -841,6 +845,44 @@ const SettingsPage = () => {
                     onChange={(e) => setFormData({ ...formData, cancellation_hours_before: parseInt(e.target.value) })}
                     className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   />
+                </div>
+              </div>
+
+              {/* Kaynak Yönetimi Ayarları */}
+              <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
+                <div className="flex items-center gap-2 mb-3">
+                  <DoorOpen className="w-4 h-4 text-purple-600" />
+                  <p className="text-sm font-medium text-purple-800">{t('resourceSettings')}</p>
+                </div>
+                <p className="text-xs text-purple-600 mb-3">{t('resourceSettingsDesc')}</p>
+                <div className="space-y-2">
+                  {[
+                    { value: 'optional', labelKey: 'enforcementOptional', descKey: 'enforcementOptionalDesc' },
+                    { value: 'recommended', labelKey: 'enforcementRecommended', descKey: 'enforcementRecommendedDesc' },
+                    { value: 'mandatory', labelKey: 'enforcementMandatory', descKey: 'enforcementMandatoryDesc' },
+                  ].map(opt => (
+                    <label
+                      key={opt.value}
+                      className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                        formData.resource_enforcement === opt.value
+                          ? 'bg-white border-2 border-purple-400 shadow-sm'
+                          : 'bg-white/60 border border-purple-100 hover:bg-white'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="resource_enforcement"
+                        value={opt.value}
+                        checked={formData.resource_enforcement === opt.value}
+                        onChange={(e) => setFormData({ ...formData, resource_enforcement: e.target.value })}
+                        className="mt-0.5 accent-purple-600"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-stone-800">{t(opt.labelKey)}</p>
+                        <p className="text-xs text-stone-500 mt-0.5">{t(opt.descKey)}</p>
+                      </div>
+                    </label>
+                  ))}
                 </div>
               </div>
 

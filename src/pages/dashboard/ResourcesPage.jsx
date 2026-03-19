@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import {
   Plus, Edit, Trash2, DoorOpen, Wrench, Clock, Users,
-  Search, MoreVertical, Star, MapPin, Package, Shield
+  Search, MoreVertical, Star, MapPin, Package, Shield,
+  BarChart3, CalendarDays, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -88,6 +89,12 @@ const ResourcesPage = () => {
 
   const [saving, setSaving] = useState(false);
 
+  // Doluluk tab state
+  const [occupancyDate, setOccupancyDate] = useState(new Date());
+  const [dailyOccupancy, setDailyOccupancy] = useState([]);
+  const [weeklyHeatmap, setWeeklyHeatmap] = useState([]);
+  const [occupancyLoading, setOccupancyLoading] = useState(false);
+
   // ============================================================
   // VERİ YÜKLEME
   // ============================================================
@@ -118,12 +125,125 @@ const ResourcesPage = () => {
     }
   };
 
+  // ── Günlük doluluk zaman çizelgesi ──────────────────────────────────────
+  const fetchDailyOccupancy = async (date) => {
+    if (!company || spaces.length === 0) return;
+    setOccupancyLoading(true);
+
+    const dateStr = date.toISOString().split('T')[0];
+
+    // O güne ait tüm randevuları al (space_id olanlar)
+    const { data: apptData } = await supabase
+      .from('appointments')
+      .select('id, space_id, time, company_services(duration)')
+      .eq('company_id', company.id)
+      .eq('date', dateStr)
+      .neq('status', 'iptal')
+      .not('space_id', 'is', null);
+
+    // Saat bazlı doluluk hesapla (08:00 - 22:00)
+    const hours = [];
+    for (let h = 8; h <= 22; h++) {
+      const hourStr = `${String(h).padStart(2, '0')}:00`;
+      const hourMin = h * 60;
+
+      const hourData = { hour: hourStr, spaces: {} };
+
+      spaces.forEach(space => {
+        let count = 0;
+        if (apptData) {
+          apptData.forEach(appt => {
+            if (appt.space_id !== space.id) return;
+            const [ah, am] = (appt.time || '00:00').substring(0, 5).split(':').map(Number);
+            const startMin = ah * 60 + am;
+            const endMin = startMin + (appt.company_services?.duration || 30);
+            // Bu saat diliminde aktif mi?
+            if (hourMin < endMin && hourMin + 60 > startMin) {
+              count++;
+            }
+          });
+        }
+        hourData.spaces[space.id] = {
+          count,
+          capacity: space.capacity,
+          percentage: space.capacity > 0 ? Math.round((count / space.capacity) * 100) : 0,
+        };
+      });
+
+      hours.push(hourData);
+    }
+
+    setDailyOccupancy(hours);
+    setOccupancyLoading(false);
+  };
+
+  // ── Haftalık ısı haritası ─────────────────────────────────────────────────
+  const fetchWeeklyHeatmap = async () => {
+    if (!company || spaces.length === 0) return;
+
+    // Son 7 gün
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      days.push(d);
+    }
+
+    const startDate = days[0].toISOString().split('T')[0];
+    const endDate = days[6].toISOString().split('T')[0];
+
+    const { data: apptData } = await supabase
+      .from('appointments')
+      .select('id, space_id, date, time, company_services(duration)')
+      .eq('company_id', company.id)
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .neq('status', 'iptal')
+      .not('space_id', 'is', null);
+
+    // Her gün × her alan için toplam kullanım süresi / toplam müsait süre
+    const heatmapData = days.map(day => {
+      const dayStr = day.toISOString().split('T')[0];
+      const dayName = day.toLocaleDateString('tr-TR', { weekday: 'short' });
+      const dayNum = day.getDate();
+
+      const spaceData = {};
+      spaces.forEach(space => {
+        let totalUsedMinutes = 0;
+        if (apptData) {
+          apptData.forEach(appt => {
+            if (appt.space_id !== space.id || appt.date !== dayStr) return;
+            totalUsedMinutes += (appt.company_services?.duration || 30);
+          });
+        }
+        // 14 saatlik gün (08:00-22:00 = 840 dk) varsayımı
+        const totalAvailable = 840;
+        spaceData[space.id] = {
+          usedMinutes: totalUsedMinutes,
+          percentage: Math.min(Math.round((totalUsedMinutes / totalAvailable) * 100), 100),
+        };
+      });
+
+      return { date: dayStr, dayName, dayNum, spaces: spaceData };
+    });
+
+    setWeeklyHeatmap(heatmapData);
+  };
+
   useEffect(() => {
     if (company) {
       fetchSpaces();
       fetchEquipment();
     }
   }, [company]);
+
+  // Doluluk tab'ı açıldığında verileri yükle
+  useEffect(() => {
+    if (activeTab === 'occupancy' && spaces.length > 0) {
+      fetchDailyOccupancy(occupancyDate);
+      fetchWeeklyHeatmap();
+    }
+  }, [activeTab, spaces, occupancyDate]);
 
   // ============================================================
   // ALAN İŞLEMLERİ
@@ -381,6 +501,19 @@ const ResourcesPage = () => {
           <Wrench className="w-4 h-4" />
           {t('equipment')} ({equipment.length})
         </button>
+        {spaces.length > 0 && (
+          <button
+            onClick={() => setActiveTab('occupancy')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'occupancy'
+                ? 'bg-white text-stone-800 shadow-sm'
+                : 'text-stone-500 hover:text-stone-700'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            {t('occupancy')}
+          </button>
+        )}
       </div>
 
       {/* ============================================================ */}
@@ -597,6 +730,227 @@ const ResourcesPage = () => {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* DOLULUK TAB'I */}
+      {/* ============================================================ */}
+      {activeTab === 'occupancy' && (
+        <div className="space-y-6">
+          {/* Günlük Zaman Çizelgesi */}
+          <div className="bg-white rounded-xl border border-stone-200 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-stone-800 flex items-center gap-2">
+                <CalendarDays className="w-4 h-4 text-purple-600" />
+                {t('dailyTimeline')}
+              </h3>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const prev = new Date(occupancyDate);
+                    prev.setDate(prev.getDate() - 1);
+                    setOccupancyDate(prev);
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-stone-100 text-stone-500"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-sm font-medium text-stone-700 min-w-[120px] text-center">
+                  {occupancyDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+                <button
+                  onClick={() => {
+                    const next = new Date(occupancyDate);
+                    next.setDate(next.getDate() + 1);
+                    setOccupancyDate(next);
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-stone-100 text-stone-500"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {occupancyLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+              </div>
+            ) : dailyOccupancy.length === 0 ? (
+              <div className="text-center py-12 text-stone-400">
+                <BarChart3 className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">{t('noSpacesForOccupancy')}</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr>
+                      <th className="text-left py-2 px-2 text-stone-500 font-medium sticky left-0 bg-white min-w-[100px]">
+                        {t('spaces')}
+                      </th>
+                      {dailyOccupancy.map(h => (
+                        <th key={h.hour} className="text-center py-2 px-1 text-stone-400 font-normal min-w-[44px]">
+                          {h.hour.substring(0, 2)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {spaces.filter(s => s.is_active !== false).map(space => (
+                      <tr key={space.id} className="border-t border-stone-50">
+                        <td className="py-2 px-2 text-stone-700 font-medium sticky left-0 bg-white truncate max-w-[140px]">
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: space.color || '#6366F1' }}
+                            />
+                            <span className="truncate">{space.name}</span>
+                          </div>
+                        </td>
+                        {dailyOccupancy.map(h => {
+                          const cell = h.spaces[space.id];
+                          if (!cell) return <td key={h.hour} className="py-2 px-1" />;
+                          const pct = cell.percentage;
+                          const bg = pct === 0
+                            ? 'bg-stone-50'
+                            : pct >= 100
+                              ? 'bg-red-400'
+                              : pct >= 75
+                                ? 'bg-orange-300'
+                                : pct >= 50
+                                  ? 'bg-amber-200'
+                                  : pct >= 25
+                                    ? 'bg-emerald-200'
+                                    : 'bg-emerald-100';
+                          const textColor = pct >= 75 ? 'text-white' : 'text-stone-600';
+
+                          return (
+                            <td key={h.hour} className="py-1 px-0.5">
+                              <div
+                                className={`w-full h-7 rounded flex items-center justify-center ${bg} ${textColor} font-medium`}
+                                title={`${space.name} ${h.hour}: ${cell.count}/${cell.capacity}`}
+                              >
+                                {cell.count > 0 ? cell.count : ''}
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Haftalık Isı Haritası */}
+          <div className="bg-white rounded-xl border border-stone-200 p-5">
+            <h3 className="text-base font-semibold text-stone-800 flex items-center gap-2 mb-4">
+              <BarChart3 className="w-4 h-4 text-teal-600" />
+              {t('weeklyHeatmap')}
+            </h3>
+
+            {weeklyHeatmap.length === 0 ? (
+              <div className="text-center py-12 text-stone-400">
+                <BarChart3 className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">{t('noSpacesForOccupancy')}</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr>
+                      <th className="text-left py-2 px-2 text-stone-500 font-medium sticky left-0 bg-white min-w-[100px]">
+                        {t('spaces')}
+                      </th>
+                      {weeklyHeatmap.map(day => (
+                        <th key={day.date} className="text-center py-2 px-2 text-stone-500 font-medium min-w-[60px]">
+                          <div className="flex flex-col items-center">
+                            <span className="text-stone-400 font-normal">{day.dayName}</span>
+                            <span className="text-stone-700">{day.dayNum}</span>
+                          </div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {spaces.filter(s => s.is_active !== false).map(space => (
+                      <tr key={space.id} className="border-t border-stone-50">
+                        <td className="py-2 px-2 text-stone-700 font-medium sticky left-0 bg-white truncate max-w-[140px]">
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: space.color || '#6366F1' }}
+                            />
+                            <span className="truncate">{space.name}</span>
+                          </div>
+                        </td>
+                        {weeklyHeatmap.map(day => {
+                          const cell = day.spaces[space.id];
+                          if (!cell) return <td key={day.date} className="py-2 px-2" />;
+                          const pct = cell.percentage;
+                          // Renk yoğunluğu: 0% → beyaz, 100% → koyu
+                          const bg = pct === 0
+                            ? 'bg-stone-50'
+                            : pct >= 80
+                              ? 'bg-red-400'
+                              : pct >= 60
+                                ? 'bg-orange-300'
+                                : pct >= 40
+                                  ? 'bg-amber-200'
+                                  : pct >= 20
+                                    ? 'bg-emerald-200'
+                                    : 'bg-emerald-100';
+                          const textColor = pct >= 60 ? 'text-white' : 'text-stone-600';
+
+                          return (
+                            <td key={day.date} className="py-1 px-1">
+                              <div
+                                className={`w-full h-10 rounded-lg flex items-center justify-center ${bg} ${textColor} font-semibold`}
+                                title={`${space.name} - ${day.dayName}: ${cell.usedMinutes} dk kullanım`}
+                              >
+                                {pct > 0 ? `${pct}%` : '-'}
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* Legend */}
+                <div className="flex items-center gap-3 mt-4 text-xs text-stone-500">
+                  <span>{t('utilizationRate')}:</span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 rounded bg-stone-50 border border-stone-200" />
+                    <span>0%</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 rounded bg-emerald-100" />
+                    <span>1-20%</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 rounded bg-emerald-200" />
+                    <span>20-40%</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 rounded bg-amber-200" />
+                    <span>40-60%</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 rounded bg-orange-300" />
+                    <span>60-80%</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 rounded bg-red-400" />
+                    <span>80%+</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

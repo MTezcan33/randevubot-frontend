@@ -898,6 +898,31 @@ export const resources = {
       autoAssigned: "Otomatik Atandı",
       spaceAssigned: "Alan atandı",
       noAvailableSpace: "Uygun alan bulunamadı",
+
+      // Kapasite Dashboard (FAZ 4)
+      liveOccupancy: "Anlık Doluluk",
+      liveOccupancyDesc: "Alanların gerçek zamanlı doluluk durumu",
+      occupancy: "Doluluk",
+      spaceUtilization: "Alan Kullanımı",
+      bookedSlots: "Dolu",
+      availableSlots: "Müsait",
+      full: "DOLU",
+      utilizationRate: "Kullanım Oranı",
+      dailyTimeline: "Günlük Zaman Çizelgesi",
+      weeklyHeatmap: "Haftalık Isı Haritası",
+      noSpacesForOccupancy: "Doluluk verisi için önce alan tanımlamalısınız",
+      occupancyPercent: "Doluluk %",
+      person: "kişi",
+
+      // Kaynak Enforcement (FAZ 5)
+      resourceSettings: "Kaynak Yönetimi Ayarları",
+      resourceSettingsDesc: "Alan ve ekipman kontrolünün randevu oluştururken nasıl uygulanacağını belirleyin",
+      enforcementOptional: "İsteğe Bağlı",
+      enforcementOptionalDesc: "Alan/ekipman ataması yapılmadan da randevu oluşturulabilir",
+      enforcementRecommended: "Önerilen",
+      enforcementRecommendedDesc: "Alan/ekipman ataması yapılmadığında uyarı gösterilir ama izin verilir",
+      enforcementMandatory: "Zorunlu",
+      enforcementMandatoryDesc: "Alan/ekipman ataması yapılmadan randevu oluşturulamaz",
     }
   },
 
@@ -1799,6 +1824,31 @@ export const resources = {
       autoAssigned: "Auto Assigned",
       spaceAssigned: "Space assigned",
       noAvailableSpace: "No available space found",
+
+      // Capacity Dashboard (Phase 4)
+      liveOccupancy: "Live Occupancy",
+      liveOccupancyDesc: "Real-time space occupancy status",
+      occupancy: "Occupancy",
+      spaceUtilization: "Space Utilization",
+      bookedSlots: "Booked",
+      availableSlots: "Available",
+      full: "FULL",
+      utilizationRate: "Utilization Rate",
+      dailyTimeline: "Daily Timeline",
+      weeklyHeatmap: "Weekly Heatmap",
+      noSpacesForOccupancy: "Add spaces first to see occupancy data",
+      occupancyPercent: "Occupancy %",
+      person: "person",
+
+      // Resource Enforcement (Phase 5)
+      resourceSettings: "Resource Management Settings",
+      resourceSettingsDesc: "Define how space and equipment checks are enforced when creating appointments",
+      enforcementOptional: "Optional",
+      enforcementOptionalDesc: "Appointments can be created without space/equipment assignment",
+      enforcementRecommended: "Recommended",
+      enforcementRecommendedDesc: "Warning shown when no space/equipment assigned, but allowed",
+      enforcementMandatory: "Mandatory",
+      enforcementMandatoryDesc: "Appointments cannot be created without space/equipment assignment",
     }
   },
 
@@ -2700,6 +2750,31 @@ export const resources = {
       autoAssigned: "Автоматически назначено",
       spaceAssigned: "Помещение назначено",
       noAvailableSpace: "Нет доступного помещения",
+
+      // Панель мощности (Фаза 4)
+      liveOccupancy: "Текущая загрузка",
+      liveOccupancyDesc: "Статус загрузки помещений в реальном времени",
+      occupancy: "Загрузка",
+      spaceUtilization: "Использование помещений",
+      bookedSlots: "Занято",
+      availableSlots: "Свободно",
+      full: "ЗАНЯТО",
+      utilizationRate: "Коэффициент использования",
+      dailyTimeline: "Дневная шкала",
+      weeklyHeatmap: "Недельная тепловая карта",
+      noSpacesForOccupancy: "Сначала добавьте помещения для отображения данных о загрузке",
+      occupancyPercent: "Загрузка %",
+      person: "чел.",
+
+      // Управление ресурсами (Фаза 5)
+      resourceSettings: "Настройки управления ресурсами",
+      resourceSettingsDesc: "Определите, как проверки помещений и оборудования применяются при создании записей",
+      enforcementOptional: "Необязательно",
+      enforcementOptionalDesc: "Записи можно создавать без назначения помещения/оборудования",
+      enforcementRecommended: "Рекомендуется",
+      enforcementRecommendedDesc: "Предупреждение при отсутствии назначения, но разрешено",
+      enforcementMandatory: "Обязательно",
+      enforcementMandatoryDesc: "Записи нельзя создавать без назначения помещения/оборудования",
     }
   }
 };

@@ -248,6 +248,17 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
   };
 
   const handleCreateAppointment = async () => {
+    // Enforcement kontrolü — zorunlu modda alan/ekipman atanmamışsa engelle
+    const enforcement = company?.resource_enforcement || 'optional';
+    if (enforcement === 'mandatory' && hasResources && !assignedSpace) {
+      toast({ title: t('error'), description: t('resourceConflict') + ': ' + t('noAvailableSpace'), variant: 'destructive' });
+      return;
+    }
+    if (enforcement === 'recommended' && hasResources && !assignedSpace) {
+      // Sadece uyarı — devam etmesine izin ver (toast ile bilgilendir)
+      toast({ title: t('resourceConflict'), description: t('noAvailableSpace'), variant: 'default' });
+    }
+
     setIsSubmitting(true);
     let customerId = selectedCustomer;
 

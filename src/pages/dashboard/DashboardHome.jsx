@@ -17,6 +17,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Minus,
+  DoorOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
@@ -148,6 +149,10 @@ const DashboardHome = () => {
   const [weeklyData, setWeeklyData] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Anlık doluluk (kapasite dashboard)
+  const [spaceOccupancy, setSpaceOccupancy] = useState([]);
+  const [hasSpaces, setHasSpaces] = useState(false);
+
   const experts = staff.filter(s => s.role === 'Uzman');
 
   useEffect(() => {
@@ -164,6 +169,7 @@ const DashboardHome = () => {
       fetchTotalCustomers(),
       fetchMonthlyRevenue(),
       fetchWeeklyChart(),
+      fetchSpaceOccupancy(),
     ]);
     setLoading(false);
   };
@@ -299,6 +305,85 @@ const DashboardHome = () => {
       });
       setWeeklyData(chartData);
     }
+  };
+
+  // ── Anlık alan doluluk durumu ───────────────────────────────────────────────
+  const fetchSpaceOccupancy = async () => {
+    // Alanları çek
+    const { data: spacesData, error: spacesErr } = await supabase
+      .from('spaces')
+      .select('id, name, capacity, booking_mode, color')
+      .eq('company_id', company.id)
+      .eq('is_active', true)
+      .order('sort_order');
+
+    if (spacesErr || !spacesData || spacesData.length === 0) {
+      setHasSpaces(false);
+      return;
+    }
+    setHasSpaces(true);
+
+    // Bugünkü randevuları al (space_id olanlar)
+    const todayStr = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const currentTimeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+    const { data: apptData } = await supabase
+      .from('appointments')
+      .select('id, space_id, time, company_services(duration)')
+      .eq('company_id', company.id)
+      .eq('date', todayStr)
+      .neq('status', 'iptal')
+      .not('space_id', 'is', null);
+
+    // appointment_resources tablosundan da space ataması olan randevuları al
+    const { data: arData } = await supabase
+      .from('appointment_resources')
+      .select('appointment_id, resource_id')
+      .eq('resource_type', 'space');
+
+    // appointment_resources'taki appointment'ların bugünkü olanlarını bul
+    const arSpaceMap = {};
+    if (arData) {
+      arData.forEach(ar => {
+        if (!arSpaceMap[ar.resource_id]) arSpaceMap[ar.resource_id] = [];
+        arSpaceMap[ar.resource_id].push(ar.appointment_id);
+      });
+    }
+
+    // Her alan için şu an aktif randevu sayısını hesapla
+    const occupancy = spacesData.map(space => {
+      let activeCount = 0;
+
+      if (apptData) {
+        apptData.forEach(appt => {
+          if (appt.space_id !== space.id) return;
+          const apptTime = appt.time?.substring(0, 5) || '00:00';
+          const duration = appt.company_services?.duration || 30;
+          const [h, m] = apptTime.split(':').map(Number);
+          const startMin = h * 60 + m;
+          const endMin = startMin + duration;
+          const [ch, cm] = currentTimeStr.split(':').map(Number);
+          const currentMin = ch * 60 + cm;
+
+          if (currentMin >= startMin && currentMin < endMin) {
+            activeCount++;
+          }
+        });
+      }
+
+      return {
+        id: space.id,
+        name: space.name,
+        capacity: space.capacity,
+        booking_mode: space.booking_mode,
+        color: space.color || '#6366F1',
+        activeCount,
+        isFull: activeCount >= space.capacity,
+      };
+    });
+
+    setSpaceOccupancy(occupancy);
   };
 
   // ── Metrik hesaplamalar (orijinal mantık korundu) ─────────────────────────
@@ -592,6 +677,76 @@ const DashboardHome = () => {
             </div>
           </div>
         </div>
+
+        {/* ── Anlık Doluluk Widget (sadece alanlar tanımlıysa) ──────────── */}
+        {hasSpaces && spaceOccupancy.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-stone-800 flex items-center gap-2">
+                <DoorOpen className="w-4 h-4 text-purple-600" />
+                {t('liveOccupancy')}
+              </h3>
+              <span className="text-xs text-stone-400 bg-stone-100 px-2.5 py-1 rounded-full">
+                {new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {spaceOccupancy.map(space => {
+                const percentage = space.capacity > 0
+                  ? Math.round((space.activeCount / space.capacity) * 100)
+                  : 0;
+                const barColor = space.isFull
+                  ? '#EF4444'
+                  : percentage >= 75
+                    ? '#F59E0B'
+                    : space.color;
+
+                return (
+                  <div key={space.id} className="flex items-center gap-3">
+                    {/* Alan adı */}
+                    <div className="w-36 flex-shrink-0">
+                      <p className="text-sm font-medium text-stone-700 truncate">{space.name}</p>
+                    </div>
+
+                    {/* Bar */}
+                    <div className="flex-1 h-6 bg-stone-100 rounded-full overflow-hidden relative">
+                      <div
+                        className="h-full rounded-full transition-all duration-700 flex items-center justify-end pr-2"
+                        style={{
+                          width: `${Math.max(percentage, 8)}%`,
+                          backgroundColor: barColor,
+                          opacity: 0.85,
+                        }}
+                      >
+                        {percentage >= 30 && (
+                          <span className="text-xs font-bold text-white">{percentage}%</span>
+                        )}
+                      </div>
+                      {percentage < 30 && (
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-medium text-stone-500">
+                          {percentage}%
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Sayı */}
+                    <div className="w-24 flex-shrink-0 text-right">
+                      {space.isFull ? (
+                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                          {t('full')}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-stone-500">
+                          {space.activeCount}/{space.capacity} {t('person')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── Dönem Analizi Başlığı ─────────────────────────────────────── */}
         <div className="flex items-center justify-between">
