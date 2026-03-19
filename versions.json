@@ -1,6 +1,12 @@
 {
-  "current": "0.13.0",
+  "current": "0.14.0",
   "history": [
+    {
+      "version": "0.14.0",
+      "date": "2026-03-19",
+      "description": "MenuBot transfer complete: FAZ 0-7 (bugfix, infra, i18n, notifications, chatbot, reports, panels, PWA, booking, loyalty, coupons)",
+      "commit": "1978653"
+    },
     {
       "version": "0.13.0",
       "date": "2026-03-19",
