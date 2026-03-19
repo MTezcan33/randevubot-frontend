@@ -49,27 +49,26 @@ Node versiyonu: `20.19.1` (`.nvmrc` dosyasında belirtilmiş)
 
 | Değişken | Açıklama |
 |----------|----------|
-| `VITE_SUPABASE_URL` | Supabase proje URL'i |
-| `VITE_SUPABASE_ANON_KEY` | Supabase public/anon key |
-| `VITE_N8N_WEBHOOK_URL` | N8N genel webhook (randevu olayları) |
-| `VITE_N8N_CREATE_INSTANCE_WEBHOOK_URL` | WhatsApp instance oluşturma webhook'u |
-| `VITE_N8N_GET_QR_WEBHOOK_URL` | QR kod alma webhook'u |
-| `VITE_EVOLUTION_API_DELETE_URL` | WhatsApp bağlantı kesme webhook'u |
+| `VITE_SUPABASE_URL_RB` | Supabase proje URL'i |
+| `VITE_SUPABASE_ANON_KEY_RB` | Supabase public/anon key |
+| `VITE_N8N_WEBHOOK_URL_RB` | N8N genel webhook (randevu olayları) |
+| `VITE_N8N_CREATE_INSTANCE_WEBHOOK_URL_RB` | WhatsApp instance oluşturma webhook'u |
+| `VITE_N8N_GET_QR_WEBHOOK_URL_RB` | QR kod alma webhook'u |
+| `VITE_EVOLUTION_API_DELETE_URL_RB` | WhatsApp bağlantı kesme webhook'u |
+| `VITE_ASISTAN_WEBHOOK_URL_RB` | AI Asistan chatbot webhook'u |
 
-### Kritik Sorun: Supabase Client Tutarsızlığı
+> **Not:** Tüm env değişkenleri `_RB` suffix'i ile isimlendirilmiştir (N8N'deki diğer projelerle karışmaması için).
 
-`src/lib/supabase.js` dosyası şu an **hardcoded URL** kullanıyor (env değişkeninden okumUYOR). Bu bir bug'dır:
+### Supabase Client (DÜZELTILDI)
+
+`src/lib/supabase.js` artık env değişkenlerinden okuyor:
 
 ```js
-// YANLIŞ (şu anki hali):
-const supabaseUrl = "https://[PROJECT_ID].supabase.co"; // hardcoded!
-
-// DOĞRU (olması gereken):
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+let supabaseUrl = import.meta.env.VITE_SUPABASE_URL_RB;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY_RB;
 ```
 
-Ayrıca `src/lib/customSupabaseClient.js` **redundant** bir kopyasıdır — silinmeli. Yeni kod yazarken **sadece** `src/lib/supabase.js` kullanılsın.
+`src/lib/customSupabaseClient.js` silinmiştir. **Sadece** `src/lib/supabase.js` kullanılır.
 
 ---
 
@@ -495,8 +494,8 @@ if (error) {
 
 | Sorun | Dosya | Çözüm |
 |-------|-------|-------|
-| Hardcoded Supabase URL | `src/lib/supabase.js` | `import.meta.env.VITE_SUPABASE_URL` kullan |
-| Redundant Supabase client | `src/lib/customSupabaseClient.js` | Sil, tüm importları `supabase.js`'e yönlendir |
+| ~~Hardcoded Supabase URL~~ | `src/lib/supabase.js` | ~~DÜZELTILDI~~ — `VITE_SUPABASE_URL_RB` kullanıyor |
+| ~~Redundant Supabase client~~ | `src/lib/customSupabaseClient.js` | ~~DÜZELTILDI~~ — Dosya silindi |
 | Stripe test linkleri | `src/pages/dashboard/BillingPage.jsx` | Canlıya geçmeden önce production URL'lerine güncelle |
 | Destek sayfası boş | `src/pages/dashboard/SupportPage.jsx` | İçerik eklenmeli |
 | i18n eksik çeviriler | `src/lib/translations.js` | EN, RU, AR bazı key'ler eksik olabilir |

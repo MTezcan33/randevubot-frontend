@@ -80,7 +80,7 @@ FK adaptasyonu: restaurants(id) → companies(id)
 
 **E. Env:**
 ```
-VITE_ASISTAN_WEBHOOK_URL=https://n8n.mehmettezcan.uk/webhook/asistan-chat
+VITE_ASISTAN_WEBHOOK_URL_RB=https://n8n.mehmettezcan.uk/webhook/asistan-chat
 ```
 
 ### Referans Dosyalar

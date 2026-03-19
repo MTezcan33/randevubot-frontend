@@ -14,12 +14,12 @@
 ### Adımlar
 1. `src/lib/supabase.js` aç, hardcoded URL/key'i değiştir:
 ```js
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL_RB;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY_RB;
 ```
 2. `src/lib/customSupabaseClient.js` SİL
 3. Projede `customSupabaseClient` import eden TÜM dosyaları bul → `../lib/supabase` olarak güncelle
-4. `.env` dosyasında VITE_SUPABASE_URL ve VITE_SUPABASE_ANON_KEY tanımlı olduğunu doğrula
+4. `.env` dosyasında VITE_SUPABASE_URL_RB ve VITE_SUPABASE_ANON_KEY_RB tanımlı olduğunu doğrula
 5. `npm run build` ile hata olmadığını test et
 
 ---
