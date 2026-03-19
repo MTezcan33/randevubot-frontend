@@ -6,5 +6,19 @@
   "notifCancelledAppointment": "Randevu İptali",
   "notifComplaint": "Müşteri Şikayeti",
   "notifWhatsappDisconnected": "WhatsApp Bağlantısı Koptu",
-  "notifDailySummary": "Günlük Özet"
+  "notifDailySummary": "Günlük Özet",
+  "notifExpertChanged": "Uzman Değişikliği",
+  "notifReschedule": "Randevu Yeniden Planlandı",
+  "notifNoShow": "Gelmedi",
+  "notifBirthday": "Doğum Günü Tebriği",
+  "notifPaymentReceived": "Ödeme Alındı",
+  "notifTrialExpiring": "Deneme Süresi Bitiyor",
+  "notifN8nError": "Sistem Hatası",
+  "whatsappNotifications": "WhatsApp Bildirimleri",
+  "whatsappNotificationsDesc": "Hatırlatma, onay ve geri bildirim mesajları",
+  "notificationLog": "Bildirim Geçmişi",
+  "notifSent": "Gönderildi",
+  "notifFailed": "Başarısız",
+  "notifSkipped": "Atlandı",
+  "notifPending": "Beklemede"
 }

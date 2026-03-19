@@ -6,5 +6,19 @@
   "notifCancelledAppointment": "Запись отменена",
   "notifComplaint": "Жалоба клиента",
   "notifWhatsappDisconnected": "WhatsApp отключён",
-  "notifDailySummary": "Ежедневная сводка"
+  "notifDailySummary": "Ежедневная сводка",
+  "notifExpertChanged": "Смена специалиста",
+  "notifReschedule": "Запись перенесена",
+  "notifNoShow": "Неявка",
+  "notifBirthday": "Поздравление с днём рождения",
+  "notifPaymentReceived": "Оплата получена",
+  "notifTrialExpiring": "Пробный период истекает",
+  "notifN8nError": "Системная ошибка",
+  "whatsappNotifications": "Уведомления WhatsApp",
+  "whatsappNotificationsDesc": "Напоминания, подтверждения и сообщения обратной связи",
+  "notificationLog": "История уведомлений",
+  "notifSent": "Отправлено",
+  "notifFailed": "Не удалось",
+  "notifSkipped": "Пропущено",
+  "notifPending": "Ожидание"
 }

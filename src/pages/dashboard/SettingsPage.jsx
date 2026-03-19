@@ -35,6 +35,7 @@ const SettingsPage = () => {
     manager_phone: '', // Yönetici telefonu - companies tablosundan
     reminder_hours_before: 24,
     cancellation_hours_before: 4,
+    whatsapp_notification_enabled: true,
   });
 
   // Instance name oluşturma fonksiyonu
@@ -152,6 +153,7 @@ const SettingsPage = () => {
         manager_phone: company.manager_phone || '', // Companies tablosundan al
         reminder_hours_before: company.reminder_hours_before || 24,
         cancellation_hours_before: company.cancellation_hours_before || 4,
+        whatsapp_notification_enabled: company.whatsapp_notification_enabled !== false,
       });
 
       // QR kodunu güvenli şekilde işle
@@ -521,15 +523,16 @@ const SettingsPage = () => {
     setLoading(true);
 
     try {
-      const { 
-        name, 
-        address, 
-        country, 
-        timezone, 
-        whatsapp_number, 
+      const {
+        name,
+        address,
+        country,
+        timezone,
+        whatsapp_number,
         manager_phone,
-        reminder_hours_before, 
-        cancellation_hours_before 
+        reminder_hours_before,
+        cancellation_hours_before,
+        whatsapp_notification_enabled
       } = formData;
 
       // Instance name'i de güncelle (eğer firma adı değiştiyse)
@@ -547,6 +550,7 @@ const SettingsPage = () => {
           manager_phone, // Yönetici telefonu companies tablosuna kaydet
           reminder_hours_before,
           cancellation_hours_before,
+          whatsapp_notification_enabled,
           instance_name: instanceName
         })
         .eq('id', company.id);
@@ -786,6 +790,28 @@ const SettingsPage = () => {
                     </p>
                   )}
                 </div>
+              </div>
+
+              {/* WhatsApp Bildirim Toggle */}
+              <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4 text-emerald-600" />
+                  <div>
+                    <p className="text-sm font-medium text-emerald-800">{t('whatsappNotifications') || 'WhatsApp Bildirimleri'}</p>
+                    <p className="text-xs text-emerald-600">{t('whatsappNotificationsDesc') || 'Hatırlatma, onay ve geri bildirim mesajları'}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, whatsapp_notification_enabled: !formData.whatsapp_notification_enabled })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    formData.whatsapp_notification_enabled ? 'bg-emerald-600' : 'bg-slate-300'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    formData.whatsapp_notification_enabled ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
               </div>
 
               {/* Hatırlatma ve İptal Süreleri */}

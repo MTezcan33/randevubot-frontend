@@ -6,5 +6,19 @@
   "notifCancelledAppointment": "Appointment Cancelled",
   "notifComplaint": "Customer Complaint",
   "notifWhatsappDisconnected": "WhatsApp Disconnected",
-  "notifDailySummary": "Daily Summary"
+  "notifDailySummary": "Daily Summary",
+  "notifExpertChanged": "Expert Changed",
+  "notifReschedule": "Appointment Rescheduled",
+  "notifNoShow": "No Show",
+  "notifBirthday": "Birthday Greeting",
+  "notifPaymentReceived": "Payment Received",
+  "notifTrialExpiring": "Trial Expiring",
+  "notifN8nError": "System Error",
+  "whatsappNotifications": "WhatsApp Notifications",
+  "whatsappNotificationsDesc": "Reminders, confirmations and feedback messages",
+  "notificationLog": "Notification Log",
+  "notifSent": "Sent",
+  "notifFailed": "Failed",
+  "notifSkipped": "Skipped",
+  "notifPending": "Pending"
 }

@@ -1,0 +1,116 @@
+{
+  "name": "RandevuBot Error Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [220, 300],
+      "notes": "Her 6 saatte bir çalışır — N8N execution hatalarını kontrol eder"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.N8N_INTERNAL_URL || 'http://localhost:5678'}}/api/v1/executions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "error"
+            },
+            {
+              "name": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Fetch Failed Executions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [440, 300],
+      "notes": "Son hatalı execution'ları N8N API'den çek"
+    },
+    {
+      "parameters": {
+        "jsCode": "const executions = $input.first().json.data || [];\nconst last6h = new Date(Date.now() - 6 * 60 * 60 * 1000);\n\nconst recentErrors = executions.filter(e => new Date(e.startedAt) > last6h);\n\nif (recentErrors.length === 0) {\n  return [{ json: { hasErrors: false, count: 0 } }];\n}\n\nconst summary = recentErrors.map(e => {\n  return `- ${e.workflowData?.name || 'Unknown'}: ${e.stoppedAt ? 'Stopped' : 'Running'} (${new Date(e.startedAt).toLocaleString('tr-TR')})`;\n}).join('\\n');\n\nreturn [{ json: { hasErrors: true, count: recentErrors.length, summary } }];"
+      },
+      "name": "Parse Errors",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 300],
+      "notes": "Son 6 saatteki hataları filtrele ve özetle"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.hasErrors}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "Has Errors?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "admin_notifications",
+        "columns": "company_id,type,title,message",
+        "values": "={{/* Tüm aktif şirketlere bildirim gönder — production'da şirket listesi çekilecek */}}"
+      },
+      "name": "Create Admin Notification",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1100, 200],
+      "notes": "Admin notification tablosuna N8N hata raporu ekle"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [{ "node": "Fetch Failed Executions", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Failed Executions": {
+      "main": [
+        [{ "node": "Parse Errors", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Errors": {
+      "main": [
+        [{ "node": "Has Errors?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Has Errors?": {
+      "main": [
+        [{ "node": "Create Admin Notification", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "N8N workflow hatalarını izler, her 6 saatte kontrol eder ve admin'e bildirim gönderir"
+  }
+}

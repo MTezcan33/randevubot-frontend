@@ -20,6 +20,13 @@
       "description": "Sub-sector taxonomy data (40+ sub-sectors for 4 main sectors)",
       "applied_at": null,
       "status": "pending"
+    },
+    {
+      "id": "003",
+      "file": "migrations/003_notification_enhancements.sql",
+      "description": "Notification system enhancements: whatsapp_notification_enabled toggle, notification_log table, new template types",
+      "applied_at": null,
+      "status": "pending"
     }
   ]
 }
