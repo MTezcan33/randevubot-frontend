@@ -1,0 +1,293 @@
+{
+  "name": "Stripe Webhook → Supabase RPC (Email Mapping)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "stripe-webhook-elina",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "9e1657ba-80cf-419e-8df4-e6d4b1b93beb",
+      "name": "Stripe Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1440,
+        432
+      ],
+      "webhookId": "stripe-randevubot"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.stripe.com/v1/subscriptions/{{ $json.body.data.object.subscription }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer sk_test_51SGkUR92VZmvCSVXoLGSHHt8dn59x19vJ1HNCIrwNtzgl4fKPZq9m2AQ75na1nmZ5SV4xVPOaPkrrfZ1XvTpxObY00z6uhKab7"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "96653793-9cbb-4937-a993-ac160d55b5ad",
+      "name": "Stripe Sub Detayi Cek",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -832,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "stripe_prices",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "stripe_price_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.items.data[0].plan.id }}"
+            }
+          ]
+        }
+      },
+      "id": "a4b88e84-50ae-43d6-bcb0-0fdbac4e0365",
+      "name": "Paket Ozelliklerini Bul",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        384
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "companies",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email",
+              "condition": "eq",
+              "keyValue": "={{ $('Stripe Webhook').item.json.body.data.object.customer_details.email }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "expert_limit",
+              "fieldValue": "={{ $json.expert_limit }}"
+            },
+            {
+              "fieldId": "subscription_plan",
+              "fieldValue": "={{ $json.plan_name }}"
+            },
+            {
+              "fieldId": "stripe_price_id",
+              "fieldValue": "={{ $json.stripe_price_id }}"
+            },
+            {
+              "fieldId": "subscription_start_date",
+              "fieldValue": "={{ new Date($('Stripe Sub Detayi Cek').item.json.start_date * 1000).toISOString() }}"
+            },
+            {
+              "fieldId": "next_billing_date",
+              "fieldValue": "={{ new Date($('Stripe Sub Detayi Cek').item.json.items.data[0].current_period_end * 1000).toISOString() }}"
+            },
+            {
+              "fieldId": "stripe_subscription_id",
+              "fieldValue": "={{ $('Stripe Sub Detayi Cek').item.json.id }}"
+            },
+            {
+              "fieldId": "stripe_customer_id",
+              "fieldValue": "={{ $('Stripe Sub Detayi Cek').item.json.customer }}"
+            },
+            {
+              "fieldId": "subscription_status",
+              "fieldValue": "={{ $('Stripe Sub Detayi Cek').item.json.status }}"
+            },
+            {
+              "fieldId": "last_payment_date",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            },
+            {
+              "fieldId": "trial_end_date",
+              "fieldValue": "={{ new Date($('Stripe Sub Detayi Cek').item.json.items.data[0].current_period_end * 1000).toISOString() }}"
+            }
+          ]
+        }
+      },
+      "id": "75667d71-b257-42e4-a265-7f96a757e335",
+      "name": "Firmayi Guncelle",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        384
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.type }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "checkout.session.completed"
+            },
+            {
+              "value2": "customer.subscription.deleted",
+              "output": 1
+            },
+            {
+              "value2": "invoice.payment_failed",
+              "output": 1
+            }
+          ]
+        }
+      },
+      "id": "f26043c7-f814-4e63-aba3-8f4aed3929d3",
+      "name": "Olay Turu Nedir?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -1152,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "companies",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "subscription_status",
+              "fieldValue": "={{ $json.body.type === 'invoice.payment_failed' ? 'past_due' : 'canceled' }}"
+            },
+            {
+              "fieldId": "service_active",
+              "fieldValue": "={{ false }}"
+            },
+            {
+              "fieldId": "expert_limit",
+              "fieldValue": "0"
+            },
+            {
+              "fieldId": "paused_at",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            },
+            {
+              "fieldId": "paused_reason",
+              "fieldValue": "={{ $json.body.type === 'invoice.payment_failed' ? 'Ödeme Başarısız (Stripe)' : 'Kullanıcı İptal Etti (Stripe)' }}"
+            },
+            {
+              "fieldId": "is_trial_active",
+              "fieldValue": "={{ false }}"
+            }
+          ]
+        }
+      },
+      "id": "f274a1e1-023a-41da-bdfc-6afacb0b09af",
+      "name": "Iptal Et / Durdur",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -832,
+        560
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Stripe Webhook": {
+      "main": [
+        [
+          {
+            "node": "Olay Turu Nedir?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stripe Sub Detayi Cek": {
+      "main": [
+        [
+          {
+            "node": "Paket Ozelliklerini Bul",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paket Ozelliklerini Bul": {
+      "main": [
+        [
+          {
+            "node": "Firmayi Guncelle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Olay Turu Nedir?": {
+      "main": [
+        [
+          {
+            "node": "Stripe Sub Detayi Cek",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Iptal Et / Durdur",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f9f57a35-d3a2-4e11-a248-773bf091585e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5bf69624a39d6d53ef656fb05088202362a2f094009339df5426d88d65c85398"
+  },
+  "id": "TBXUgGTHMMsnlgQx",
+  "tags": []
+}

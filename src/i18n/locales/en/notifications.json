@@ -1,0 +1,10 @@
+{
+  "notifications": "Notifications",
+  "noNotifications": "No new notifications.",
+  "markAllRead": "Mark all as read",
+  "notifNewAppointment": "New Appointment",
+  "notifCancelledAppointment": "Appointment Cancelled",
+  "notifComplaint": "Customer Complaint",
+  "notifWhatsappDisconnected": "WhatsApp Disconnected",
+  "notifDailySummary": "Daily Summary"
+}

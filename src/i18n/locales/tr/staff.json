@@ -1,0 +1,19 @@
+{
+  "staffTitle": "Uzmanlar",
+  "staff": "Uzmanlar",
+  "staffSubtitle": "Ekibinizi yönetin ve yeni uzmanlar ekleyin.",
+  "addStaff": "Uzman Ekle",
+  "staffRoleExpert": "Uzman",
+  "staffRoleAdmin": "Yönetici",
+  "expertServices": "Hizmetler",
+  "expertServicesSubtitle": "Bu uzmanın sunduğu hizmetleri seçin",
+  "servicesSelected": "{{count}} hizmet seçili",
+  "noServicesYet": "Henüz hizmet eklenmemiş. Önce Hizmetler sayfasından hizmet ekleyin.",
+  "servicesAssigned": "{{count}} hizmet atanmış",
+  "editStaff": "Uzmanı Düzenle",
+  "deleteStaff": "Uzmanı Sil",
+  "deleteStaffConfirm": "adlı uzmanı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+  "staffName": "İsim Soyisim",
+  "expertRevenue": "Uzman Bazlı Ciro",
+  "expertCalendarLimit": "Uzman Takvim Limiti"
+}

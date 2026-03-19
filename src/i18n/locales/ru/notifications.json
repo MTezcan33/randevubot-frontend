@@ -1,0 +1,10 @@
+{
+  "notifications": "Уведомления",
+  "noNotifications": "Нет новых уведомлений.",
+  "markAllRead": "Отметить все как прочитанные",
+  "notifNewAppointment": "Новая запись",
+  "notifCancelledAppointment": "Запись отменена",
+  "notifComplaint": "Жалоба клиента",
+  "notifWhatsappDisconnected": "WhatsApp отключён",
+  "notifDailySummary": "Ежедневная сводка"
+}

@@ -1,0 +1,920 @@
+{
+  "name": "firma-1-randevubot-tool-v2-1551-FIXED",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "903de904-7556-4155-98f2-7129e8c14f2f",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1fed6192-091e-4fd3-9b74-c2c7aac2f18c",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -2416,
+        208
+      ],
+      "webhookId": "whatsapp-appointment-bot"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "companies",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "whatsapp_number",
+              "keyValue": "={{ $json.body.from || '+447513293761' }}"
+            }
+          ]
+        }
+      },
+      "id": "72e08e89-61b4-4cac-8300-09912532efbe",
+      "name": "Get Company by WhatsApp",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -2208,
+        208
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.id }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "6d0ea3bf-bed8-4a74-9e1f-b81cadc615ac",
+      "name": "Company Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -2000,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tarih:  {{ $('Webhook Trigger').item.json.body.date_time }}\nSaat Dilimi: {{ $('Company Found?').item.json.timezone }}\n\n# MÜŞTERİ BİLGİSİ\n\nFirma: {{ $('Get Company by WhatsApp').item.json.name }}\nMüşteri Telefonu: {{'+' + $('Webhook Trigger').item.json.body.data.key.remoteJid.replace(/\\D/g, '') }}\nMesaj: {{ $('Webhook Trigger').item.json.body.data.message.conversation }}\nAdres: {{ $json.address }}\n---\n\n# GÖREV\n\nMüşterinin randevu talebini analiz et ve aşağıdaki tool'ları kullanarak işle:\n\n1. **Get Company Users**: Uzman listesini çek\n2. **Get Company Services**: Hizmet listesini çek\n3. **Get Expert Services**: Hangi uzmanın hangi hizmetleri yapabildiğini kontrol et\n4. **Get Working Hours**: Çalışma saatlerini kontrol et\n5. **Get Company Holidays**: Tatil günlerini kontrol et\n6. **Get All Customers**: Müşteriyi bul (telefon numarasına göre)\n7. **Get All Appointments**: Mevcut randevuları kontrol et (çakışma için)\n8. **Create Customers**: Eger müşterinin kaydı yoksa müşteriyi kaydet\n9. **Create Appointment**: Müşteri onayından sonra randevuyu kaydet\n10. **Update Appointment**: Müşteri onayından sonra randevuyu güncelle\n11. **Cancel Appointment**: Müşteri onayından sonra randevuyu iptal et\n\n---\n\n# ADIM ADIM YAKLAŞIM\n\n## 1. Mesajı Anla\n- Müşteri hangi dilde konuşuyor? Bunu anladıktan sonra o dilde kendini tanıt ve nasıl yardımcı olabileğini sor. (Örnegin Türkçe konuşuyorsa: Merhaba. Ben {{ $('Get Company by WhatsApp').item.json.name }} 'in randevu asistanıyım bugün size nasıl yardımcı olabilirim?)\n- Müşteri ne istiyor? (randevu oluşturma/iptal/güncelleme/sorgulama/genel soru)\n- Hangi bilgiler var? (tarih, saat, uzman, hizmet,firma adresi)\n\n## 2. Gerekli Tool'ları Çağır\n\n### Randevu Oluşturma İçin:\n```\na) Get All Customers → Müşteriyi telefon numarasına göre bul eger kaydı yoksa  (isim soyisim telefon numarası bilgileriyle) \"create customers\" tool u kullanıp kaydet. Sonra randuvu işlemlerine kaldığın yerden devam et\n\nb) Get Company Users → Uzman listesini al\nc) Get Company Services → Hizmet listesini al\nd) Get Expert Services → Uzmanın istenen hizmetleri yapıp yapamadığını doğrula\ne) Get All Customers → Müşteriyi telefon numarasına göre bul\nf) Get All Appointments → O tarih ve uzman için mevcut randevuları kontrol et\ng) Get Working Hours → Uzmanın o gün çalışıp çalışmadığını kontrol et\nh) Get Company Holidays → O günün tatil olup olmadığını kontrol et\n```\n\n### Randevu İptali İçin:\n```\na) Get All Appointments → Müşterinin randevularını bul (Sadece tarihi geçmemiş randevular)\n```\n\n### Genel Sorular İçin:\n```\na) Get Company Services → Hizmet listesi iste\nb) Get Working Hours → Çalışma saatleri iste\n```\n\n## 3. Validasyon Yap\n\n### ✅ Randevu Oluşturma Kontrolleri:\n- Tarih bugünden ileri mi? (Geçmişe dönük randevu oluşturma, müşteriyi uyar)\n- Tarih 30 günden ileri mi? (bir aydan daha ileriye randevu oluşturma, müşteriyi uyar)\n- Uzman o gün çalışıyor mu? (Get Working Hours)\n- Uzman o gün o saatte ögle arasında mı? (Get Company Users)\n- Uzman istenen hizmeti yapabiliyor mu? (Get Expert Services)\n- O gün tatil mi? (Get Company Holidays)\n- İstenen saat çalışma saatleri içinde mi?\n- Aynı uzman, aynı tarih ve saatte başka randevu var mı? (Get All Appointments)\n- Hizmet süresi kadar boşluk var mı? (Çoklu hizmet varsa toplam süreyi kullan!)\n- Müşteri kaydı var mı? (Get All Customers)\n\n### ❌ Hata Durumları:\n- **Eksik bilgi:** Müşteriden sor (tarih/saat/hizmet)\n- **Dolu saat:** Alternatif saatler öner\n- **Tatil günü:** Başka tarih öner\n- **Çalışma dışı:** Çalışma saatlerini bildir\n\n## 4. JSON Yanıt Oluştur\n\n### Başarılı Randevu:\n```json\n{\n  \"action_type\": \"create_appointment\",\n  \"success\": true,\n  \"customer_message\": \"Merhaba [Ad], randevun başarıyla oluşturuldu! 🎉\\n\\n📅 Tarih: [Tarih]\\n🕐 Saat: [Saat]\\n👤 Uzman: [Uzman]\\n💇 Hizmet: [Hizmet]\\n💰 Ücret: [Fiyat] TL\\n⏱️ Süre: [Süre] dakika\\n\\nRandevunu iptal veya değiştirmek istersen bize yazabilirsin.\",\n  \"extracted_data\": {\n    \"date\": \"2025-10-27\",\n    \"time\": \"14:00\",\n    \"expert_id\": \"uuid-from-tool\",\n    \"service_id\": \"uuid-from-tool\",\n    \"customer_id\": \"uuid-from-tool\",\n    \"appointment_id\": null\n  },\n  \"database_action\": {\n    \"operation\": \"create\",\n    \"table\": \"appointments\",\n    \"data\": {\n      \"company_id\": \"{{ $('Get Company by WhatsApp').item.json.id }}\",\n      \"customer_id\": \"uuid-from-tool\",\n      \"expert_id\": \"uuid-from-tool\",\n      \"service_id\": \"uuid-from-tool\",\n      \"date\": \"2025-10-27\",\n      \"time\": \"14:00\",\n      \"status\": \"pending\"\n    }\n  },\n  \"needs_more_info\": false,\n  \"missing_fields\": []\n}\n```\n\n### Eksik Bilgi:\n```json\n{\n  \"action_type\": \"create_appointment\",\n  \"success\": false,\n  \"customer_message\": \"Randevu oluşturmak için şu bilgilere ihtiyacım var:\\n\\n• Hangi tarih ve saat?\\n• Hangi hizmet?\\n• Hangi uzman?\\n\\nÖrnek: 'Yarın saat 15:00 için Ali Bey'den saç kesimi'\",\n  \"extracted_data\": {},\n  \"database_action\": { \"operation\": \"none\" },\n  \"needs_more_info\": true,\n  \"missing_fields\": [\"date\", \"time\", \"service\"]\n}\n```\n\n### Dolu Saat:\n```json\n{\n  \"action_type\": \"create_appointment\",\n  \"success\": false,\n  \"customer_message\": \"Maalesef [Tarih] [Saat] saati dolu.\\n\\nMüsait saatlerimiz:\\n• 11:00\\n• 14:00\\n• 16:30\\n\\nHangisi uygun?\",\n  \"extracted_data\": { \"date\": \"2025-10-27\" },\n  \"database_action\": { \"operation\": \"none\" },\n  \"needs_more_info\": true\n}\n```\n\n### Tatil:\n```json\n{\n  \"action_type\": \"create_appointment\",\n  \"success\": false,\n  \"customer_message\": \"[Tarih] tarihinde firmamız kapalı ([Tatil Açıklaması]).\\n\\nBaşka bir tarih önerir misiniz?\",\n  \"database_action\": { \"operation\": \"none\" }\n}\n```\n\n### İptal:\n```json\n{\n  \"action_type\": \"cancel_appointment\",\n  \"success\": true,\n  \"customer_message\": \"[Tarih] [Saat]'teki randevun iptal edildi. Başka bir zaman için yazabilirsin. 🙂\",\n  \"extracted_data\": { \"appointment_id\": \"uuid\" },\n  \"database_action\": {\n    \"operation\": \"delete\",\n    \"table\": \"appointments\",\n    \"data\": { \"id\": \"uuid\", \"status\": \"cancelled\" }\n  }\n}\n```\n\n### Genel Sorular:\n```json\n{\n  \"action_type\": \"general_question\",\n  \"success\": true,\n  \"customer_message\": \"Hizmetlerimiz:\\n\\n💇 Saç Kesimi - 30dk - 150 TL\\n💇 Sakal - 15dk - 75 TL\\n\\nRandevu için 'randevu istiyorum' yaz.\",\n  \"database_action\": { \"operation\": \"none\" }\n}\n```\n\n---\n\n# GET EXPERT SERVICES TOOL\nBu tool hangi uzmanın hangi hizmetleri yapabileceğini gösterir. expert_id ve service_id eşleşmelerini döndürür.\nÖNEMLİ: Randevu oluşturmadan önce seçilen uzmanın istenen TÜM hizmetleri yapıp yapamadığını kontrol et!\n\n---\n\n# ÇOKLU HİZMET RANDEVUSU\nMüşteri birden fazla hizmet isteyebilir (ör: Hamam + Kese istiyorum). Bu durumda:\n1. Get Company Services ile tüm hizmet ID'lerini al\n2. Get Expert Services ile uzmanın bu hizmetleri yapıp yapamadığını doğrula\n3. Toplam süre = tüm hizmet sürelerinin toplamı\n4. Çakışma kontrolünde toplam süreyi kullan (tek hizmet süresi değil!)\n5. Create Appointment'a service_ids olarak virgülle ayrılmış ID'ler gönder\n6. Müşteriye toplam süre ve toplam ücreti bildir\n\n---\n\n# HİZMET DETAY BİLGİLERİ\nHizmetlerin şu alanları olabilir:\n- service_content: Hizmet içeriği (hangi işlemler dahil)\n- preparation_info: Hazırlık talimatları (randevu öncesi bilinmesi gerekenler)\n- contraindications: Kontra-endikasyonlar (kimler için uygun değil)\nMüşteri sorarsa bu bilgileri paylaş.\n\n---\n\n# UZMAN EŞLEŞTİRME\nMüşteri uzman belirtmezse ve birden fazla hizmet istiyorsa:\n- Get Expert Services ile tüm hizmetleri yapabilen uzmanları filtrele\n- Hiçbir uzman tüm hizmetleri yapamıyorsa müşteriye bildir ve alternatifler sun\n\n---\n\n# ÖNEMLİ KURALLAR\n\n1. ✅ **Müşteri hangi dilde konuşuyorsa o dilde cevap ver**\n2. ✅ **Tool'ları akıllıca kullan** (gereksiz çağrı yapma)\n3. ✅ **Emoji kullan** ama abartma (📅🕐👤💇💰⏱️)\n4. ✅ **UUID'leri tool'lardan al** (uydurma)\n5. ✅ **Eksik bilgi varsa sor** (varsayımda bulunma)\n6. ✅ **Validasyonları yap** (tatil, çalışma saati, çakışma)\n7. ✅ **JSON formatını koru** (markdown code block kullanma)\n8. ✅ **customer_message samimi ve açık olsun**\n9. ✅ **database_action.data tüm gerekli alanları içermeli**\n10. ✅ **Tarih formatı: YYYY-MM-DD, Saat formatı: HH:MM**\n11. ✅ **Müşteriye ilk cevap verirken kendini tanıt. Örnegin (Türkçe cevap için) \"Merhaba ben AS Holdingin randevu asistanıyım. Size bugün nasıl yardımcı olabilirim?**\n12. ✅ ** Firmanın Yönetici bilgilerini, Yöneticinin ve uzmanların yada diğer müşterilerin bilgilerin asla paylaşma**\n13. ✅ **Randevuyu oluşturdurtan sonra son kez müşterinin onayını al ve randevuyu sistame kaydet**\n---\n\nŞimdi müşterinin mesajını analiz et, gerekli tool'ları çağır ve JSON yanıt oluştur!",
+        "options": {
+          "systemMessage": "=Sen bir WhatsApp randevu yönetim asistanısın.\n\n## TEMEL GÖREVİN\nMüşterilerin randevu taleplerini tool'ları kullanarak işlemek.\n\n## TOOL'LARIN AMACI\n\n### Get Company Users\nFirmadaki uzmanları listeler.\n**Output:** Array of experts with id, name, role\n\n### Get Company Services  \nFirmanın sunduğu hizmetleri listeler (sadece aktif hizmetler).\n**Output:** Array of services with id, description, duration, price, expert_id\n\n### Get Expert Services\nBu tool hangi uzmanın hangi hizmetleri yapabileceğini gösterir. expert_id ve service_id eşleşmelerini döndürür.\nÖNEMLİ: Randevu oluşturmadan önce seçilen uzmanın istenen TÜM hizmetleri yapıp yapamadığını kontrol et!\n**Output:** Array of expert-service mappings with expert_id, service_id\n\n### Get Working Hours\nUzmanların çalışma saatlerini gösterir.\n**Output:** Array with day, is_open, start_time, end_time, expert_id\n\n### Get Company Holidays\nTatil günlerini gösterir.\n**Output:** Array with date, description, expert_id\n\n### Get All Customers\nFirmaya kayıtlı müşterileri listeler.\n**Output:** Array of customers with id, name, phone\n\n### Get All Appointments\nMevcut randevuları gösterir.\n**Output:** Array of appointments with date, time, expert_id, service_id, customer_id, status\n\n### Create Appointment\nYeni randevuları ekler. Çoklu hizmet durumunda service_ids virgülle ayrılmış UUID'ler olarak gönderilir.\n\n### Update Appointment\nRandevuları günceller\n\n### Cancel Appointment\nRandevuları iptal eder (status=iptal olarak günceller, silmez)\n\n## ÇOKLU HİZMET RANDEVUSU\nMüşteri birden fazla hizmet isteyebilir (ör: Hamam + Kese istiyorum). Bu durumda:\n1. Get Company Services ile tüm hizmet ID'lerini al\n2. Get Expert Services ile uzmanın bu hizmetleri yapıp yapamadığını doğrula\n3. Toplam süre = tüm hizmet sürelerinin toplamı\n4. Çakışma kontrolünde toplam süreyi kullan (tek hizmet süresi değil!)\n5. Create Appointment'a service_ids olarak virgülle ayrılmış ID'ler gönder\n6. Müşteriye toplam süre ve toplam ücreti bildir\n\n## HİZMET DETAY BİLGİLERİ\nHizmetlerin şu alanları olabilir:\n- service_content: Hizmet içeriği (hangi işlemler dahil)\n- preparation_info: Hazırlık talimatları (randevu öncesi bilinmesi gerekenler)\n- contraindications: Kontra-endikasyonlar (kimler için uygun değil)\nMüşteri sorarsa bu bilgileri paylaş.\n\n## UZMAN EŞLEŞTİRME\nMüşteri uzman belirtmezse ve birden fazla hizmet istiyorsa:\n- Get Expert Services ile tüm hizmetleri yapabilen uzmanları filtrele\n- Hiçbir uzman tüm hizmetleri yapamıyorsa müşteriye bildir ve alternatifler sun\n\n## TÜRKÇE TARİH/SAAT ANLAMA\n\n- \"Bugün\" → Günün tarihi\n- \"Yarın\" → Bugün + 1 gün\n- \"Pazartesi\" → Gelecek Pazartesi\n- \"Öğleden sonra\" → 14:00-16:00 arası öner\n- \"Sabah\" → 09:00-11:00 arası öner\n- \"3'te\" → 15:00\n\n## GÜN ADLARI (Veritabanında İngilizce)\n- Pazartesi → Monday\n- Salı → Tuesday\n- Çarşamba → Wednesday\n- Perşembe → Thursday\n- Cuma → Friday\n- Cumartesi → Saturday\n- Pazar → Sunday\n\n## VALİDASYON KURALLARI\n\n1. Tarih >= bugün\n2. Uzman o gün çalışıyor mu? (is_open = true)\n3. Saat çalışma saatleri içinde mi? (start_time <= saat < end_time)\n4. Tatil günü değil mi?\n5. Uzman istenen hizmeti yapabiliyor mu? (Get Expert Services ile kontrol et)\n6. Aynı saatte başka randevu yok mu?\n7. Hizmet süresi kadar boşluk var mı? (Çoklu hizmet varsa toplam süreyi kullan)\n\n## YANIT KURALLARI\n\n- Türkçe ve samimi\n- Emoji kullan (📅🕐👤💇)\n- JSON formatında dön\n- Markdown code block KULLANMA\n- UUID'leri tool'lardan al"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -1280,
+        192
+      ],
+      "id": "2927a19a-c7eb-4cd2-aa99-f8a2693b1e19",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.3,
+          "topK": 40,
+          "topP": 0.95
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1792,
+        304
+      ],
+      "id": "35864825-398c-42bf-a9cf-e42bb9e88ec4",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "8nktYcYKBspNnYZX",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook Trigger').item.json.webhookUrl }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -1600,
+        352
+      ],
+      "id": "f2198b7d-43ab-4d6e-9b1d-6520d9e749a4",
+      "name": "Window Buffer Memory"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    success: false,\n    error: 'Company not found',\n    customer_message: 'Bu telefon numarasına ait firma bulunamadı. Lütfen firma yetkilisiyle iletişime geçin.'\n  }\n}];"
+      },
+      "id": "5f9d0a4a-f711-4a21-b3dc-a93085fa6876",
+      "name": "Error - No Company",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2384,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "65dce4bf-58fd-4c73-83b6-5a217d92606e",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -2064,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "company_users",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "company_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Get Company by WhatsApp').item.json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        -2384,
+        768
+      ],
+      "id": "7b8975b3-fab5-44e1-a542-45d79c188522",
+      "name": "Get Company Users",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "company_services",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "company_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Get Company by WhatsApp').item.json.id }}"
+            },
+            {
+              "keyName": "is_active",
+              "condition": "eq",
+              "keyValue": "true"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        -2224,
+        768
+      ],
+      "id": "475bd8ee-248d-4691-be9e-0b50b7dfa654",
+      "name": "Get Company Services",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "company_working_hours",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "company_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Get Company by WhatsApp').item.json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        -2080,
+        768
+      ],
+      "id": "e8835ceb-9a00-43a4-9f52-e39f3e904f29",
+      "name": "Get Working Hours",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "company_holidays",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "company_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Get Company by WhatsApp').item.json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        -1920,
+        768
+      ],
+      "id": "44cf7556-2ded-4014-85fc-8d3e4abf8994",
+      "name": "Get Company Holidays",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "customers",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "company_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Get Company by WhatsApp').item.json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        -1760,
+        768
+      ],
+      "id": "7edbe9ec-f592-42e5-8bd6-c519d7be50d6",
+      "name": "Get All Customers",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "appointments",
+        "limit": 100,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "company_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Get Company by WhatsApp').item.json.id }}"
+            },
+            {
+              "keyName": "date",
+              "condition": "gte",
+              "keyValue": "={{ new Date().toISOString().split('T')[0] }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        -1616,
+        752
+      ],
+      "id": "fda9f8fd-12d2-48c0-8aef-5aaf58144f1f",
+      "name": "Get All Appointments",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "appointments",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Get Company by WhatsApp').item.json.id }}"
+            },
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{ $fromAI('customer_id', 'Customer ID from Get All Customers tool', 'string') }}"
+            },
+            {
+              "fieldId": "expert_id",
+              "fieldValue": "={{ $fromAI('expert_id', 'Expert ID from Get Company Users tool', 'string') }}"
+            },
+            {
+              "fieldId": "service_id",
+              "fieldValue": "={{ $fromAI('service_id', 'Service ID from Get Company Services tool', 'string') }}"
+            },
+            {
+              "fieldId": "date",
+              "fieldValue": "={{ $fromAI('date', 'Appointment date in YYYY-MM-DD format', 'string') }}"
+            },
+            {
+              "fieldId": "time",
+              "fieldValue": "={{ $fromAI('time', 'Appointment time in HH:MM format', 'string') }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $fromAI('status', 'Appointment status: pending or confirmed', 'string') || 'pending' }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        -1040,
+        784
+      ],
+      "id": "3875b544-fefd-42f0-be2d-9493573fefea",
+      "name": "Create Appointment",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "appointments",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $fromAI('appointment_id', 'Appointment ID from Get All Appointments tool', 'string') }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "date",
+              "fieldValue": "={{ $fromAI('date', 'New appointment date in YYYY-MM-DD format (optional)', 'string') }}"
+            },
+            {
+              "fieldId": "time",
+              "fieldValue": "={{ $fromAI('time', 'New appointment time in HH:MM format (optional)', 'string') }}"
+            },
+            {
+              "fieldId": "expert_id",
+              "fieldValue": "={{ $fromAI('expert_id', 'New expert ID from Get Company Users tool (optional)', 'string') }}"
+            },
+            {
+              "fieldId": "service_id",
+              "fieldValue": "={{ $fromAI('service_id', 'New service ID from Get Company Services tool (optional)', 'string') }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $fromAI('status', 'New status: pending, confirmed, or cancelled (optional)', 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        -848,
+        784
+      ],
+      "id": "cd433c41-f65a-4c8e-9425-b2124b4f3709",
+      "name": "Update Appointment",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "appointments",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $fromAI('appointment_id', 'Appointment ID from Get All Appointments tool to cancel', 'string') }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "iptal"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        -576,
+        800
+      ],
+      "id": "f7c4a2e2-420a-429e-b835-6f1cfa734fb4",
+      "name": "Cancel Appointment",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "expert_services",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "company_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Get Company by WhatsApp').item.json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        -1440,
+        768
+      ],
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Get Expert Services",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "customers",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Get Company by WhatsApp').item.json.id }}"
+            },
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues1_Field_Value', `Customer full name in UPPERCASE (e.g., AHMET YILMAZ)`, 'string') }}"
+            },
+            {
+              "fieldId": "phone",
+              "fieldValue": "={{ '+' + $('Webhook Trigger').item.json.body.data.key.remoteJid.replace(/\\D/g, '') }}"
+            },
+            {
+              "fieldId": "email",
+              "fieldValue": "={{ $fromAI('customer_email', 'Customer email address (optional)', 'string') || null }}"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ $fromAI('customer_notes', 'Additional notes about customer (optional)', 'string') || null }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        -1216,
+        784
+      ],
+      "id": "d6d570f1-3e0d-44e6-a9d7-3a4f740e6dca",
+      "name": "Create Customers",
+      "credentials": {
+        "supabaseApi": {
+          "id": "5fiEwJtzNrMasDp2",
+          "name": "Randevubotnet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI Response - ÇOK DİLLİ KARAKTER DESTEĞİ\n// Türkçe, Rusça, İngilizce, Ukraynaca, Almanca, Fransızca, İspanyolca karakterlerini korur\n\nconst aiOutput = $input.item.json.output;\nlet parsedResponse;\n\ntry {\n  // 1. DURUM: AI zaten JSON objesi döndürmüş\n  if (typeof aiOutput === 'object' && aiOutput !== null) {\n    parsedResponse = aiOutput;\n  } \n  // 2. DURUM: AI string döndürmüş - JSON mu yoksa düz metin mi kontrol et\n  else if (typeof aiOutput === 'string') {\n    const trimmedOutput = aiOutput.trim();\n    \n    // JSON string'i mi kontrol et ('{' veya '[' ile başlıyor mu?)\n    if (trimmedOutput.startsWith('{') || trimmedOutput.startsWith('[')) {\n      // Markdown code block'ları temizle (UTF-8 karakterlere dokunma!)\n      let cleanJson = trimmedOutput\n        .replace(/```json\\n?/g, '')  // ```json başlangıcı\n        .replace(/```\\n?/g, '')       // ``` bitişi\n        .trim();                      // Baştaki/sondaki boşlukları temizle\n      \n      // JSON parse et (UTF-8 destekli)\n      parsedResponse = JSON.parse(cleanJson);\n    } \n    // Düz metin döndürmüş (JSON değil)\n    else {\n      // AI sadece customer_message döndürmüş\n      // TÜM DİLLERDEKİ KARAKTERLER KORUNARAK JSON wrapper oluştur\n      parsedResponse = {\n        action_type: \"unclear\",\n        success: true,\n        customer_message: trimmedOutput,  // UTF-8 karakterler korunur\n        extracted_data: {},\n        database_action: { operation: \"none\" },\n        needs_more_info: false,\n        error_message: null\n      };\n    }\n  }\n  else {\n    throw new Error('Invalid output type');\n  }\n  \n  // Parse başarılı - UTF-8 karakterler korunarak output döndür\n  return [\n    {\n      json: {\n        action_type: parsedResponse.action_type || \"unclear\",\n        success: parsedResponse.success !== false,\n        customer_message: parsedResponse.customer_message || \"Yanıtınızı işleyemedim. Lütfen tekrar dener misiniz?\",\n        extracted_data: parsedResponse.extracted_data || {},\n        database_action: parsedResponse.database_action || { operation: \"none\" },\n        needs_more_info: parsedResponse.needs_more_info || false,\n        error_message: parsedResponse.error_message || null\n      }\n    }\n  ];\n\n} catch (error) {\n  // Parse hatası durumunda\n  console.error('Parse error:', error.message);\n  console.error('AI Output:', aiOutput);\n  \n  // Eğer AI string döndürdüyse, UTF-8 karakterleri koruyarak kullan\n  if (typeof aiOutput === 'string') {\n    return [\n      {\n        json: {\n          action_type: \"unclear\",\n          success: true,\n          customer_message: aiOutput.trim(),  // TÜM DİL KARAKTERLERİ KORUNUR\n          extracted_data: {},\n          database_action: { operation: \"none\" },\n          needs_more_info: false,\n          error_message: null\n        }\n      }\n    ];\n  }\n  \n  // Tamamen başarısız durumunda\n  return [\n    {\n      json: {\n        action_type: \"error\",\n        success: false,\n        customer_message: \"Yanıtınızı işleyemedim. Lütfen tekrar dener misiniz?\",\n        extracted_data: {},\n        database_action: { operation: \"none\" },\n        needs_more_info: false,\n        error_message: `Parse hatası: ${error.message}`\n      }\n    }\n  ];\n}\n\n/* \nÇOK DİLLİ KARAKTER DESTEĞİ:\n\n✅ TÜRKÇE: ü, ö, ş, ğ, ı, ç, İ, Ü, Ö, Ş, Ğ, Ç\n   Örnek: \"Merhaba! Randevunuz oluşturuldu. Müşteri: Ahmet Yılmaz\"\n\n✅ RUSÇA: а, б, в, г, д, е, ё, ж, з, и, й, к, л, м, н, о, п, р, с, т, у, ф, х, ц, ч, ш, щ, ъ, ы, ь, э, ю, я\n   Örnek: \"Привет, Мехмет Тезжан! Я ассистент по записи на прием.\"\n\n✅ UKRAYNACA: і, ї, є, ґ, И, І, Ї, Є, Ґ\n   Örnek: \"Привіт! Я можу допомогти з записом на прийом.\"\n\n✅ ALMANCA: ä, ö, ü, ß, Ä, Ö, Ü\n   Örnek: \"Hallo! Ich kann Ihnen bei der Terminbuchung helfen. Größe: 5 Äpfel\"\n\n✅ FRANSIZCA: à, â, ç, é, è, ê, ë, î, ï, ô, ù, û, ü, ÿ, æ, œ\n   Örnek: \"Bonjour! Je peux vous aider avec la réservation. Café à 14h.\"\n\n✅ İSPANYOLCA: á, é, í, ó, ú, ü, ñ, ¡, ¿\n   Örnek: \"¡Hola! ¿Cómo puedo ayudarle? Mañana a las 14:00.\"\n\n✅ EMOJİ: 😊 🎉 📅 🕐 👤 💇 💰 ⏱️ ✅ ❌\n\nBu kod SADECE markdown code block'ları (```) temizler.\nDİĞER TÜM UTF-8 KARAKTERLERİ OLDUĞU GİBİ KORUR!\n*/"
+      },
+      "id": "7f0a471b-b12f-4d26-a999-9cc1558bde65",
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "b574167e-c978-4906-9b16-d81dc33006b0"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3b9479d0-58e3-460b-a09d-bf9b90a8c6da",
+      "name": "Check Operation Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -448,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Veritabanı işlemi gerektirmeyen durumlar için\nreturn $input.all();"
+      },
+      "id": "95f159c9-cc60-45c8-ace0-3f07b6f86654",
+      "name": "No Database Operation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { message: $json.customer_message, success: $json.success, action_type: $json.action_type } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a349f1f7-474d-4ba6-924b-232115e7d040",
+      "name": "WhatsApp Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        64
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('Get Company by WhatsApp').item.json.instance_name }}",
+        "remoteJid": "={{ $('Webhook Trigger').item.json.body.data.key.remoteJid }}",
+        "messageText": "={{ $json.customer_message }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api-en.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -112
+      ],
+      "id": "82aba99c-d33f-44c3-acc1-17e92e549290",
+      "name": "Send text1",
+      "credentials": {
+        "evolutionApi": {
+          "id": "wIR6KlP1wJan8RmF",
+          "name": "firma1-447823987310"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Company by WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Company by WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Company Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Company Found?": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error - No Company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error - No Company": {
+      "main": [
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Company Users": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Company Services": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Working Hours": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Company Holidays": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Customers": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Appointments": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Expert Services": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancel Appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Customers": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Check Operation Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Operation Type": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send text1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Database Operation": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "347994d0-1fa7-40d6-9445-bf6fa2e0e990",
+  "meta": {
+    "instanceId": "5bf69624a39d6d53ef656fb05088202362a2f094009339df5426d88d65c85398"
+  },
+  "id": "ieDvoE30oVuKxa3D",
+  "tags": []
+}

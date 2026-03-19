@@ -1,0 +1,25 @@
+{
+  "migrations": [
+    {
+      "id": "000",
+      "file": "schema/000_base_schema.sql",
+      "description": "Base schema - 19 core tables, triggers, RLS, indexes",
+      "applied_at": null,
+      "status": "reference"
+    },
+    {
+      "id": "001",
+      "file": "migrations/001_new_tables.sql",
+      "description": "Accounting + notification tables (transactions, categories, cash register, reports, admin_notifications, notification_templates, customer_feedback)",
+      "applied_at": null,
+      "status": "pending"
+    },
+    {
+      "id": "002",
+      "file": "migrations/002_sub_sectors.sql",
+      "description": "Sub-sector taxonomy data (40+ sub-sectors for 4 main sectors)",
+      "applied_at": null,
+      "status": "pending"
+    }
+  ]
+}

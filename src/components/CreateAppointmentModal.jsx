@@ -136,6 +136,22 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
     if (!selectedExpert || !appointmentTime || totalDuration <= 0) return;
 
     const dateStr = appointmentDate.toISOString().split('T')[0];
+    const newStart = timeToMinutes(appointmentTime);
+    const newEnd = newStart + totalDuration;
+
+    // Öğle molası kontrolü
+    const expert = experts?.find(e => e.id === selectedExpert);
+    if (expert?.general_lunch_start_time && expert?.general_lunch_end_time) {
+      const lunchStart = timeToMinutes(expert.general_lunch_start_time);
+      const lunchEnd = timeToMinutes(expert.general_lunch_end_time);
+      if (newStart < lunchEnd && newEnd > lunchStart) {
+        setConflictWarning({
+          existingTime: `${expert.general_lunch_start_time.substring(0, 5)} - ${expert.general_lunch_end_time.substring(0, 5)}`,
+          isLunchBreak: true,
+        });
+        return;
+      }
+    }
 
     // O tarihteki uzmanın tüm randevularını çek
     const { data: existingApps } = await supabase
@@ -149,9 +165,6 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
       setConflictWarning(null);
       return;
     }
-
-    const newStart = timeToMinutes(appointmentTime);
-    const newEnd = newStart + totalDuration;
 
     for (const app of existingApps) {
       const appStart = timeToMinutes(app.time);
@@ -428,9 +441,13 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
               <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-amber-800">{t('conflictWarning')}</p>
+                <p className="text-sm font-medium text-amber-800">
+                  {conflictWarning.isLunchBreak ? (t('lunchBreakWarning') || 'Öğle Molası Çakışması') : t('conflictWarning')}
+                </p>
                 <p className="text-xs text-amber-600">
-                  {t('conflictMessage', { time: conflictWarning.existingTime })}
+                  {conflictWarning.isLunchBreak
+                    ? (t('lunchBreakMessage', { time: conflictWarning.existingTime }) || `Uzmanın öğle molası: ${conflictWarning.existingTime}`)
+                    : t('conflictMessage', { time: conflictWarning.existingTime })}
                 </p>
               </div>
             </div>

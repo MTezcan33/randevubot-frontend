@@ -1,0 +1,115 @@
+{
+  "name": "RandevuBot — Geri Bildirim Toplayıcı",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "minutesInterval": 30 }]
+        }
+      },
+      "name": "30 Dakikada Bir",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT a.id, a.date, a.time, a.company_id, a.customer_id, c.name as customer_name, c.phone as customer_phone, co.name as salon_name FROM appointments a JOIN customers c ON c.id = a.customer_id JOIN companies co ON co.id = a.company_id WHERE a.status = 'onaylandı' AND co.service_active = true AND (a.date || ' ' || a.time)::timestamp BETWEEN NOW() - INTERVAL '3 hours' AND NOW() - INTERVAL '1 hour 50 minutes' AND NOT EXISTS (SELECT 1 FROM customer_feedback cf WHERE cf.appointment_id = a.id) LIMIT 50"
+      },
+      "name": "Geri Bildirim Bekleyen Randevular",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [450, 300],
+      "credentials": { "postgres": { "id": "supabase_pg", "name": "Supabase PostgreSQL" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $json.salon_name }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $json.customer_phone }}"
+            },
+            {
+              "name": "text",
+              "value": "=Merhaba {{ $json.customer_name }}! 😊\n{{ $json.salon_name }}'daki deneyiminizi nasıl değerlendirirsiniz?\n\n1️⃣ - Çok Kötü\n2️⃣ - Kötü\n3️⃣ - Orta\n4️⃣ - İyi\n5️⃣ - Mükemmel\n\nSadece rakamı yazmanız yeterli."
+            }
+          ]
+        }
+      },
+      "name": "Anket WhatsApp Gönder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "feedback-response",
+        "responseMode": "onReceived",
+        "responseData": "firstEntryJson"
+      },
+      "name": "Müşteri Yanıtı Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 600],
+      "webhookId": "feedback-response"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ parseInt($json.body.message) }}",
+              "operation": "largerEqual",
+              "value2": 1
+            },
+            {
+              "value1": "={{ parseInt($json.body.message) }}",
+              "operation": "smallerEqual",
+              "value2": 5
+            }
+          ]
+        }
+      },
+      "name": "Geçerli Puan mı?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 600]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "customer_feedback",
+        "columns": "company_id,customer_id,appointment_id,rating,comment,status",
+        "additionalFields": {}
+      },
+      "name": "Geri Bildirimi Kaydet",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [700, 600],
+      "credentials": { "postgres": { "id": "supabase_pg", "name": "Supabase PostgreSQL" } }
+    }
+  ],
+  "connections": {
+    "30 Dakikada Bir": {
+      "main": [[{ "node": "Geri Bildirim Bekleyen Randevular", "type": "main", "index": 0 }]]
+    },
+    "Geri Bildirim Bekleyen Randevular": {
+      "main": [[{ "node": "Anket WhatsApp Gönder", "type": "main", "index": 0 }]]
+    },
+    "Müşteri Yanıtı Webhook": {
+      "main": [[{ "node": "Geçerli Puan mı?", "type": "main", "index": 0 }]]
+    },
+    "Geçerli Puan mı?": {
+      "main": [[{ "node": "Geri Bildirimi Kaydet", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

@@ -98,13 +98,59 @@ export const respondToFeedback = async (feedbackId, adminResponse, status = 'res
 };
 
 /**
- * Müşteri istatistiklerini yeniden hesapla (RPC)
+ * Müşteri istatistiklerini yeniden hesapla (client-side)
  */
-export const recalculateStats = async (customerId) => {
-  const { error } = await supabase.rpc('recalculate_customer_stats', {
-    p_customer_id: customerId,
-  });
-  if (error) console.error('Stat recalc error:', error);
+export const recalculateStats = async (customerId, companyId) => {
+  try {
+    // Tamamlanan randevuları çek
+    const { data: appointments, error: apptErr } = await supabase
+      .from('appointments')
+      .select('id, date, appointment_services(service_id, company_services(price))')
+      .eq('customer_id', customerId)
+      .eq('company_id', companyId)
+      .eq('status', 'onaylandı');
+
+    if (apptErr) throw apptErr;
+
+    const totalVisits = appointments?.length || 0;
+    const totalSpent = (appointments || []).reduce((sum, appt) => {
+      const apptTotal = (appt.appointment_services || []).reduce((s, as) => {
+        return s + (as.company_services?.price || 0);
+      }, 0);
+      return sum + apptTotal;
+    }, 0);
+
+    // Son ziyaret tarihi
+    const lastVisit = appointments?.length > 0
+      ? appointments.sort((a, b) => b.date.localeCompare(a.date))[0].date
+      : null;
+
+    // Ortalama puanı çek
+    const { data: feedback } = await supabase
+      .from('customer_feedback')
+      .select('rating')
+      .eq('customer_id', customerId)
+      .eq('company_id', companyId);
+
+    const avgRating = feedback?.length > 0
+      ? feedback.reduce((s, f) => s + f.rating, 0) / feedback.length
+      : null;
+
+    // Müşteri kaydını güncelle
+    const { error: updateErr } = await supabase
+      .from('customers')
+      .update({
+        total_visits: totalVisits,
+        total_spent: totalSpent,
+        last_visit_date: lastVisit,
+        average_rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
+      })
+      .eq('id', customerId);
+
+    if (updateErr) throw updateErr;
+  } catch (err) {
+    console.error('Stat recalc error:', err);
+  }
 };
 
 /**

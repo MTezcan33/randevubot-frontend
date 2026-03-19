@@ -89,7 +89,7 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
     setDrawerLoading(true);
     try {
       // İstatistikleri yenile
-      await recalculateStats(customer.id);
+      await recalculateStats(customer.id, company.id);
 
       const [appts, fbs] = await Promise.all([
         getCustomerAppointments(customer.id, company.id),

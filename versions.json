@@ -1,0 +1,11 @@
+{
+  "current": "0.13.0",
+  "history": [
+    {
+      "version": "0.13.0",
+      "date": "2026-03-19",
+      "description": "Pre-transfer baseline: Dashboard, appointments, accounting, WhatsApp bot, notifications stable",
+      "commit": "1b3feb4"
+    }
+  ]
+}

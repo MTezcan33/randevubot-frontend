@@ -1,0 +1,10 @@
+{
+  "notifications": "Bildirimler",
+  "noNotifications": "Yeni bildirim yok.",
+  "markAllRead": "Tümünü okundu işaretle",
+  "notifNewAppointment": "Yeni Randevu",
+  "notifCancelledAppointment": "Randevu İptali",
+  "notifComplaint": "Müşteri Şikayeti",
+  "notifWhatsappDisconnected": "WhatsApp Bağlantısı Koptu",
+  "notifDailySummary": "Günlük Özet"
+}

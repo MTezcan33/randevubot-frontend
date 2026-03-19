@@ -193,6 +193,21 @@ const StaffPage = () => {
     setLoading(true);
 
     try {
+      // Yeni uzman eklerken plan limitini kontrol et
+      if (!editingStaff && formData.role === 'Uzman') {
+        const currentExpertCount = staff.filter(s => s.role === 'Uzman').length;
+        const expertLimit = company.expert_limit || 1;
+        if (currentExpertCount >= expertLimit) {
+          toast({
+            title: t('error'),
+            description: t('expertLimitReached') || `Uzman limitinize ulaştınız (${expertLimit}). Daha fazla uzman eklemek için planınızı yükseltin.`,
+            variant: 'destructive',
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
       let expertId = editingStaff?.id;
       let error;
 

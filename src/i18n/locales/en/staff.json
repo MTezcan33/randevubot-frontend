@@ -1,0 +1,19 @@
+{
+  "staffTitle": "Experts",
+  "staff": "Experts",
+  "staffSubtitle": "Manage your team and add new experts.",
+  "addStaff": "Add Expert",
+  "staffRoleExpert": "Expert",
+  "staffRoleAdmin": "Admin",
+  "expertServices": "Services",
+  "expertServicesSubtitle": "Select the services this expert provides",
+  "servicesSelected": "{{count}} services selected",
+  "noServicesYet": "No services added yet. Add services from the Services page first.",
+  "servicesAssigned": "{{count}} services assigned",
+  "editStaff": "Edit Expert",
+  "deleteStaff": "Delete Expert",
+  "deleteStaffConfirm": "Are you sure you want to delete this expert? This action cannot be undone.",
+  "staffName": "Full Name",
+  "expertRevenue": "Revenue by Expert",
+  "expertCalendarLimit": "Expert Calendar Limit"
+}
