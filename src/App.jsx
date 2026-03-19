@@ -22,6 +22,7 @@ import AccountingPage from '@/pages/dashboard/AccountingPage';
 import LegalPage from '@/pages/LegalPage';
 import BookingPage from '@/pages/BookingPage';
 import BookingSettingsPage from '@/pages/dashboard/BookingSettingsPage';
+import ResourcesPage from '@/pages/dashboard/ResourcesPage';
 import { AuthProvider } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import OnboardingRoute from '@/components/OnboardingRoute';
@@ -62,6 +63,7 @@ function App() {
             <Route path="settings" element={<SettingsPage />} />
             <Route path="support" element={<SupportPage />} />
             <Route path="booking-settings" element={<BookingSettingsPage />} />
+            <Route path="resources" element={<ResourcesPage />} />
           </Route>
 
           <Route path="/panel/*" element={<PanelApp />} />

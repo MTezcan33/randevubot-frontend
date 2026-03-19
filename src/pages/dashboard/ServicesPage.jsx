@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import {
   Plus, Edit, Trash2, Clock, DollarSign, Search,
   LayoutGrid, List, FileText, Upload, Briefcase,
-  MoreVertical, Eye, EyeOff, BookOpen, Check, Info
+  MoreVertical, Eye, EyeOff, BookOpen, Check, Info,
+  DoorOpen, Wrench, UserCheck
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -385,6 +386,14 @@ const ServicesPage = () => {
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [isCustomCategory, setIsCustomCategory] = useState(false);
 
+  // Kaynak gereksinimleri state'leri
+  const [allSpaces, setAllSpaces] = useState([]);
+  const [allEquipment, setAllEquipment] = useState([]);
+  const [selectedSpaceIds, setSelectedSpaceIds] = useState(new Set());
+  const [selectedEquipmentIds, setSelectedEquipmentIds] = useState(new Set());
+  const [requiresExpert, setRequiresExpert] = useState(true);
+  const [capacityPerSlot, setCapacityPerSlot] = useState(1);
+
   // Katalog modal state'i
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState('');
@@ -393,8 +402,43 @@ const ServicesPage = () => {
   useEffect(() => {
     if (company) {
       fetchServices();
+      fetchResourceData();
     }
   }, [company]);
+
+  // Alanlar ve ekipmanları çek (kaynak gereksinimleri için)
+  const fetchResourceData = async () => {
+    if (!company) return;
+    const [spacesRes, eqRes] = await Promise.all([
+      supabase.from('spaces').select('id, name, color, booking_mode').eq('company_id', company.id).eq('is_active', true).order('sort_order'),
+      supabase.from('equipment').select('id, name, quantity, location_type').eq('company_id', company.id).eq('is_active', true).order('name'),
+    ]);
+    setAllSpaces(spacesRes.data || []);
+    setAllEquipment(eqRes.data || []);
+  };
+
+  // Modal açıldığında hizmetin kaynak gereksinimlerini çek
+  const fetchResourceRequirements = async (serviceId) => {
+    if (!serviceId) {
+      setSelectedSpaceIds(new Set());
+      setSelectedEquipmentIds(new Set());
+      setRequiresExpert(true);
+      setCapacityPerSlot(1);
+      return;
+    }
+    const { data } = await supabase
+      .from('service_resource_requirements')
+      .select('resource_type, resource_id')
+      .eq('service_id', serviceId);
+    const spaceIds = new Set();
+    const eqIds = new Set();
+    (data || []).forEach(r => {
+      if (r.resource_type === 'space') spaceIds.add(r.resource_id);
+      else if (r.resource_type === 'equipment') eqIds.add(r.resource_id);
+    });
+    setSelectedSpaceIds(spaceIds);
+    setSelectedEquipmentIds(eqIds);
+  };
 
   // Hizmetleri Supabase'den çek
   const fetchServices = async () => {
@@ -426,6 +470,9 @@ const ServicesPage = () => {
     });
     setPdfFile(null);
     setIsCustomCategory(false);
+    setRequiresExpert(true);
+    setCapacityPerSlot(1);
+    fetchResourceRequirements(null);
     setIsModalOpen(true);
   };
 
@@ -449,6 +496,9 @@ const ServicesPage = () => {
     setIsCustomCategory(
       service.category && !BEAUTY_CATEGORIES.includes(service.category)
     );
+    setRequiresExpert(service.requires_expert !== false);
+    setCapacityPerSlot(service.capacity_per_slot || 1);
+    fetchResourceRequirements(service.id);
     setIsModalOpen(true);
   };
 
@@ -525,18 +575,53 @@ const ServicesPage = () => {
       color: serviceData.color || '#059669',
       is_active: serviceData.is_active,
       pdf_url: finalPdfUrl || null,
+      requires_expert: requiresExpert,
+      capacity_per_slot: capacityPerSlot,
     };
 
     let error;
+    let serviceId = editingService?.id;
     if (editingService) {
       ({ error } = await supabase.from('company_services').update(payload).eq('id', editingService.id));
     } else {
-      ({ error } = await supabase.from('company_services').insert(payload));
+      const { data: newData, error: insertError } = await supabase.from('company_services').insert(payload).select().single();
+      error = insertError;
+      if (newData) serviceId = newData.id;
     }
 
     if (error) {
       toast({ title: t('error'), description: t('serviceSaveError', { error: error.message }), variant: 'destructive' });
     } else {
+      // Kaynak gereksinimlerini kaydet (alan ve ekipman tanımlıysa)
+      if (serviceId && (allSpaces.length > 0 || allEquipment.length > 0)) {
+        // Mevcut gereksinimleri temizle
+        await supabase.from('service_resource_requirements').delete().eq('service_id', serviceId);
+        // Yeni gereksinimleri ekle
+        const requirements = [];
+        selectedSpaceIds.forEach(sid => {
+          requirements.push({
+            company_id: company.id,
+            service_id: serviceId,
+            resource_type: 'space',
+            resource_id: sid,
+            is_required: true,
+          });
+        });
+        selectedEquipmentIds.forEach(eid => {
+          requirements.push({
+            company_id: company.id,
+            service_id: serviceId,
+            resource_type: 'equipment',
+            resource_id: eid,
+            is_required: true,
+          });
+        });
+        if (requirements.length > 0) {
+          const { error: reqError } = await supabase.from('service_resource_requirements').insert(requirements);
+          if (reqError) console.error('Kaynak gereksinimi kaydetme hatası:', reqError);
+        }
+      }
+
       toast({ title: t('success'), description: t('serviceSaved') });
       setIsModalOpen(false);
       fetchServices();
@@ -981,6 +1066,116 @@ const ServicesPage = () => {
                 </label>
               </div>
             </div>
+
+            {/* BÖLÜM 6: Kaynak Gereksinimleri — sadece alan/ekipman tanımlıysa görünür */}
+            {(allSpaces.length > 0 || allEquipment.length > 0) && (
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-slate-700 pb-1 border-b border-slate-100 flex items-center gap-2">
+                  <DoorOpen className="w-4 h-4 text-purple-600" />
+                  {t('resourceRequirements')}
+                </h4>
+
+                {/* Uzman gerekli mi? + Kapasite */}
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={requiresExpert}
+                      onChange={(e) => setRequiresExpert(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <UserCheck className="w-4 h-4 text-slate-500" />
+                    <span className="text-sm text-slate-700">{t('requiresExpert')}</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-500">{t('capacityPerSlot')}:</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={capacityPerSlot}
+                      onChange={(e) => setCapacityPerSlot(parseInt(e.target.value) || 1)}
+                      className="w-16 px-2 py-1 border border-slate-200 rounded-lg text-sm text-center"
+                    />
+                  </div>
+                </div>
+
+                {/* Gerekli Alanlar */}
+                {allSpaces.length > 0 && (
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5 block">
+                      {t('spaceRequired')}
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {allSpaces.map(space => {
+                        const isSelected = selectedSpaceIds.has(space.id);
+                        return (
+                          <button
+                            key={space.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedSpaceIds(prev => {
+                                const next = new Set(prev);
+                                if (next.has(space.id)) next.delete(space.id);
+                                else next.add(space.id);
+                                return next;
+                              });
+                            }}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border
+                              ${isSelected
+                                ? 'bg-purple-50 border-purple-300 text-purple-700'
+                                : 'bg-white border-slate-200 text-slate-600 hover:border-purple-200'
+                              }`}
+                          >
+                            <div className="w-2 h-2 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: space.color || '#6366F1' }} />
+                            {space.name}
+                            {isSelected && <Check className="w-3 h-3" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Gerekli Ekipmanlar */}
+                {allEquipment.length > 0 && (
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5 block">
+                      {t('equipmentRequired')}
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {allEquipment.map(eq => {
+                        const isSelected = selectedEquipmentIds.has(eq.id);
+                        return (
+                          <button
+                            key={eq.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedEquipmentIds(prev => {
+                                const next = new Set(prev);
+                                if (next.has(eq.id)) next.delete(eq.id);
+                                else next.add(eq.id);
+                                return next;
+                              });
+                            }}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border
+                              ${isSelected
+                                ? 'bg-amber-50 border-amber-300 text-amber-700'
+                                : 'bg-white border-slate-200 text-slate-600 hover:border-amber-200'
+                              }`}
+                          >
+                            <Wrench className="w-3 h-3" />
+                            {eq.name} ({eq.quantity})
+                            {isSelected && <Check className="w-3 h-3" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <DialogFooter>

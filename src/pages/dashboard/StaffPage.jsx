@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
-import { Plus, User, Edit, Trash2, MoreVertical, Mail, Phone, Search, Briefcase, Check } from 'lucide-react';
+import { Plus, User, Edit, Trash2, MoreVertical, Mail, Phone, Search, Briefcase, Check, DoorOpen, Star } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -54,12 +54,25 @@ const StaffPage = () => {
   const [serviceSearchQuery, setServiceSearchQuery] = useState('');
   const [staffServiceCounts, setStaffServiceCounts] = useState({});
 
+  // Alan ataması state'leri
+  const [allSpaces, setAllSpaces] = useState([]);
+  const [selectedSpaces, setSelectedSpaces] = useState({}); // { spaceId: { selected: bool, is_preferred: bool } }
+  const [staffSpaceCounts, setStaffSpaceCounts] = useState({});
+
   // Uzman kartlarında hizmet sayısını göstermek için toplu çek
   useEffect(() => {
     if (company && staff.length > 0) {
       fetchStaffServiceCounts();
+      fetchStaffSpaceCounts();
     }
   }, [company, staff]);
+
+  // Alanları yükle (spaces tablosu varsa)
+  useEffect(() => {
+    if (company) {
+      fetchAllSpaces();
+    }
+  }, [company]);
 
   const fetchStaffServiceCounts = async () => {
     if (!company) return;
@@ -74,6 +87,72 @@ const StaffPage = () => {
       });
       setStaffServiceCounts(counts);
     }
+  };
+
+  // Alan sayılarını toplu çek (kartlarda göstermek için)
+  const fetchStaffSpaceCounts = async () => {
+    if (!company) return;
+    const { data } = await supabase
+      .from('expert_spaces')
+      .select('expert_id')
+      .eq('company_id', company.id);
+    if (data) {
+      const counts = {};
+      data.forEach(row => {
+        counts[row.expert_id] = (counts[row.expert_id] || 0) + 1;
+      });
+      setStaffSpaceCounts(counts);
+    }
+  };
+
+  // Tüm aktif alanları çek
+  const fetchAllSpaces = async () => {
+    if (!company) return;
+    const { data } = await supabase
+      .from('spaces')
+      .select('id, name, color, booking_mode')
+      .eq('company_id', company.id)
+      .eq('is_active', true)
+      .order('sort_order');
+    setAllSpaces(data || []);
+  };
+
+  // Modal açıldığında uzmanın alan atamalarını çek
+  const fetchSpacesForModal = async (expertId = null) => {
+    if (expertId && allSpaces.length > 0) {
+      const { data: assigned } = await supabase
+        .from('expert_spaces')
+        .select('space_id, is_preferred')
+        .eq('expert_id', expertId);
+      const map = {};
+      (assigned || []).forEach(a => {
+        map[a.space_id] = { selected: true, is_preferred: a.is_preferred };
+      });
+      setSelectedSpaces(map);
+    } else {
+      setSelectedSpaces({});
+    }
+  };
+
+  // Alan seçim toggle
+  const toggleSpaceSelection = (spaceId) => {
+    setSelectedSpaces(prev => {
+      const current = prev[spaceId];
+      if (current?.selected) {
+        const next = { ...prev };
+        delete next[spaceId];
+        return next;
+      }
+      return { ...prev, [spaceId]: { selected: true, is_preferred: false } };
+    });
+  };
+
+  // Tercih edilen alan toggle
+  const togglePreferredSpace = (spaceId) => {
+    setSelectedSpaces(prev => ({
+      ...prev,
+      [spaceId]: { ...prev[spaceId], is_preferred: !prev[spaceId]?.is_preferred },
+    }));
   };
 
   // Modal açıldığında hizmetleri ve mevcut atamaları çek
@@ -137,6 +216,7 @@ const StaffPage = () => {
     setEditingStaff(staffMember);
     setIsModalOpen(true);
     fetchServicesForModal(staffMember?.id || null);
+    fetchSpacesForModal(staffMember?.id || null);
   };
 
   const handleCloseModal = () => {
@@ -257,6 +337,31 @@ const StaffPage = () => {
             console.error('Hizmet ataması hatası:', junctionError);
           }
         }
+
+        // Alan atamalarını güncelle (expert_spaces)
+        if (allSpaces.length > 0) {
+          await supabase
+            .from('expert_spaces')
+            .delete()
+            .eq('expert_id', expertId)
+            .eq('company_id', company.id);
+
+          const spaceInserts = Object.entries(selectedSpaces)
+            .filter(([, v]) => v.selected)
+            .map(([spaceId, v]) => ({
+              expert_id: expertId,
+              space_id: spaceId,
+              company_id: company.id,
+              is_preferred: v.is_preferred || false,
+            }));
+
+          if (spaceInserts.length > 0) {
+            const { error: spaceError } = await supabase.from('expert_spaces').insert(spaceInserts);
+            if (spaceError) {
+              console.error('Alan ataması hatası:', spaceError);
+            }
+          }
+        }
       }
 
       toast({
@@ -266,6 +371,7 @@ const StaffPage = () => {
 
       await refreshCompany();
       await fetchStaffServiceCounts();
+      await fetchStaffSpaceCounts();
       handleCloseModal();
     } catch (error) {
       toast({
@@ -385,6 +491,15 @@ const StaffPage = () => {
                       <Briefcase className="w-4 h-4 mr-2 text-slate-400" />
                       <span className="text-emerald-700 font-medium">
                         {t('servicesAssigned', { count: staffServiceCounts[staffMember.id] })}
+                      </span>
+                    </div>
+                  )}
+                  {/* Atanmış alan sayısı */}
+                  {staffSpaceCounts[staffMember.id] > 0 && (
+                    <div className="flex items-center">
+                      <DoorOpen className="w-4 h-4 mr-2 text-slate-400" />
+                      <span className="text-purple-700 font-medium">
+                        {staffSpaceCounts[staffMember.id]} {t('assignedSpaces').toLowerCase()}
                       </span>
                     </div>
                   )}
@@ -569,6 +684,68 @@ const StaffPage = () => {
                 </>
               )}
             </div>
+
+            {/* Alan Ataması Bölümü — sadece alanlar tanımlıysa görünür */}
+            {allSpaces.length > 0 && (
+              <div className="space-y-3 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                    <DoorOpen className="w-4 h-4 text-purple-600" />
+                    {t('assignedSpaces')}
+                  </h4>
+                  <span className="text-xs text-purple-700 font-medium">
+                    {Object.values(selectedSpaces).filter(v => v.selected).length} {t('spaces').toLowerCase()}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  {t('assignedSpacesDesc') || 'Bu uzmanın çalışabileceği alanları seçin. Yıldız ile tercih edilen alanı belirtin.'}
+                </p>
+                <div className="space-y-1.5 border border-slate-200 rounded-xl p-3 bg-slate-50/50">
+                  {allSpaces.map(space => {
+                    const isSelected = selectedSpaces[space.id]?.selected;
+                    const isPreferred = selectedSpaces[space.id]?.is_preferred;
+                    return (
+                      <div
+                        key={space.id}
+                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all ${
+                          isSelected
+                            ? 'bg-purple-50 border border-purple-300'
+                            : 'bg-white border border-slate-200 hover:border-purple-200'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleSpaceSelection(space.id)}
+                          className="flex items-center gap-2 flex-1"
+                        >
+                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0
+                            ${isSelected ? 'bg-purple-700 border-purple-700' : 'border-slate-300'}`}>
+                            {isSelected && <Check className="w-3 h-3 text-white" />}
+                          </div>
+                          <div className="w-3 h-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: space.color || '#6366F1' }} />
+                          <span className={`font-medium ${isSelected ? 'text-purple-800' : 'text-slate-700'}`}>
+                            {space.name}
+                          </span>
+                        </button>
+                        {isSelected && (
+                          <button
+                            type="button"
+                            onClick={() => togglePreferredSpace(space.id)}
+                            title={t('preferredSpace')}
+                            className="p-1 rounded hover:bg-purple-100 transition-colors"
+                          >
+                            <Star className={`w-4 h-4 ${
+                              isPreferred ? 'text-amber-500 fill-amber-500' : 'text-slate-300'
+                            }`} />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={handleCloseModal}>{t('cancel')}</Button>

@@ -25,6 +25,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Globe,
+  DoorOpen,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -68,6 +69,7 @@ const DashboardLayout = () => {
     { icon: <Users className="w-5 h-5" />, label: t('staff'), path: '/dashboard/staff' },
     { icon: <UserCircle className="w-5 h-5" />, label: t('customers'), path: '/dashboard/customers' },
     { icon: <Clock className="w-5 h-5" />, label: t('workingHours'), path: '/dashboard/working-hours' },
+    { icon: <DoorOpen className="w-5 h-5" />, label: t('resources'), path: '/dashboard/resources' },
     { icon: <Calculator className="w-5 h-5" />, label: t('accounting'), path: '/dashboard/accounting' },
     { icon: <CreditCard className="w-5 h-5" />, label: t('billing'), path: '/dashboard/billing' },
     { icon: <Globe className="w-5 h-5" />, label: t('onlineBooking') || 'Online Randevu', path: '/dashboard/booking-settings' },
