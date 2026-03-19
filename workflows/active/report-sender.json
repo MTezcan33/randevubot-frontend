@@ -1,0 +1,89 @@
+{
+  "name": "RandevuBot Report Sender",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [220, 300],
+      "notes": "Her saat calisir — rapor gondermesi gereken sirketleri kontrol eder"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "table": "companies",
+        "returnAll": false,
+        "limit": 100,
+        "filterType": "string",
+        "filtersUI": {},
+        "filterString": "service_active=eq.true"
+      },
+      "name": "Get Active Companies",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [440, 300],
+      "notes": "Aktif sirketleri cek — report_settings.enabled = true olanlari filtrele"
+    },
+    {
+      "parameters": {
+        "jsCode": "const companies = $input.all().map(i => i.json);\nconst now = new Date();\nconst currentHour = now.getHours();\nconst currentDay = now.getDay();\nconst currentDate = now.getDate();\n\nconst dueCompanies = companies.filter(c => {\n  const rs = c.report_settings;\n  if (!rs || !rs.enabled) return false;\n  const reportHour = parseInt((rs.time || '09:00').split(':')[0]);\n  if (reportHour !== currentHour) return false;\n  if (rs.frequency === 'weekly' && rs.day_of_week !== currentDay) return false;\n  if (rs.frequency === 'monthly' && currentDate !== 1) return false;\n  return true;\n});\n\nreturn dueCompanies.map(c => ({ json: c }));"
+      },
+      "name": "Filter Due Reports",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 300],
+      "notes": "Rapor gonderme zamanı gelen sirketleri filtrele"
+    },
+    {
+      "parameters": {
+        "jsCode": "const company = $input.first().json;\nconst rs = company.report_settings;\nconst now = new Date();\nlet startDate, endDate;\n\nif (rs.frequency === 'weekly') {\n  endDate = new Date(now);\n  startDate = new Date(now);\n  startDate.setDate(startDate.getDate() - 7);\n} else {\n  endDate = new Date(now.getFullYear(), now.getMonth(), 0);\n  startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);\n}\n\nconst format = d => d.toISOString().split('T')[0];\nreturn [{ json: { company_id: company.id, company_name: company.name, start_date: format(startDate), end_date: format(endDate), modules: rs.modules || [], channels: rs.channels || ['whatsapp'], manager_phone: company.manager_phone } }];"
+      },
+      "name": "Prepare Report Params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 300],
+      "notes": "Rapor parametrelerini hazirla (tarih araligi, moduller)"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "report_send_log",
+        "columns": "company_id,report_type,period_start,period_end,channel,status,modules",
+        "values": "={{$json}}"
+      },
+      "name": "Log Report Send",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1100, 300],
+      "notes": "Rapor gonderim logunu kaydet"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{ "node": "Get Active Companies", "type": "main", "index": 0 }]]
+    },
+    "Get Active Companies": {
+      "main": [[{ "node": "Filter Due Reports", "type": "main", "index": 0 }]]
+    },
+    "Filter Due Reports": {
+      "main": [[{ "node": "Prepare Report Params", "type": "main", "index": 0 }]]
+    },
+    "Prepare Report Params": {
+      "main": [[{ "node": "Log Report Send", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "description": "Haftalik/aylik otomatik rapor gondericisi — sirketlerin report_settings ayarlarina gore raporlari hazirlayip WhatsApp/email ile gonderir"
+  }
+}

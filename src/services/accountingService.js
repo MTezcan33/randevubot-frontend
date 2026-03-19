@@ -415,3 +415,266 @@ export const buildCategoryChartData = (transactions, type = 'income') => {
 
   return Object.values(catMap).sort((a, b) => b.value - a.value);
 };
+
+// ============================================================
+// RAPOR SİSTEMİ (FAZ 4) — 7 Modül + Ayarlar
+// ============================================================
+
+/**
+ * Rapor ayarlarını getir
+ */
+export const getReportSettings = async (companyId) => {
+  const { data, error } = await supabase
+    .from('companies')
+    .select('report_settings')
+    .eq('id', companyId)
+    .single();
+  if (error) throw error;
+  return data?.report_settings || {
+    enabled: false,
+    frequency: 'weekly',
+    day_of_week: 1,
+    time: '09:00',
+    channels: ['whatsapp'],
+    modules: ['appointment_summary', 'revenue_breakdown', 'popular_services'],
+    recipients: [],
+  };
+};
+
+/**
+ * Rapor ayarlarını güncelle
+ */
+export const updateReportSettings = async (companyId, settings) => {
+  const { error } = await supabase
+    .from('companies')
+    .update({ report_settings: settings })
+    .eq('id', companyId);
+  if (error) throw error;
+};
+
+/**
+ * Rapor gönderim loglarını getir
+ */
+export const getReportLogs = async (companyId, limit = 20) => {
+  const { data, error } = await supabase
+    .from('report_send_log')
+    .select('*')
+    .eq('company_id', companyId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+};
+
+// --- 7 RAPOR MODÜLÜ ---
+
+/**
+ * Modül 1: Randevu özeti
+ */
+export const reportAppointmentSummary = async (companyId, startDate, endDate) => {
+  const { data, error } = await supabase
+    .from('appointments')
+    .select('id, status, date, time, expert_id, company_users(name)')
+    .eq('company_id', companyId)
+    .gte('date', startDate)
+    .lte('date', endDate);
+
+  if (error) throw error;
+  const total = data?.length || 0;
+  const confirmed = data?.filter(a => a.status === 'onaylandı').length || 0;
+  const cancelled = data?.filter(a => a.status === 'iptal').length || 0;
+  const pending = data?.filter(a => a.status === 'beklemede').length || 0;
+  return { total, confirmed, cancelled, pending, cancellationRate: total > 0 ? Math.round((cancelled / total) * 100) : 0 };
+};
+
+/**
+ * Modül 2: Gelir dağılımı
+ */
+export const reportRevenueBreakdown = async (companyId, startDate, endDate) => {
+  const transactions = await getTransactionsByDateRange(companyId, startDate, endDate);
+  const summary = calculateSummary(transactions);
+  const dailyData = buildDailyChartData(transactions, startDate, endDate);
+  return { ...summary, dailyData };
+};
+
+/**
+ * Modül 3: Uzman performansı
+ */
+export const reportExpertPerformance = async (companyId, startDate, endDate) => {
+  const { data: appointments } = await supabase
+    .from('appointments')
+    .select('id, expert_id, status, company_users(name)')
+    .eq('company_id', companyId)
+    .gte('date', startDate)
+    .lte('date', endDate);
+
+  const expertMap = {};
+  (appointments || []).forEach(a => {
+    const name = a.company_users?.name || 'Bilinmiyor';
+    if (!expertMap[a.expert_id]) expertMap[a.expert_id] = { name, total: 0, confirmed: 0, cancelled: 0 };
+    expertMap[a.expert_id].total++;
+    if (a.status === 'onaylandı') expertMap[a.expert_id].confirmed++;
+    if (a.status === 'iptal') expertMap[a.expert_id].cancelled++;
+  });
+
+  const revenueData = await getExpertRevenue(companyId, startDate, endDate);
+  const revenueMap = {};
+  (revenueData || []).forEach(r => {
+    const eid = r.appointments?.expert_id;
+    if (eid) revenueMap[eid] = (revenueMap[eid] || 0) + parseFloat(r.amount);
+  });
+
+  return Object.entries(expertMap).map(([id, data]) => ({
+    ...data,
+    expertId: id,
+    revenue: revenueMap[id] || 0,
+    occupancyRate: data.total > 0 ? Math.round((data.confirmed / data.total) * 100) : 0,
+  })).sort((a, b) => b.revenue - a.revenue);
+};
+
+/**
+ * Modül 4: Müşteri tutma oranı
+ */
+export const reportCustomerRetention = async (companyId, startDate, endDate) => {
+  const { data: appointments } = await supabase
+    .from('appointments')
+    .select('customer_id, date, status')
+    .eq('company_id', companyId)
+    .eq('status', 'onaylandı')
+    .gte('date', startDate)
+    .lte('date', endDate);
+
+  const customerVisits = {};
+  (appointments || []).forEach(a => {
+    if (!customerVisits[a.customer_id]) customerVisits[a.customer_id] = 0;
+    customerVisits[a.customer_id]++;
+  });
+
+  const totalCustomers = Object.keys(customerVisits).length;
+  const returningCustomers = Object.values(customerVisits).filter(v => v > 1).length;
+  const newCustomers = totalCustomers - returningCustomers;
+
+  return {
+    totalCustomers,
+    newCustomers,
+    returningCustomers,
+    retentionRate: totalCustomers > 0 ? Math.round((returningCustomers / totalCustomers) * 100) : 0,
+  };
+};
+
+/**
+ * Modül 5: Popüler hizmetler
+ */
+export const reportPopularServices = async (companyId, startDate, endDate) => {
+  const { data } = await supabase
+    .from('appointment_services')
+    .select('service_id, company_services(description, price, category), appointments!inner(date, company_id, status)')
+    .eq('appointments.company_id', companyId)
+    .eq('appointments.status', 'onaylandı')
+    .gte('appointments.date', startDate)
+    .lte('appointments.date', endDate);
+
+  const serviceMap = {};
+  (data || []).forEach(as => {
+    const name = as.company_services?.description || 'Bilinmiyor';
+    if (!serviceMap[name]) serviceMap[name] = { name, count: 0, revenue: 0, category: as.company_services?.category };
+    serviceMap[name].count++;
+    serviceMap[name].revenue += parseFloat(as.company_services?.price) || 0;
+  });
+
+  return Object.values(serviceMap).sort((a, b) => b.count - a.count);
+};
+
+/**
+ * Modül 6: Yoğun saatler
+ */
+export const reportPeakHours = async (companyId, startDate, endDate) => {
+  const { data } = await supabase
+    .from('appointments')
+    .select('time, date')
+    .eq('company_id', companyId)
+    .eq('status', 'onaylandı')
+    .gte('date', startDate)
+    .lte('date', endDate);
+
+  const hourMap = {};
+  const dayMap = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+  const dayNames = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+
+  (data || []).forEach(a => {
+    const hour = parseInt(a.time?.split(':')[0]);
+    if (!isNaN(hour)) {
+      hourMap[hour] = (hourMap[hour] || 0) + 1;
+    }
+    const dayIndex = new Date(a.date).getDay();
+    dayMap[dayIndex]++;
+  });
+
+  const peakHours = Object.entries(hourMap)
+    .map(([hour, count]) => ({ hour: `${hour}:00`, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  const peakDays = Object.entries(dayMap)
+    .map(([day, count]) => ({ day: dayNames[day], count }))
+    .sort((a, b) => b.count - a.count);
+
+  return { peakHours, peakDays };
+};
+
+/**
+ * Modül 7: Geri bildirim özeti
+ */
+export const reportFeedbackSummary = async (companyId, startDate, endDate) => {
+  const { data } = await supabase
+    .from('customer_feedback')
+    .select('rating, status, created_at')
+    .eq('company_id', companyId)
+    .gte('created_at', `${startDate}T00:00:00`)
+    .lte('created_at', `${endDate}T23:59:59`);
+
+  const total = data?.length || 0;
+  const avgRating = total > 0 ? data.reduce((s, f) => s + f.rating, 0) / total : 0;
+  const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  (data || []).forEach(f => { distribution[f.rating] = (distribution[f.rating] || 0) + 1; });
+  const resolved = data?.filter(f => f.status === 'resolved').length || 0;
+
+  return {
+    total,
+    avgRating: Math.round(avgRating * 10) / 10,
+    distribution,
+    resolved,
+    resolutionRate: total > 0 ? Math.round((resolved / total) * 100) : 0,
+  };
+};
+
+/**
+ * Tüm rapor modüllerini bir seferde çalıştır
+ */
+export const generateFullReport = async (companyId, startDate, endDate, modules = []) => {
+  const allModules = {
+    appointment_summary: reportAppointmentSummary,
+    revenue_breakdown: reportRevenueBreakdown,
+    expert_performance: reportExpertPerformance,
+    customer_retention: reportCustomerRetention,
+    popular_services: reportPopularServices,
+    peak_hours: reportPeakHours,
+    feedback_summary: reportFeedbackSummary,
+  };
+
+  const selectedModules = modules.length > 0 ? modules : Object.keys(allModules);
+  const report = {};
+
+  for (const mod of selectedModules) {
+    if (allModules[mod]) {
+      try {
+        report[mod] = await allModules[mod](companyId, startDate, endDate);
+      } catch (err) {
+        console.error(`Rapor modülü hatası (${mod}):`, err);
+        report[mod] = { error: err.message };
+      }
+    }
+  }
+
+  return report;
+};

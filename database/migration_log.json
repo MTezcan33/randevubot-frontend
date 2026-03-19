@@ -34,6 +34,13 @@
       "description": "AI chatbot system: chat_sessions, chat_messages, chatbot_knowledge_base, chat_escalations tables with RLS policies and indexes",
       "applied_at": null,
       "status": "pending"
+    },
+    {
+      "id": "005",
+      "file": "migrations/005_report_system.sql",
+      "description": "Automatic report system: report_settings JSONB on companies, report_send_log table",
+      "applied_at": null,
+      "status": "pending"
     }
   ]
 }
