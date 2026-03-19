@@ -34,5 +34,21 @@
   "feedbackMarkResolved": "Отметить как решённое",
   "feedbackAvgRating": "Средняя оценка",
   "feedbackNoData": "Отзывов пока нет.",
-  "feedbackResponseSaved": "Ответ сохранён"
+  "feedbackResponseSaved": "Ответ сохранён",
+  "chatAsistan": "Ассистент",
+  "chatWelcome": "Здравствуйте! Я ваш Ассистент, чем могу помочь?",
+  "chatPublicDesc": "Задайте любой вопрос о RandevuBot.",
+  "chatStartSession": "Начать чат",
+  "chatEndSession": "Завершить чат",
+  "chatPlaceholder": "Введите сообщение...",
+  "chatTyping": "Ассистент печатает...",
+  "chatNoMessages": "Сообщений пока нет. Задайте вопрос!",
+  "chatRateLimit": "Пожалуйста, подождите...",
+  "chatError": "Произошла ошибка, попробуйте снова.",
+  "chatQuickAppointment": "Как создать запись?",
+  "chatQuickWhatsapp": "Подключение WhatsApp",
+  "chatQuickPlans": "Планы и цены",
+  "chatQuickExpert": "Добавление специалистов",
+  "chatQuickHours": "Рабочие часы",
+  "chatQuickAccounting": "Модуль бухгалтерии"
 }

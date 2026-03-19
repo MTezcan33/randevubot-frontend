@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import AsistanChatWidget from '@/components/chat/AsistanChatWidget';
 import { useTranslation, Trans } from 'react-i18next';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import {
@@ -845,6 +846,7 @@ const LandingPage = () => {
           </div>
         </footer>
       </div>
+      <AsistanChatWidget isPublic />
     </>
   );
 };

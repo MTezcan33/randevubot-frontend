@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
 import { useTranslation } from 'react-i18next';
+import AsistanChatWidget from '@/components/chat/AsistanChatWidget';
 import {
   Leaf,
   LayoutDashboard,
@@ -402,6 +403,7 @@ const DashboardLayout = () => {
           <Outlet />
         </div>
       </main>
+      <AsistanChatWidget />
     </div>
   );
 };

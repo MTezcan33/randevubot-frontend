@@ -34,5 +34,21 @@
   "feedbackMarkResolved": "Mark as Resolved",
   "feedbackAvgRating": "Average Rating",
   "feedbackNoData": "No feedback yet.",
-  "feedbackResponseSaved": "Response saved"
+  "feedbackResponseSaved": "Response saved",
+  "chatAsistan": "Assistant",
+  "chatWelcome": "Hello! I'm your Assistant, how can I help you?",
+  "chatPublicDesc": "Ask anything about RandevuBot.",
+  "chatStartSession": "Start Chat",
+  "chatEndSession": "End Chat",
+  "chatPlaceholder": "Type your message...",
+  "chatTyping": "Assistant is typing...",
+  "chatNoMessages": "No messages yet. Ask a question!",
+  "chatRateLimit": "Please wait a moment...",
+  "chatError": "An error occurred, please try again.",
+  "chatQuickAppointment": "How to create an appointment?",
+  "chatQuickWhatsapp": "WhatsApp connection",
+  "chatQuickPlans": "Plans and pricing",
+  "chatQuickExpert": "Adding experts",
+  "chatQuickHours": "Working hours",
+  "chatQuickAccounting": "Accounting module"
 }

@@ -34,5 +34,21 @@
   "feedbackMarkResolved": "Çözüldü İşaretle",
   "feedbackAvgRating": "Ortalama Puan",
   "feedbackNoData": "Henüz geri bildirim yok.",
-  "feedbackResponseSaved": "Yanıt kaydedildi"
+  "feedbackResponseSaved": "Yanıt kaydedildi",
+  "chatAsistan": "Asistan",
+  "chatWelcome": "Merhaba! Ben Asistan, size nasıl yardımcı olabilirim?",
+  "chatPublicDesc": "RandevuBot hakkında merak ettiklerinizi sorabilirsiniz.",
+  "chatStartSession": "Sohbeti Başlat",
+  "chatEndSession": "Sohbeti Bitir",
+  "chatPlaceholder": "Mesajınızı yazın...",
+  "chatTyping": "Asistan yazıyor...",
+  "chatNoMessages": "Henüz mesaj yok. Bir soru sorun!",
+  "chatRateLimit": "Lütfen biraz bekleyin...",
+  "chatError": "Bir hata oluştu, tekrar deneyin.",
+  "chatQuickAppointment": "Randevu nasıl oluşturulur?",
+  "chatQuickWhatsapp": "WhatsApp bağlantısı",
+  "chatQuickPlans": "Planlar ve fiyatlar",
+  "chatQuickExpert": "Uzman ekleme",
+  "chatQuickHours": "Çalışma saatleri",
+  "chatQuickAccounting": "Muhasebe modülü"
 }

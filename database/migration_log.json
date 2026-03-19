@@ -27,6 +27,13 @@
       "description": "Notification system enhancements: whatsapp_notification_enabled toggle, notification_log table, new template types",
       "applied_at": null,
       "status": "pending"
+    },
+    {
+      "id": "004",
+      "file": "migrations/004_chatbot.sql",
+      "description": "AI chatbot system: chat_sessions, chat_messages, chatbot_knowledge_base, chat_escalations tables with RLS policies and indexes",
+      "applied_at": null,
+      "status": "pending"
     }
   ]
 }
