@@ -323,10 +323,10 @@ const SettingsPage = () => {
 
     setQrCodeLoading(true);
     try {
-      const webhookUrl = import.meta.env.VITE_N8N_GET_QR_WEBHOOK_URL;
+      const webhookUrl = import.meta.env.VITE_N8N_GET_QR_WEBHOOK_URL_RB;
 
       if (!webhookUrl) {
-        throw new Error('VITE_N8N_GET_QR_WEBHOOK_URL tanımlı değil');
+        throw new Error('VITE_N8N_GET_QR_WEBHOOK_URL_RB tanımlı değil');
       }
 
       console.log('Sending QR request:', {
@@ -408,10 +408,10 @@ const SettingsPage = () => {
 
     setDisconnecting(true);
     try {
-      const deleteUrl = import.meta.env.VITE_EVOLUTION_API_DELETE_URL;
+      const deleteUrl = import.meta.env.VITE_EVOLUTION_API_DELETE_URL_RB;
 
       if (!deleteUrl) {
-        throw new Error('VITE_EVOLUTION_API_DELETE_URL tanımlı değil');
+        throw new Error('VITE_EVOLUTION_API_DELETE_URL_RB tanımlı değil');
       }
 
       console.log('Sending disconnect request to:', deleteUrl);

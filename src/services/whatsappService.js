@@ -1,8 +1,8 @@
 export const triggerCreateInstanceWebhook = async (companyData) => {
-  const webhookUrl = import.meta.env.VITE_N8N_CREATE_INSTANCE_WEBHOOK_URL;
+  const webhookUrl = import.meta.env.VITE_N8N_CREATE_INSTANCE_WEBHOOK_URL_RB;
 
   if (!webhookUrl) {
-    console.error("VITE_N8N_CREATE_INSTANCE_WEBHOOK_URL is not defined in .env file");
+    console.error("VITE_N8N_CREATE_INSTANCE_WEBHOOK_URL_RB is not defined in .env file");
     throw new Error("Webhook URL is not configured.");
   }
 

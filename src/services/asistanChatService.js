@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 
-const ASISTAN_WEBHOOK_URL = import.meta.env.VITE_ASISTAN_WEBHOOK_URL;
+const ASISTAN_WEBHOOK_URL = import.meta.env.VITE_ASISTAN_WEBHOOK_URL_RB;
 
 // Rate limiting ayarlari
 const RATE_LIMIT = {

@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 
 // N8N webhook URL — randevu mesaj olayları için
-const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL;
+const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL_RB;
 
 // =============================================================================
 // BİLDİRİM LOG FONKSİYONLARI
@@ -112,7 +112,7 @@ export const markNotificationRead = async (notificationId) => {
  */
 export const sendWhatsAppMessage = async (customerPhone, message, companyId, eventType, metadata = {}) => {
   if (!N8N_WEBHOOK_URL) {
-    console.error('VITE_N8N_WEBHOOK_URL tanımlı değil');
+    console.error('VITE_N8N_WEBHOOK_URL_RB tanımlı değil');
     return false;
   }
 
