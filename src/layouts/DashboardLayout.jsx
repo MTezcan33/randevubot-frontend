@@ -24,6 +24,7 @@ import {
   Calculator,
   ChevronLeft,
   ChevronRight,
+  Globe,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -69,6 +70,7 @@ const DashboardLayout = () => {
     { icon: <Clock className="w-5 h-5" />, label: t('workingHours'), path: '/dashboard/working-hours' },
     { icon: <Calculator className="w-5 h-5" />, label: t('accounting'), path: '/dashboard/accounting' },
     { icon: <CreditCard className="w-5 h-5" />, label: t('billing'), path: '/dashboard/billing' },
+    { icon: <Globe className="w-5 h-5" />, label: t('onlineBooking') || 'Online Randevu', path: '/dashboard/booking-settings' },
     { icon: <Settings className="w-5 h-5" />, label: t('settings'), path: '/dashboard/settings' },
     { icon: <HelpCircle className="w-5 h-5" />, label: t('support'), path: '/dashboard/support' },
   ];

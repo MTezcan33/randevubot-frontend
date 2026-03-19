@@ -20,6 +20,8 @@ import SettingsPage from '@/pages/dashboard/SettingsPage';
 import SupportPage from '@/pages/dashboard/SupportPage';
 import AccountingPage from '@/pages/dashboard/AccountingPage';
 import LegalPage from '@/pages/LegalPage';
+import BookingPage from '@/pages/BookingPage';
+import BookingSettingsPage from '@/pages/dashboard/BookingSettingsPage';
 import { AuthProvider } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import OnboardingRoute from '@/components/OnboardingRoute';
@@ -36,6 +38,7 @@ function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/update-password" element={<UpdatePasswordPage />} />
           <Route path="/legal" element={<LegalPage />} />
+          <Route path="/book/:companySlug" element={<BookingPage />} />
           
           <Route path="/onboarding" element={
             <ProtectedRoute>
@@ -58,6 +61,7 @@ function App() {
             <Route path="billing" element={<BillingPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="support" element={<SupportPage />} />
+            <Route path="booking-settings" element={<BookingSettingsPage />} />
           </Route>
 
           <Route path="/panel/*" element={<PanelApp />} />

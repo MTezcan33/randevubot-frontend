@@ -48,6 +48,13 @@
       "description": "Panel system: PIN-based role login for staff (pin_code, panel_roles columns + panel_login RPC)",
       "applied_at": null,
       "status": "pending"
+    },
+    {
+      "id": "007",
+      "file": "migrations/007_coupon_and_loyalty.sql",
+      "description": "Coupon expansion (type, applicable_plans, max_uses, usage tracking) + referral codes + loyalty/sadakat system (settings, points, transactions) + company slug",
+      "applied_at": null,
+      "status": "pending"
     }
   ]
 }
