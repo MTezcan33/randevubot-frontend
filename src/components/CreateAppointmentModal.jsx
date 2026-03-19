@@ -20,8 +20,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
-import { Calendar as CalendarIcon, Clock, AlertTriangle, Check } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, AlertTriangle, Check, DoorOpen, Wrench, Info } from 'lucide-react';
 import { createAdminNotification, sendAppointmentConfirmation } from '@/services/notificationService';
+import { checkSlotAvailability, autoAssignResources } from '@/services/availabilityService';
+import { setAppointmentResources } from '@/services/resourceService';
 
 const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppointmentCreated }) => {
   const { company } = useAuth();
@@ -41,6 +43,13 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
   const [appointmentTime, setAppointmentTime] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [conflictWarning, setConflictWarning] = useState(null);
+
+  // Kaynak atama state'leri
+  const [assignedSpace, setAssignedSpace] = useState(null); // { id, name }
+  const [assignedEquipment, setAssignedEquipment] = useState([]); // [{ id, name }]
+  const [resourceConflicts, setResourceConflicts] = useState([]); // [{ type, name, message }]
+  const [allSpaces, setAllSpaces] = useState([]);
+  const [hasResources, setHasResources] = useState(false);
 
   // Yardımcı fonksiyonlar
   const timeToMinutes = (time) => {
@@ -79,12 +88,17 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
   useEffect(() => {
     if (isOpen && company) {
       const fetchDropdownData = async () => {
-        const [customerRes, serviceRes] = await Promise.all([
+        const [customerRes, serviceRes, spacesRes] = await Promise.all([
           supabase.from('customers').select('*').eq('company_id', company.id),
           supabase.from('company_services').select('*').eq('company_id', company.id).eq('is_active', true),
+          supabase.from('spaces').select('id, name, color').eq('company_id', company.id).eq('is_active', true).order('sort_order'),
         ]);
         if (customerRes.data) setCustomers(customerRes.data);
         if (serviceRes.data) setAllServices(serviceRes.data);
+        if (spacesRes.data) {
+          setAllSpaces(spacesRes.data);
+          setHasResources(spacesRes.data.length > 0);
+        }
       };
       fetchDropdownData();
       setAppointmentDate(currentDate);
@@ -125,61 +139,101 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
 
   // Çakışma kontrolü — tarih, saat veya süre değiştiğinde
   useEffect(() => {
-    if (selectedExpert && appointmentTime && totalDuration > 0 && appointmentDate) {
+    if (appointmentTime && totalDuration > 0 && appointmentDate && (selectedExpert || selectedServiceIds.length > 0)) {
       checkConflict();
     } else {
       setConflictWarning(null);
+      setResourceConflicts([]);
+      setAssignedSpace(null);
+      setAssignedEquipment([]);
     }
-  }, [selectedExpert, appointmentDate, appointmentTime, totalDuration]);
+  }, [selectedExpert, appointmentDate, appointmentTime, totalDuration, selectedServiceIds]);
 
   const checkConflict = async () => {
-    if (!selectedExpert || !appointmentTime || totalDuration <= 0) return;
+    if (!appointmentTime || totalDuration <= 0) return;
 
     const dateStr = appointmentDate.toISOString().split('T')[0];
     const newStart = timeToMinutes(appointmentTime);
     const newEnd = newStart + totalDuration;
 
     // Öğle molası kontrolü
-    const expert = experts?.find(e => e.id === selectedExpert);
-    if (expert?.general_lunch_start_time && expert?.general_lunch_end_time) {
-      const lunchStart = timeToMinutes(expert.general_lunch_start_time);
-      const lunchEnd = timeToMinutes(expert.general_lunch_end_time);
-      if (newStart < lunchEnd && newEnd > lunchStart) {
-        setConflictWarning({
-          existingTime: `${expert.general_lunch_start_time.substring(0, 5)} - ${expert.general_lunch_end_time.substring(0, 5)}`,
-          isLunchBreak: true,
-        });
-        return;
+    if (selectedExpert) {
+      const expert = experts?.find(e => e.id === selectedExpert);
+      if (expert?.general_lunch_start_time && expert?.general_lunch_end_time) {
+        const lunchStart = timeToMinutes(expert.general_lunch_start_time);
+        const lunchEnd = timeToMinutes(expert.general_lunch_end_time);
+        if (newStart < lunchEnd && newEnd > lunchStart) {
+          setConflictWarning({
+            existingTime: `${expert.general_lunch_start_time.substring(0, 5)} - ${expert.general_lunch_end_time.substring(0, 5)}`,
+            isLunchBreak: true,
+          });
+          return;
+        }
       }
     }
 
-    // O tarihteki uzmanın tüm randevularını çek
-    const { data: existingApps } = await supabase
-      .from('appointments')
-      .select('time, total_duration, company_services(duration)')
-      .eq('expert_id', selectedExpert)
-      .eq('date', dateStr)
-      .neq('status', 'iptal');
+    // Uzman çakışma kontrolü (mevcut logic)
+    if (selectedExpert) {
+      const { data: existingApps } = await supabase
+        .from('appointments')
+        .select('time, total_duration, company_services(duration)')
+        .eq('expert_id', selectedExpert)
+        .eq('date', dateStr)
+        .neq('status', 'iptal');
 
-    if (!existingApps || existingApps.length === 0) {
-      setConflictWarning(null);
-      return;
-    }
-
-    for (const app of existingApps) {
-      const appStart = timeToMinutes(app.time);
-      const appDuration = app.total_duration || app.company_services?.duration || 60;
-      const appEnd = appStart + appDuration;
-
-      // Çakışma kontrolü: iki aralık kesişiyor mu?
-      if (newStart < appEnd && newEnd > appStart) {
-        setConflictWarning({
-          existingTime: `${app.time.substring(0, 5)} - ${formatMinutes(appEnd)}`,
-        });
-        return;
+      if (existingApps) {
+        for (const app of existingApps) {
+          const appStart = timeToMinutes(app.time);
+          const appDuration = app.total_duration || app.company_services?.duration || 60;
+          const appEnd = appStart + appDuration;
+          if (newStart < appEnd && newEnd > appStart) {
+            setConflictWarning({
+              existingTime: `${app.time.substring(0, 5)} - ${formatMinutes(appEnd)}`,
+            });
+            // Uzman çakışması varsa kaynak kontrolüne devam etme
+            return;
+          }
+        }
       }
     }
+
     setConflictWarning(null);
+
+    // Kaynak otomatik atama (alanlar tanımlıysa ve hizmet seçiliyse)
+    if (hasResources && selectedServiceIds.length > 0 && company) {
+      try {
+        const serviceId = selectedServiceIds[0]; // İlk hizmetin kaynaklarını kontrol et
+        const result = await autoAssignResources(
+          company.id, dateStr, appointmentTime, totalDuration,
+          selectedExpert || null, serviceId
+        );
+
+        if (result.error) {
+          setResourceConflicts([{ type: 'space', name: '', message: result.error }]);
+          setAssignedSpace(null);
+          setAssignedEquipment([]);
+        } else {
+          setResourceConflicts([]);
+          // Atanan alanın adını bul
+          if (result.space_id) {
+            const space = allSpaces.find(s => s.id === result.space_id);
+            setAssignedSpace(space ? { id: space.id, name: space.name, color: space.color } : null);
+          } else {
+            setAssignedSpace(null);
+          }
+          setAssignedEquipment(result.equipment_ids || []);
+        }
+      } catch (err) {
+        console.error('Kaynak atama hatası:', err);
+        setResourceConflicts([]);
+        setAssignedSpace(null);
+        setAssignedEquipment([]);
+      }
+    } else {
+      setResourceConflicts([]);
+      setAssignedSpace(null);
+      setAssignedEquipment([]);
+    }
   };
 
   // Hizmet seçim toggle
@@ -225,18 +279,25 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
       }
 
       // Ana randevuyu oluştur
+      const appointmentPayload = {
+        company_id: company.id,
+        customer_id: customerId,
+        service_id: selectedServiceIds[0], // backward compat
+        expert_id: selectedExpert,
+        date: appointmentDate.toISOString().split('T')[0],
+        time: appointmentTime,
+        status: 'onaylandı',
+        total_duration: totalDuration,
+      };
+
+      // Otomatik atanan alan varsa ekle
+      if (assignedSpace?.id) {
+        appointmentPayload.space_id = assignedSpace.id;
+      }
+
       const { data: newAppointment, error: appointmentError } = await supabase
         .from('appointments')
-        .insert({
-          company_id: company.id,
-          customer_id: customerId,
-          service_id: selectedServiceIds[0], // backward compat
-          expert_id: selectedExpert,
-          date: appointmentDate.toISOString().split('T')[0],
-          time: appointmentTime,
-          status: 'onaylandı',
-          total_duration: totalDuration,
-        })
+        .insert(appointmentPayload)
         .select()
         .single();
 
@@ -249,6 +310,20 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
           service_id: sId,
         }));
         await supabase.from('appointment_services').insert(junctionInserts);
+      }
+
+      // appointment_resources — alan + ekipman kayıtlarını oluştur
+      const resources = [];
+      if (assignedSpace?.id) {
+        resources.push({ resource_type: 'space', resource_id: assignedSpace.id });
+      }
+      if (assignedEquipment.length > 0) {
+        assignedEquipment.forEach(eqId => {
+          resources.push({ resource_type: 'equipment', resource_id: eqId });
+        });
+      }
+      if (resources.length > 0) {
+        await setAppointmentResources(newAppointment.id, resources);
       }
 
       // Bildirim ve WhatsApp
@@ -302,6 +377,9 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
     setAppointmentTime('');
     setConflictWarning(null);
     setExpertServiceIds(new Set());
+    setAssignedSpace(null);
+    setAssignedEquipment([]);
+    setResourceConflicts([]);
     onClose();
   };
 
@@ -449,6 +527,36 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
                     ? (t('lunchBreakMessage', { time: conflictWarning.existingTime }) || `Uzmanın öğle molası: ${conflictWarning.existingTime}`)
                     : t('conflictMessage', { time: conflictWarning.existingTime })}
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Kaynak çakışma uyarısı */}
+          {resourceConflicts.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-red-800">{t('resourceConflict') || 'Kaynak Çakışması'}</p>
+                {resourceConflicts.map((rc, idx) => (
+                  <p key={idx} className="text-xs text-red-600">{rc.message}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Otomatik atanan kaynak bilgisi */}
+          {!conflictWarning && resourceConflicts.length === 0 && assignedSpace && (
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 flex items-center gap-2">
+              <DoorOpen className="w-4 h-4 text-purple-600 flex-shrink-0" />
+              <div className="flex items-center gap-2 flex-wrap text-sm">
+                <span className="text-purple-800 font-medium">{assignedSpace.name}</span>
+                {assignedEquipment.length > 0 && (
+                  <>
+                    <span className="text-purple-300">•</span>
+                    <Wrench className="w-3.5 h-3.5 text-purple-500" />
+                    <span className="text-purple-600 text-xs">{assignedEquipment.length} {t('equipment').toLowerCase()}</span>
+                  </>
+                )}
               </div>
             </div>
           )}

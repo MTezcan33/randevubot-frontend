@@ -894,6 +894,10 @@ export const resources = {
       resourceRequirements: "Kaynak Gereksinimleri",
       spaceRequired: "Gerekli Alanlar",
       equipmentRequired: "Gerekli Ekipmanlar",
+      resourceConflict: "Kaynak Çakışması",
+      autoAssigned: "Otomatik Atandı",
+      spaceAssigned: "Alan atandı",
+      noAvailableSpace: "Uygun alan bulunamadı",
     }
   },
 
@@ -1791,6 +1795,10 @@ export const resources = {
       resourceRequirements: "Resource Requirements",
       spaceRequired: "Required Spaces",
       equipmentRequired: "Required Equipment",
+      resourceConflict: "Resource Conflict",
+      autoAssigned: "Auto Assigned",
+      spaceAssigned: "Space assigned",
+      noAvailableSpace: "No available space found",
     }
   },
 
@@ -2688,6 +2696,10 @@ export const resources = {
       resourceRequirements: "Требования к ресурсам",
       spaceRequired: "Необходимые помещения",
       equipmentRequired: "Необходимое оборудование",
+      resourceConflict: "Конфликт ресурсов",
+      autoAssigned: "Автоматически назначено",
+      spaceAssigned: "Помещение назначено",
+      noAvailableSpace: "Нет доступного помещения",
     }
   }
 };
