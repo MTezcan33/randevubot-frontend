@@ -26,6 +26,7 @@ import {
   ChevronRight,
   Globe,
   DoorOpen,
+  Wallet,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -65,6 +66,7 @@ const DashboardLayout = () => {
   const menuItems = [
     { icon: <LayoutDashboard className="w-5 h-5" />, label: t('dashboard'), path: '/dashboard' },
     { icon: <Calendar className="w-5 h-5" />, label: t('appointments'), path: '/dashboard/appointments' },
+    { icon: <Wallet className="w-5 h-5" />, label: t('payments'), path: '/dashboard/payments' },
     { icon: <Briefcase className="w-5 h-5" />, label: t('services'), path: '/dashboard/services' },
     { icon: <Users className="w-5 h-5" />, label: t('staff'), path: '/dashboard/staff' },
     { icon: <UserCircle className="w-5 h-5" />, label: t('customers'), path: '/dashboard/customers' },

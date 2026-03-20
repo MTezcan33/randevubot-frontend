@@ -18,6 +18,11 @@ import {
   ArrowDownRight,
   Minus,
   DoorOpen,
+  Wallet,
+  Banknote,
+  CreditCard as CreditCardIcon,
+  Globe,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
@@ -153,6 +158,9 @@ const DashboardHome = () => {
   const [spaceOccupancy, setSpaceOccupancy] = useState([]);
   const [hasSpaces, setHasSpaces] = useState(false);
 
+  // Bugünün ödemeleri
+  const [todayPayments, setTodayPayments] = useState({ totalAmount: 0, byCash: 0, byCard: 0, byOnline: 0, byFree: 0, totalCount: 0, pendingCount: 0 });
+
   const experts = staff.filter(s => s.role === 'Uzman');
 
   useEffect(() => {
@@ -170,6 +178,7 @@ const DashboardHome = () => {
       fetchMonthlyRevenue(),
       fetchWeeklyChart(),
       fetchSpaceOccupancy(),
+      fetchTodayPayments(),
     ]);
     setLoading(false);
   };
@@ -384,6 +393,44 @@ const DashboardHome = () => {
     });
 
     setSpaceOccupancy(occupancy);
+  };
+
+  // ── Bugünün ödemeleri ──────────────────────────────────────────────────────
+  const fetchTodayPayments = async () => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    try {
+      // Bugünkü tahsilatlar
+      const { data: payments } = await supabase
+        .from('appointment_payments')
+        .select('amount, payment_method, is_refunded')
+        .eq('company_id', company.id)
+        .eq('is_refunded', false)
+        .gte('created_at', `${todayStr}T00:00:00`)
+        .lte('created_at', `${todayStr}T23:59:59`);
+
+      // Bekleyen ödeme sayısı
+      const { count: pendingCount } = await supabase
+        .from('appointments')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', company.id)
+        .in('payment_status', ['unpaid', 'partial'])
+        .neq('status', 'iptal')
+        .eq('date', todayStr);
+
+      const summary = { totalAmount: 0, byCash: 0, byCard: 0, byOnline: 0, byFree: 0, totalCount: 0, pendingCount: pendingCount || 0 };
+      (payments || []).forEach(p => {
+        const amt = parseFloat(p.amount) || 0;
+        summary.totalAmount += amt;
+        summary.totalCount++;
+        if (p.payment_method === 'cash') summary.byCash += amt;
+        else if (p.payment_method === 'card') summary.byCard += amt;
+        else if (p.payment_method === 'online') summary.byOnline += amt;
+        else if (p.payment_method === 'free') summary.byFree += amt;
+      });
+      setTodayPayments(summary);
+    } catch (err) {
+      console.error('Bugünün ödemeleri hatası:', err);
+    }
   };
 
   // ── Metrik hesaplamalar (orijinal mantık korundu) ─────────────────────────
@@ -745,6 +792,66 @@ const DashboardHome = () => {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* ── Bugünün Ödemeleri Widget ───────────────────────────────────── */}
+        {(todayPayments.totalCount > 0 || todayPayments.pendingCount > 0) && (
+          <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-stone-800 flex items-center gap-2">
+                <Wallet className="w-4 h-4 text-emerald-600" />
+                {t('todaysPayments')}
+              </h3>
+              <button
+                onClick={() => navigate('/dashboard/payments')}
+                className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+              >
+                {t('viewAll') || 'Tümünü Gör'} →
+              </button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-emerald-50 rounded-xl p-3">
+                <p className="text-xs text-emerald-600 font-medium">{t('totalCollected')}</p>
+                <p className="text-xl font-bold text-emerald-800 mt-1">{todayPayments.totalAmount.toFixed(2)}</p>
+                <p className="text-[10px] text-emerald-500 mt-0.5">{todayPayments.totalCount} {t('paymentCount') || 'ödeme'}</p>
+              </div>
+              <div className="bg-green-50 rounded-xl p-3">
+                <div className="flex items-center gap-1">
+                  <Banknote className="w-3 h-3 text-green-600" />
+                  <p className="text-xs text-green-600 font-medium">{t('cash')}</p>
+                </div>
+                <p className="text-lg font-bold text-green-800 mt-1">{todayPayments.byCash.toFixed(2)}</p>
+              </div>
+              <div className="bg-blue-50 rounded-xl p-3">
+                <div className="flex items-center gap-1">
+                  <CreditCardIcon className="w-3 h-3 text-blue-600" />
+                  <p className="text-xs text-blue-600 font-medium">{t('card')}</p>
+                </div>
+                <p className="text-lg font-bold text-blue-800 mt-1">{todayPayments.byCard.toFixed(2)}</p>
+              </div>
+              <div className="bg-purple-50 rounded-xl p-3">
+                <div className="flex items-center gap-1">
+                  <Globe className="w-3 h-3 text-purple-600" />
+                  <p className="text-xs text-purple-600 font-medium">{t('online')}</p>
+                </div>
+                <p className="text-lg font-bold text-purple-800 mt-1">{todayPayments.byOnline.toFixed(2)}</p>
+              </div>
+            </div>
+            {todayPayments.pendingCount > 0 && (
+              <div className="mt-3 flex items-center gap-2 p-2.5 bg-amber-50 rounded-lg border border-amber-200">
+                <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <p className="text-xs text-amber-700 font-medium">
+                  {todayPayments.pendingCount} {t('pendingPaymentCount') || 'bekleyen ödeme'}
+                </p>
+                <button
+                  onClick={() => navigate('/dashboard/payments')}
+                  className="ml-auto text-xs text-amber-700 hover:text-amber-800 font-semibold underline"
+                >
+                  {t('collectPayment') || 'Ödeme Al'}
+                </button>
+              </div>
+            )}
           </div>
         )}
 

@@ -26,6 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { motion } from 'framer-motion';
+import PaymentCollectionModal from '@/components/PaymentCollectionModal';
 
 const ROW_HEIGHT = 20; // px - her 10 dakika için
 const PIXELS_PER_MINUTE = ROW_HEIGHT / 10;
@@ -67,7 +68,16 @@ const AppointmentCard = ({ appointment, t, expertColor }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
     >
-      <p className="font-medium text-[10px] leading-tight">{`${displayTime}-${displayEndTime}`}</p>
+      <div className="flex items-center justify-between">
+        <p className="font-medium text-[10px] leading-tight">{`${displayTime}-${displayEndTime}`}</p>
+        {appointment.payment_status && appointment.payment_status !== 'unpaid' && (
+          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+            appointment.payment_status === 'paid' ? 'bg-emerald-400' :
+            appointment.payment_status === 'partial' ? 'bg-amber-400' :
+            appointment.payment_status === 'free' ? 'bg-stone-400' : ''
+          }`} title={appointment.payment_status === 'paid' ? t('paid') : appointment.payment_status === 'partial' ? t('partiallyPaid') : ''} />
+        )}
+      </div>
       <p className="font-medium text-xs truncate leading-tight">{appointment.customers?.name?.toUpperCase() || t('unknownCustomer')}</p>
       <p className="text-[9px] truncate opacity-90 leading-tight">{serviceNames}</p>
     </motion.div>
@@ -258,6 +268,8 @@ const AppointmentsPage = () => {
   const [previousStatus, setPreviousStatus] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentAppointmentId, setPaymentAppointmentId] = useState(null);
   const [newAppointment, setNewAppointment] = useState({
     customer_id: '',
     customer_name: '',
@@ -795,6 +807,43 @@ const AppointmentsPage = () => {
                 <option value="beklemede">{t('status.beklemede')}</option>
                 <option value="iptal">{t('status.iptal')}</option>
               </select>
+
+              {/* Ödeme durumu + hızlı ödeme butonu */}
+              {selectedAppointment.payment_status && (
+                <div className="flex items-center justify-between p-3 bg-stone-50 rounded-xl border border-stone-200">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${
+                      selectedAppointment.payment_status === 'paid' ? 'bg-emerald-500' :
+                      selectedAppointment.payment_status === 'partial' ? 'bg-amber-500' :
+                      selectedAppointment.payment_status === 'free' ? 'bg-stone-400' :
+                      'bg-red-500'
+                    }`} />
+                    <span className="text-sm font-medium text-stone-700">
+                      {selectedAppointment.payment_status === 'paid' ? (t('paid') || 'Ödendi') :
+                       selectedAppointment.payment_status === 'partial' ? (t('partiallyPaid') || 'Kısmi Ödendi') :
+                       selectedAppointment.payment_status === 'free' ? (t('freePayment') || 'Ücretsiz') :
+                       (t('unpaid') || 'Ödenmedi')}
+                    </span>
+                    {parseFloat(selectedAppointment.total_amount) > 0 && (
+                      <span className="text-xs text-stone-400">
+                        {parseFloat(selectedAppointment.paid_amount || 0).toFixed(2)} / {parseFloat(selectedAppointment.total_amount).toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                  {selectedAppointment.payment_status !== 'paid' && selectedAppointment.payment_status !== 'free' && (
+                    <button
+                      onClick={() => {
+                        setIsDetailModalOpen(false);
+                        setPaymentAppointmentId(selectedAppointment.id);
+                        setPaymentModalOpen(true);
+                      }}
+                      className="px-3 py-1.5 text-xs font-semibold bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                    >
+                      {t('collectPayment') || 'Ödeme Al'}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             <DialogFooter className="flex justify-between w-full">
@@ -968,6 +1017,15 @@ const AppointmentsPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Ödeme Modal */}
+      <PaymentCollectionModal
+        open={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        appointmentId={paymentAppointmentId}
+        companyId={company?.id}
+        onPaymentComplete={() => fetchAppointments()}
+      />
     </>
   );
 };
