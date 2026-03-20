@@ -58,16 +58,16 @@ const BookingSettingsPage = () => {
       await navigator.clipboard.writeText(text);
       setCopied(type);
       setTimeout(() => setCopied(null), 2000);
-      toast({ title: 'Kopyalandı!', variant: 'default' });
+      toast({ title: t('copied'), variant: 'default' });
     } catch {
-      toast({ title: 'Kopyalanamadı', variant: 'destructive' });
+      toast({ title: t('copyFailed'), variant: 'destructive' });
     }
   };
 
   // Ayarları kaydet
   const handleSave = async () => {
     if (!slug.trim()) {
-      toast({ title: 'Slug boş olamaz', variant: 'destructive' });
+      toast({ title: t('slugRequired'), variant: 'destructive' });
       return;
     }
 
@@ -82,7 +82,7 @@ const BookingSettingsPage = () => {
         .single();
 
       if (existing) {
-        toast({ title: 'Bu bağlantı adresi zaten kullanılıyor', description: 'Lütfen farklı bir slug girin.', variant: 'destructive' });
+        toast({ title: t('slugAlreadyInUse'), description: t('pleaseEnterDifferentSlug'), variant: 'destructive' });
         setSaving(false);
         return;
       }
@@ -101,10 +101,10 @@ const BookingSettingsPage = () => {
       if (error) throw error;
 
       await refreshCompany();
-      toast({ title: 'Ayarlar kaydedildi', variant: 'default' });
+      toast({ title: t('settingsSaved'), variant: 'default' });
     } catch (err) {
       console.error('Booking ayarları kaydetme hatası:', err);
-      toast({ title: 'Hata', description: err.message, variant: 'destructive' });
+      toast({ title: t('error'), description: err.message, variant: 'destructive' });
     }
     setSaving(false);
   };
@@ -129,9 +129,9 @@ const BookingSettingsPage = () => {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold text-stone-800">Online Randevu Ayarları</h1>
+        <h1 className="text-2xl font-bold text-stone-800">{t('onlineBookingSettings')}</h1>
         <p className="text-stone-500 text-sm mt-1">
-          Müşterilerinizin online randevu almasını sağlayın.
+          {t('onlineBookingSettingsDesc')}
         </p>
       </div>
 
@@ -140,8 +140,8 @@ const BookingSettingsPage = () => {
         <Toggle
           enabled={bookingEnabled}
           onToggle={() => setBookingEnabled(!bookingEnabled)}
-          label="Online Randevuyu Etkinleştir"
-          description="Müşterileriniz bağlantı üzerinden randevu alabilir."
+          label={t('enableOnlineBooking')}
+          description={t('onlineBookingToggleDesc')}
         />
       </div>
 
@@ -149,17 +149,17 @@ const BookingSettingsPage = () => {
       <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 space-y-4">
         <div className="flex items-center gap-2 mb-1">
           <Link2 className="w-5 h-5 text-emerald-600" />
-          <h2 className="font-semibold text-stone-800">Randevu Bağlantısı</h2>
+          <h2 className="font-semibold text-stone-800">{t('bookingLink')}</h2>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-stone-600 mb-1.5">Bağlantı Adresi (Slug)</label>
+          <label className="block text-sm font-medium text-stone-600 mb-1.5">{t('linkSlug')}</label>
           <div className="flex items-center gap-2">
             <span className="text-sm text-stone-400 whitespace-nowrap">randevubot.net/book/</span>
             <Input
               value={slug}
               onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-              placeholder="salon-adi"
+              placeholder={t('slugPlaceholder')}
               className="flex-1"
             />
           </div>
@@ -194,10 +194,10 @@ const BookingSettingsPage = () => {
       <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 space-y-3">
         <div className="flex items-center gap-2 mb-1">
           <Code className="w-5 h-5 text-emerald-600" />
-          <h2 className="font-semibold text-stone-800">Web Sitenize Ekleyin</h2>
+          <h2 className="font-semibold text-stone-800">{t('addToWebsite')}</h2>
         </div>
         <p className="text-xs text-stone-400">
-          Aşağıdaki kodu web sitenize yapıştırarak randevu formunu gömebilirsiniz.
+          {t('embedCodeDesc')}
         </p>
         <div className="relative">
           <pre className="bg-stone-50 rounded-xl p-3 text-xs text-stone-600 overflow-x-auto whitespace-pre-wrap break-all">
@@ -220,12 +220,12 @@ const BookingSettingsPage = () => {
       <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 space-y-1">
         <div className="flex items-center gap-2 mb-3">
           <Calendar className="w-5 h-5 text-emerald-600" />
-          <h2 className="font-semibold text-stone-800">Randevu Ayarları</h2>
+          <h2 className="font-semibold text-stone-800">{t('bookingSettings')}</h2>
         </div>
 
         <div className="py-3">
           <label className="block text-sm font-medium text-stone-600 mb-1.5">
-            Maksimum ileri tarih (gün)
+            {t('maxAdvanceDays')}
           </label>
           <Input
             type="number"
@@ -235,15 +235,15 @@ const BookingSettingsPage = () => {
             onChange={(e) => setMaxDaysInAdvance(Number(e.target.value))}
             className="w-32"
           />
-          <p className="text-xs text-stone-400 mt-1">Müşteriler en fazla bu kadar gün ileriye randevu alabilir.</p>
+          <p className="text-xs text-stone-400 mt-1">{t('maxAdvanceDaysDesc')}</p>
         </div>
 
         <div className="border-t border-stone-50">
           <Toggle
             enabled={requirePhoneVerification}
             onToggle={() => setRequirePhoneVerification(!requirePhoneVerification)}
-            label="Telefon Doğrulaması"
-            description="Randevu öncesi SMS ile doğrulama kodu gönderilsin."
+            label={t('phoneVerification')}
+            description={t('phoneVerificationDesc')}
           />
         </div>
 
@@ -251,8 +251,8 @@ const BookingSettingsPage = () => {
           <Toggle
             enabled={autoConfirm}
             onToggle={() => setAutoConfirm(!autoConfirm)}
-            label="Otomatik Onay"
-            description="Randevular 'beklemede' yerine doğrudan 'onaylandı' olarak oluşturulur."
+            label={t('autoApproval')}
+            description={t('autoApprovalDesc')}
           />
         </div>
       </div>
@@ -264,7 +264,7 @@ const BookingSettingsPage = () => {
         className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-base font-medium"
       >
         {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-        {saving ? 'Kaydediliyor...' : 'Ayarları Kaydet'}
+        {saving ? t('saving') : t('saveSettings')}
       </Button>
     </div>
   );

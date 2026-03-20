@@ -410,31 +410,31 @@ const BookingPage = () => {
           <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="w-8 h-8 text-emerald-600" />
           </div>
-          <h2 className="text-2xl font-bold text-stone-800 mb-2">Randevunuz Alındı!</h2>
-          <p className="text-stone-500 mb-6">Onay için size bildirim gönderilecektir.</p>
+          <h2 className="text-2xl font-bold text-stone-800 mb-2">{t('bookingSuccess')}</h2>
+          <p className="text-stone-500 mb-6">{t('bookingConfirmNotice')}</p>
           <div className="bg-stone-50 rounded-xl p-4 text-left space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-stone-500">Hizmet:</span>
+              <span className="text-stone-500">{t('serviceLabel')}</span>
               <span className="font-medium text-stone-700">{serviceNames.join(', ')}</span>
             </div>
             {expertName && (
               <div className="flex justify-between">
-                <span className="text-stone-500">Uzman:</span>
+                <span className="text-stone-500">{t('expertLabel')}</span>
                 <span className="font-medium text-stone-700">{expertName}</span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-stone-500">Tarih:</span>
+              <span className="text-stone-500">{t('dateLabel')}</span>
               <span className="font-medium text-stone-700">
                 {selectedDate?.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-stone-500">Saat:</span>
+              <span className="text-stone-500">{t('timeLabel')}</span>
               <span className="font-medium text-stone-700">{selectedTime}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-stone-500">Süre:</span>
+              <span className="text-stone-500">{t('durationLabel')}</span>
               <span className="font-medium text-stone-700">{totalDuration} dk</span>
             </div>
           </div>
@@ -445,10 +445,10 @@ const BookingPage = () => {
 
   // --- Adım başlıkları ---
   const steps = [
-    { icon: <Scissors className="w-4 h-4" />, label: 'Hizmet' },
-    { icon: <Calendar className="w-4 h-4" />, label: 'Tarih' },
-    { icon: <Clock className="w-4 h-4" />, label: 'Saat' },
-    { icon: <User className="w-4 h-4" />, label: 'Bilgi' },
+    { icon: <Scissors className="w-4 h-4" />, label: t('service') },
+    { icon: <Calendar className="w-4 h-4" />, label: t('date') },
+    { icon: <Clock className="w-4 h-4" />, label: t('timeLabel') },
+    { icon: <User className="w-4 h-4" />, label: t('info') },
   ];
 
   // --- Ana render ---
@@ -466,7 +466,7 @@ const BookingPage = () => {
           )}
           <div>
             <h1 className="font-bold text-stone-800 text-lg leading-tight">{company.name}</h1>
-            <p className="text-xs text-stone-400">Online Randevu</p>
+            <p className="text-xs text-stone-400">{t('onlineBooking')}</p>
           </div>
         </div>
       </div>
@@ -515,8 +515,8 @@ const BookingPage = () => {
             {/* ADIM 0: Hizmet seçimi */}
             {step === 0 && (
               <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
-                <h2 className="text-lg font-bold text-stone-800 mb-1">Hizmet Seçin</h2>
-                <p className="text-sm text-stone-400 mb-4">Bir veya birden fazla hizmet seçebilirsiniz.</p>
+                <h2 className="text-lg font-bold text-stone-800 mb-1">{t('selectService')}</h2>
+                <p className="text-sm text-stone-400 mb-4">{t('selectMultipleServices')}</p>
                 <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
                   {services.map((svc) => {
                     const isSelected = selectedServices.includes(svc.id);
@@ -578,7 +578,7 @@ const BookingPage = () => {
                 {/* Uzman seçimi (opsiyonel) */}
                 {experts.length > 1 && (
                   <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
-                    <h2 className="text-lg font-bold text-stone-800 mb-3">Uzman Tercihi</h2>
+                    <h2 className="text-lg font-bold text-stone-800 mb-3">{t('expertPreference')}</h2>
                     <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => {
@@ -591,7 +591,7 @@ const BookingPage = () => {
                             : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                         }`}
                       >
-                        Fark etmez
+                        {t('noPreference')}
                       </button>
                       {experts.map((exp) => (
                         <button
@@ -615,7 +615,7 @@ const BookingPage = () => {
 
                 {/* Tarih seçimi */}
                 <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
-                  <h2 className="text-lg font-bold text-stone-800 mb-3">Tarih Seçin</h2>
+                  <h2 className="text-lg font-bold text-stone-800 mb-3">{t('selectDate')}</h2>
                   {renderCalendar()}
                 </div>
               </div>
@@ -624,15 +624,15 @@ const BookingPage = () => {
             {/* ADIM 2: Saat seçimi */}
             {step === 2 && (
               <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
-                <h2 className="text-lg font-bold text-stone-800 mb-1">Saat Seçin</h2>
+                <h2 className="text-lg font-bold text-stone-800 mb-1">{t('selectTime')}</h2>
                 <p className="text-sm text-stone-400 mb-4">
                   {selectedDate?.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' })}
                 </p>
                 {availableSlots.length === 0 ? (
                   <div className="text-center py-8 text-stone-400">
                     <Clock className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Bu tarihte müsait saat bulunmuyor.</p>
-                    <p className="text-xs mt-1">Lütfen başka bir tarih seçin.</p>
+                    <p className="text-sm">{t('noAvailableTime')}</p>
+                    <p className="text-xs mt-1">{t('pleaseSelectAnotherDate')}</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 gap-2">
@@ -657,20 +657,20 @@ const BookingPage = () => {
             {/* ADIM 3: Müşteri bilgileri */}
             {step === 3 && (
               <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
-                <h2 className="text-lg font-bold text-stone-800 mb-1">Bilgileriniz</h2>
-                <p className="text-sm text-stone-400 mb-5">Randevu onayı için iletişim bilgilerinizi girin.</p>
+                <h2 className="text-lg font-bold text-stone-800 mb-1">{t('yourInfo')}</h2>
+                <p className="text-sm text-stone-400 mb-5">{t('enterContactInfo')}</p>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-stone-600 mb-1.5">Ad Soyad</label>
+                    <label className="block text-sm font-medium text-stone-600 mb-1.5">{t('fullName')}</label>
                     <Input
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value.toUpperCase())}
-                      placeholder="AD SOYAD"
+                      placeholder={t('fullNamePlaceholder')}
                       className="h-12 rounded-xl"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-stone-600 mb-1.5">Telefon</label>
+                    <label className="block text-sm font-medium text-stone-600 mb-1.5">{t('phone')}</label>
                     <Input
                       type="tel"
                       value={customerPhone}
@@ -683,31 +683,31 @@ const BookingPage = () => {
 
                 {/* Özet */}
                 <div className="mt-6 bg-stone-50 rounded-xl p-4 space-y-2 text-sm">
-                  <p className="font-medium text-stone-700 mb-2">Randevu Özeti</p>
+                  <p className="font-medium text-stone-700 mb-2">{t('appointmentSummary')}</p>
                   <div className="flex justify-between">
-                    <span className="text-stone-500">Hizmet:</span>
+                    <span className="text-stone-500">{t('serviceLabel')}</span>
                     <span className="text-stone-700 text-right max-w-[60%]">
                       {selectedServices.map((sId) => services.find((s) => s.id === sId)?.description).join(', ')}
                     </span>
                   </div>
                   {selectedExpert && (
                     <div className="flex justify-between">
-                      <span className="text-stone-500">Uzman:</span>
+                      <span className="text-stone-500">{t('expertLabel')}</span>
                       <span className="text-stone-700">{experts.find((e) => e.id === selectedExpert)?.name}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-stone-500">Tarih:</span>
+                    <span className="text-stone-500">{t('dateLabel')}</span>
                     <span className="text-stone-700">
                       {selectedDate?.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-stone-500">Saat:</span>
+                    <span className="text-stone-500">{t('timeLabel')}</span>
                     <span className="text-stone-700">{selectedTime}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-stone-500">Toplam süre:</span>
+                    <span className="text-stone-500">{t('totalDurationLabel')}</span>
                     <span className="text-stone-700">{totalDuration} dk</span>
                   </div>
                 </div>
@@ -722,7 +722,7 @@ const BookingPage = () => {
         <div className="max-w-lg mx-auto flex gap-3">
           {step > 0 && (
             <Button variant="outline" onClick={goBack} className="flex-1 h-12 rounded-xl">
-              <ChevronLeft className="w-4 h-4 mr-1" /> Geri
+              <ChevronLeft className="w-4 h-4 mr-1" /> {t('back')}
             </Button>
           )}
           {step < 3 ? (
@@ -731,7 +731,7 @@ const BookingPage = () => {
               disabled={!canGoNext()}
               className="flex-1 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
             >
-              Devam <ChevronRight className="w-4 h-4 ml-1" />
+              {t('continue')} <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           ) : (
             <Button
@@ -744,7 +744,7 @@ const BookingPage = () => {
               ) : (
                 <CheckCircle2 className="w-4 h-4 mr-2" />
               )}
-              {submitting ? 'Gönderiliyor...' : 'Randevu Al'}
+              {submitting ? t('submitting') : t('bookAppointment')}
             </Button>
           )}
         </div>

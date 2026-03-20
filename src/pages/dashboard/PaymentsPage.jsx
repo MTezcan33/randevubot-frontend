@@ -34,27 +34,44 @@ import {
 } from '@/services/paymentService';
 import * as XLSX from 'xlsx';
 
-// Ödeme yöntemi renkleri
+// Ödeme yöntemi stilleri (label'lar component içinde t() ile oluşturulur)
 const METHOD_STYLES = {
-  cash: { icon: Banknote, label: 'Nakit', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-  card: { icon: CreditCard, label: 'Kart', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
-  online: { icon: Globe, label: 'Online', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200' },
-  free: { icon: Gift, label: 'Ücretsiz', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
+  cash: { icon: Banknote, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+  card: { icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
+  online: { icon: Globe, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200' },
+  free: { icon: Gift, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
 };
 
-// Ödeme durumu badgeleri
-const STATUS_BADGES = {
-  unpaid: { label: 'Ödenmedi', color: 'bg-red-100 text-red-700 border-red-200' },
-  partial: { label: 'Kısmi Ödendi', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-  paid: { label: 'Ödendi', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-  free: { label: 'Ücretsiz', color: 'bg-stone-100 text-stone-600 border-stone-200' },
-  refunded: { label: 'İade Edildi', color: 'bg-purple-100 text-purple-700 border-purple-200' },
+// Ödeme durumu badge stilleri (label'lar component içinde t() ile oluşturulur)
+const STATUS_BADGE_STYLES = {
+  unpaid: { color: 'bg-red-100 text-red-700 border-red-200' },
+  partial: { color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  paid: { color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  free: { color: 'bg-stone-100 text-stone-600 border-stone-200' },
+  refunded: { color: 'bg-purple-100 text-purple-700 border-purple-200' },
 };
 
 const PaymentsPage = () => {
   const { company, staff } = useAuth();
   const { t } = useTranslation();
   const { toast } = useToast();
+
+  // Çeviri destekli ödeme yöntemi label'ları
+  const methodLabels = useMemo(() => ({
+    cash: t('cash'),
+    card: t('card'),
+    online: t('online'),
+    free: t('freePayment'),
+  }), [t]);
+
+  // Çeviri destekli ödeme durumu badge'leri
+  const statusBadges = useMemo(() => ({
+    unpaid: { label: t('unpaid'), ...STATUS_BADGE_STYLES.unpaid },
+    partial: { label: t('partiallyPaid'), ...STATUS_BADGE_STYLES.partial },
+    paid: { label: t('paid'), ...STATUS_BADGE_STYLES.paid },
+    free: { label: t('freePayment'), ...STATUS_BADGE_STYLES.free },
+    refunded: { label: t('refunded'), ...STATUS_BADGE_STYLES.refunded },
+  }), [t]);
 
   // Tab: 0=Bekleyen, 1=Geçmiş, 2=Ayarlar
   const [activeTab, setActiveTab] = useState(0);
@@ -208,9 +225,9 @@ const PaymentsPage = () => {
       Müşteri: p.appointments?.customers?.name || '-',
       Hizmet: p.company_services?.description || '-',
       Tutar: parseFloat(p.amount).toFixed(2),
-      Yöntem: METHOD_STYLES[p.payment_method]?.label || p.payment_method,
+      Yöntem: methodLabels[p.payment_method] || p.payment_method,
       Uzman: p.appointments?.company_users?.name || '-',
-      Durum: p.is_refunded ? 'İade Edildi' : 'Aktif',
+      Durum: p.is_refunded ? t('refunded') : t('active'),
       Not: p.note || '',
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -357,13 +374,13 @@ const PaymentsPage = () => {
                 const paidAmount = parseFloat(apt.paid_amount) || 0;
                 const remainingAmount = Math.max(0, totalAmount - paidAmount);
                 const paidPercent = totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0;
-                const statusBadge = STATUS_BADGES[apt.payment_status] || STATUS_BADGES.unpaid;
+                const statusBadge = statusBadges[apt.payment_status] || statusBadges.unpaid;
                 const aptServices = apt.appointment_services || [];
 
                 // Önceki ödemelerin yöntem özeti
                 const prevPayments = (apt.appointment_payments || []).filter(p => !p.is_refunded);
                 const paymentMethodSummary = prevPayments.reduce((acc, p) => {
-                  const label = METHOD_STYLES[p.payment_method]?.label || p.payment_method;
+                  const label = methodLabels[p.payment_method] || p.payment_method;
                   acc[label] = (acc[label] || 0) + parseFloat(p.amount);
                   return acc;
                 }, {});
@@ -388,7 +405,7 @@ const PaymentsPage = () => {
                             </div>
                           </div>
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${statusBadge.color}`}>
-                            {t(apt.payment_status) || statusBadge.label}
+                            {statusBadge.label}
                           </span>
                         </div>
 
@@ -608,7 +625,7 @@ const PaymentsPage = () => {
                           <td className="px-4 py-3">
                             <div className={`flex items-center justify-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${ms.bg} ${ms.color} ${ms.border} border`}>
                               <MIcon className="w-3 h-3" />
-                              {t(p.payment_method) || ms.label}
+                              {methodLabels[p.payment_method] || p.payment_method}
                             </div>
                           </td>
                           <td className="px-4 py-3 text-stone-600">{p.appointments?.company_users?.name || '-'}</td>
