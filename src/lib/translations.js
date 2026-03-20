@@ -1123,6 +1123,26 @@ export const resources = {
       dailyCashRegister: "Günlük Kasa",
       dayOfWeek: "Haftanın Günü",
       assignedSpacesDesc: "Bu hizmete atanmış alanlar",
+
+      // Son Eksik Key'ler
+      viewAll: "Tümünü Gör",
+      appointment: "randevu",
+      areYouAbsolutelySure: "Bu işlemi gerçekleştirmek istediğinize emin misiniz?",
+      confirmed: "Onaylandı",
+      customer: "Müşteri",
+      default: "Varsayılan",
+      deleted: "Silindi",
+      deliveryChannel: "Teslimat Kanalı",
+      frequency: "Sıklık",
+      icon: "İkon",
+      lunchBreakWarning: "Bu saat dilimi öğle arası ile çakışıyor",
+      net: "Net",
+      new: "Yeni",
+      notes: "Notlar",
+      pending: "Beklemede",
+      saved: "Kaydedildi",
+      search: "Ara",
+      total: "Toplam",
     }
   },
 
@@ -2249,6 +2269,26 @@ export const resources = {
       dailyCashRegister: "Daily Cash Register",
       dayOfWeek: "Day of Week",
       assignedSpacesDesc: "Spaces assigned to this service",
+
+      // Final Missing Keys
+      viewAll: "View All",
+      appointment: "appointment",
+      areYouAbsolutelySure: "Are you absolutely sure you want to proceed?",
+      confirmed: "Confirmed",
+      customer: "Customer",
+      default: "Default",
+      deleted: "Deleted",
+      deliveryChannel: "Delivery Channel",
+      frequency: "Frequency",
+      icon: "Icon",
+      lunchBreakWarning: "This time slot conflicts with the lunch break",
+      net: "Net",
+      new: "New",
+      notes: "Notes",
+      pending: "Pending",
+      saved: "Saved",
+      search: "Search",
+      total: "Total",
     }
   },
 
@@ -3375,6 +3415,26 @@ export const resources = {
       dailyCashRegister: "Дневная касса",
       dayOfWeek: "День недели",
       assignedSpacesDesc: "Помещения, назначенные этой услуге",
+
+      // Последние недостающие ключи
+      viewAll: "Показать все",
+      appointment: "запись",
+      areYouAbsolutelySure: "Вы абсолютно уверены, что хотите продолжить?",
+      confirmed: "Подтверждено",
+      customer: "Клиент",
+      default: "По умолчанию",
+      deleted: "Удалено",
+      deliveryChannel: "Канал доставки",
+      frequency: "Частота",
+      icon: "Иконка",
+      lunchBreakWarning: "Это время конфликтует с обеденным перерывом",
+      net: "Нетто",
+      new: "Новый",
+      notes: "Заметки",
+      pending: "В ожидании",
+      saved: "Сохранено",
+      search: "Поиск",
+      total: "Всего",
     }
   }
 };
