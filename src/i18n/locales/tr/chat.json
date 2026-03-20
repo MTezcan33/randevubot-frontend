@@ -1,0 +1,16 @@
+{
+  "assistantTitle": "AI Asistan",
+  "assistantOnline": "Cevrimici",
+  "assistantOffline": "Cevrimdisi",
+  "assistantTyping": "Yaziyor...",
+  "chatWelcomeTitle": "Hos Geldiniz!",
+  "chatWelcomeMessage": "Size nasil yardimci olabilirim?",
+  "chatEmptyState": "Henuz mesaj yok. Bir soru sorun!",
+  "chatPlaceholder": "Mesajinizi yazin...",
+  "chatQuickQuestions": "Hizli Sorular",
+  "chatSessionEnded": "Oturum sonlandi",
+  "startChat": "Sohbet Baslat",
+  "endChat": "Sohbet Sonlandir",
+  "openChat": "Sohbeti Ac",
+  "call": "Ara"
+}

@@ -1,0 +1,19 @@
+{
+  "panelLoginTitle": "Panel Girisi",
+  "panelLoginSubtitle": "Personel paneline giris yapin",
+  "panelLoginFailed": "Giris basarisiz",
+  "panelCompanyId": "Isletme Kodu",
+  "panelErrorCompanyId": "Isletme kodu gereklidir",
+  "panelErrorPin": "PIN kodu gereklidir",
+  "panelErrorRole": "Rol secimi gereklidir",
+  "panelSelectRole": "Rol Secin",
+  "panelRoles": "Roller",
+  "panelLogout": "Cikis Yap",
+  "pinCode": "PIN Kodu",
+  "adminPinRequired": "Yonetici PIN kodu gereklidir",
+  "myAppointments": "Randevularim",
+  "mySchedule": "Programim",
+  "checkIn": "Giris Yap",
+  "noAppointments": "Randevu yok",
+  "noUpcomingAppointments": "Yaklasan randevu bulunmuyor"
+}

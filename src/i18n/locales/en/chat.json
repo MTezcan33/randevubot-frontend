@@ -1,0 +1,16 @@
+{
+  "assistantTitle": "AI Assistant",
+  "assistantOnline": "Online",
+  "assistantOffline": "Offline",
+  "assistantTyping": "Typing...",
+  "chatWelcomeTitle": "Welcome!",
+  "chatWelcomeMessage": "How can I help you?",
+  "chatEmptyState": "No messages yet. Ask a question!",
+  "chatPlaceholder": "Type your message...",
+  "chatQuickQuestions": "Quick Questions",
+  "chatSessionEnded": "Session ended",
+  "startChat": "Start Chat",
+  "endChat": "End Chat",
+  "openChat": "Open Chat",
+  "call": "Call"
+}

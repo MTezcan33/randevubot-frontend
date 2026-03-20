@@ -1,0 +1,19 @@
+{
+  "panelLoginTitle": "Panel Login",
+  "panelLoginSubtitle": "Log in to the staff panel",
+  "panelLoginFailed": "Login failed",
+  "panelCompanyId": "Company Code",
+  "panelErrorCompanyId": "Company code is required",
+  "panelErrorPin": "PIN code is required",
+  "panelErrorRole": "Role selection is required",
+  "panelSelectRole": "Select Role",
+  "panelRoles": "Roles",
+  "panelLogout": "Logout",
+  "pinCode": "PIN Code",
+  "adminPinRequired": "Admin PIN code is required",
+  "myAppointments": "My Appointments",
+  "mySchedule": "My Schedule",
+  "checkIn": "Check In",
+  "noAppointments": "No appointments",
+  "noUpcomingAppointments": "No upcoming appointments"
+}

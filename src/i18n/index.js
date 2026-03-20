@@ -16,6 +16,11 @@ import trBilling from './locales/tr/billing.json';
 import trSettings from './locales/tr/settings.json';
 import trNotifications from './locales/tr/notifications.json';
 import trSupport from './locales/tr/support.json';
+import trResources from './locales/tr/resources.json';
+import trPayments from './locales/tr/payments.json';
+import trBooking from './locales/tr/booking.json';
+import trPanel from './locales/tr/panel.json';
+import trChat from './locales/tr/chat.json';
 
 // EN imports
 import enCommon from './locales/en/common.json';
@@ -31,6 +36,11 @@ import enBilling from './locales/en/billing.json';
 import enSettings from './locales/en/settings.json';
 import enNotifications from './locales/en/notifications.json';
 import enSupport from './locales/en/support.json';
+import enResources from './locales/en/resources.json';
+import enPayments from './locales/en/payments.json';
+import enBooking from './locales/en/booking.json';
+import enPanel from './locales/en/panel.json';
+import enChat from './locales/en/chat.json';
 
 // RU imports
 import ruCommon from './locales/ru/common.json';
@@ -46,6 +56,11 @@ import ruBilling from './locales/ru/billing.json';
 import ruSettings from './locales/ru/settings.json';
 import ruNotifications from './locales/ru/notifications.json';
 import ruSupport from './locales/ru/support.json';
+import ruResources from './locales/ru/resources.json';
+import ruPayments from './locales/ru/payments.json';
+import ruBooking from './locales/ru/booking.json';
+import ruPanel from './locales/ru/panel.json';
+import ruChat from './locales/ru/chat.json';
 
 const resources = {
   tr: {
@@ -63,6 +78,11 @@ const resources = {
       ...trSettings,
       ...trNotifications,
       ...trSupport,
+      ...trResources,
+      ...trPayments,
+      ...trBooking,
+      ...trPanel,
+      ...trChat,
     },
   },
   en: {
@@ -80,6 +100,11 @@ const resources = {
       ...enSettings,
       ...enNotifications,
       ...enSupport,
+      ...enResources,
+      ...enPayments,
+      ...enBooking,
+      ...enPanel,
+      ...enChat,
     },
   },
   ru: {
@@ -97,6 +122,11 @@ const resources = {
       ...ruSettings,
       ...ruNotifications,
       ...ruSupport,
+      ...ruResources,
+      ...ruPayments,
+      ...ruBooking,
+      ...ruPanel,
+      ...ruChat,
     },
   },
 };
