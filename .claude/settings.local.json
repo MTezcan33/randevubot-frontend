@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "Bash(ls -la /c/Users/Mehmet/randevubot/*.*)",
-      "Bash(git push origin main)"
+      "Bash(git push origin main)",
+      "Bash(git restore --staged \"workflow/\")",
+      "Bash(done)",
+      "Bash(uniq comm -23 /tmp/used.txt /tmp/tr.txt)",
+      "Bash(git add src/lib/sectors.js src/lib/translations.js Supabase/sub_sectors_migration.sql)",
+      "Bash(git commit:*)",
+      "Bash(npm run build --workspace=@tasucusepeti/courier-panel)",
+      "Bash(git add Dockerfile)",
+      "Bash(git push origin claude/food-delivery-saas-app-eeC0s)",
+      "Bash(npm run build -w @tasucusepeti/restaurant-panel)",
+      "Bash(grep -o \"^ *[a-z].*: {$\" /c/Users/Mehmet/randevubot/src/lib/translations.js)"
     ]
   }
 }
