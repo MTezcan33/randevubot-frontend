@@ -65,6 +65,28 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
     return `${h}:${m}`;
   };
 
+  // Uzmanın gerçekten meşgul olduğu zaman penceresini hesapla
+  // Sadece requires_expert=true olan hizmetlerin süresini sayar
+  // Hizmet sırası önemli: ilk uzman hizmetinden son uzman hizmetine kadar olan aralık
+  const calculateExpertWindow = (services, appointmentStartMinutes) => {
+    if (!services || services.length === 0) return null;
+    let currentTime = appointmentStartMinutes;
+    let expertStart = null;
+    let expertEnd = null;
+    for (const svc of services) {
+      const duration = svc.duration || 0;
+      const needsExpert = svc.requires_expert !== false; // null veya true = uzman gerekli
+      if (needsExpert) {
+        if (expertStart === null) expertStart = currentTime;
+        expertEnd = currentTime + duration;
+      }
+      currentTime += duration;
+    }
+    return (expertStart !== null && expertEnd !== null)
+      ? { start: expertStart, end: expertEnd }
+      : null;
+  };
+
   // Toplam süre ve fiyat hesapla
   const totalDuration = useMemo(() => {
     return selectedServiceIds.reduce((sum, sId) => {
@@ -87,6 +109,17 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
       const svc = allServices.find(s => s.id === sId);
       return svc?.requires_expert !== false; // requires_expert null veya true ise uzman gerekli
     });
+  }, [selectedServiceIds, allServices]);
+
+  // Sadece uzman gerektiren hizmetlerin toplam süresi
+  const expertOnlyDuration = useMemo(() => {
+    return selectedServiceIds.reduce((sum, sId) => {
+      const svc = allServices.find(s => s.id === sId);
+      if (svc?.requires_expert !== false) {
+        return sum + (svc?.duration || 0);
+      }
+      return sum;
+    }, 0);
   }, [selectedServiceIds, allServices]);
 
   // Seçili uzmanın yapabildiği hizmetleri filtrele
@@ -185,26 +218,58 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
       }
     }
 
-    // Uzman çakışma kontrolü (mevcut logic)
+    // Uzman çakışma kontrolü — sadece requires_expert=true hizmet sürelerini sayar
     if (selectedExpert) {
-      const { data: existingApps } = await supabase
-        .from('appointments')
-        .select('time, total_duration, company_services(duration)')
-        .eq('expert_id', selectedExpert)
-        .eq('date', dateStr)
-        .neq('status', 'iptal');
+      // Yeni randevunun uzman-meşguliyet penceresi
+      const newServices = selectedServiceIds.map(sId => {
+        const svc = allServices.find(s => s.id === sId);
+        return { duration: svc?.duration || 0, requires_expert: svc?.requires_expert };
+      });
+      const newExpertWindow = calculateExpertWindow(newServices, newStart);
 
-      if (existingApps) {
-        for (const app of existingApps) {
-          const appStart = timeToMinutes(app.time);
-          const appDuration = app.total_duration || app.company_services?.duration || 60;
-          const appEnd = appStart + appDuration;
-          if (newStart < appEnd && newEnd > appStart) {
-            setConflictWarning({
-              existingTime: `${app.time.substring(0, 5)} - ${formatMinutes(appEnd)}`,
-            });
-            // Uzman çakışması varsa kaynak kontrolüne devam etme
-            return;
+      // Uzman gerektiren hizmet yoksa çakışma kontrolü atla
+      if (newExpertWindow) {
+        const { data: existingApps } = await supabase
+          .from('appointments')
+          .select('id, time, total_duration, company_services(duration, requires_expert), appointment_services(service_id, company_services(duration, requires_expert))')
+          .eq('expert_id', selectedExpert)
+          .eq('date', dateStr)
+          .neq('status', 'iptal');
+
+        if (existingApps) {
+          for (const app of existingApps) {
+            const appStart = timeToMinutes(app.time);
+
+            // Mevcut randevunun uzman-meşguliyet penceresini hesapla
+            let existingExpertWindow = null;
+            if (app.appointment_services?.length > 0) {
+              // Çoklu hizmet randevusu — her hizmetin requires_expert durumuna bak
+              const appServices = app.appointment_services.map(as => ({
+                duration: as.company_services?.duration || 0,
+                requires_expert: as.company_services?.requires_expert,
+              }));
+              existingExpertWindow = calculateExpertWindow(appServices, appStart);
+            }
+
+            // appointment_services yoksa veya boşsa, legacy tek hizmet modunda çalış
+            if (!existingExpertWindow) {
+              const svcRequiresExpert = app.company_services?.requires_expert;
+              if (svcRequiresExpert === false) {
+                // Mevcut randevu self-service, uzman çakışması yok
+                continue;
+              }
+              const appDuration = app.total_duration || app.company_services?.duration || 60;
+              existingExpertWindow = { start: appStart, end: appStart + appDuration };
+            }
+
+            // Uzman meşguliyet pencerelerini karşılaştır
+            if (newExpertWindow.start < existingExpertWindow.end && newExpertWindow.end > existingExpertWindow.start) {
+              setConflictWarning({
+                existingTime: `${formatMinutes(existingExpertWindow.start)} - ${formatMinutes(existingExpertWindow.end)}`,
+              });
+              // Uzman çakışması varsa kaynak kontrolüne devam etme
+              return;
+            }
           }
         }
       }

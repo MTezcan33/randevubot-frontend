@@ -108,7 +108,7 @@ const BookingPage = () => {
     const fetchAppointments = async () => {
       const query = supabase
         .from('appointments')
-        .select('time, total_duration, expert_id, company_services(duration)')
+        .select('time, total_duration, expert_id, company_services(duration, requires_expert), appointment_services(service_id, company_services(duration, requires_expert))')
         .eq('company_id', company.id)
         .eq('date', dateStr)
         .neq('status', 'iptal');
@@ -172,14 +172,45 @@ const BookingPage = () => {
           if (m <= nowMin) continue;
         }
 
-        // Mevcut randevularla çakışma kontrolü
-        const slotEnd = m + totalDuration;
+        // Mevcut randevularla çakışma kontrolü — uzman meşguliyet penceresine göre
+        // Yeni randevunun uzman gerektiren süresini hesapla
+        const newExpertDur = selectedServices.reduce((sum, sId) => {
+          const svc = services.find(s => s.id === sId);
+          if (svc?.requires_expert !== false) return sum + (svc?.duration || 0);
+          return sum;
+        }, 0);
+        const newExpertEnd = m + newExpertDur; // Uzman sadece bu kadar süre meşgul
+
         const hasConflict = existingAppointments.some((appt) => {
           const [ah, am] = (appt.time || '00:00').split(':').map(Number);
           const apptStart = ah * 60 + am;
-          const apptDur = appt.total_duration || appt.company_services?.duration || 60;
-          const apptEnd = apptStart + apptDur;
-          return m < apptEnd && slotEnd > apptStart;
+
+          // Mevcut randevunun uzman meşguliyet penceresini hesapla
+          let expertStart = apptStart;
+          let expertEnd = apptStart;
+          if (appt.appointment_services?.length > 0) {
+            // Çoklu hizmet — sadece requires_expert=true olanları say
+            let currentTime = apptStart;
+            let hasExpert = false;
+            for (const as of appt.appointment_services) {
+              const dur = as.company_services?.duration || 0;
+              const needsExpert = as.company_services?.requires_expert !== false;
+              if (needsExpert) {
+                if (!hasExpert) expertStart = currentTime;
+                expertEnd = currentTime + dur;
+                hasExpert = true;
+              }
+              currentTime += dur;
+            }
+            if (!hasExpert) return false; // Randevu tamamen self-service, çakışma yok
+          } else {
+            // Legacy tek hizmet
+            if (appt.company_services?.requires_expert === false) return false;
+            const apptDur = appt.total_duration || appt.company_services?.duration || 60;
+            expertEnd = apptStart + apptDur;
+          }
+
+          return m < expertEnd && newExpertEnd > expertStart;
         });
 
         if (!hasConflict) {

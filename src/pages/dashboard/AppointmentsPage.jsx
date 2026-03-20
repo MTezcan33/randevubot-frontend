@@ -475,7 +475,7 @@ const AppointmentsPage = () => {
       }
       const { data: existingApps } = await supabase
         .from('appointments')
-        .select('time, total_duration, company_services(duration)')
+        .select('time, total_duration, company_services(duration, requires_expert), appointment_services(service_id, company_services(duration, requires_expert))')
         .eq('expert_id', newAppointment.expert_id)
         .eq('date', newAppointment.date)
         .neq('status', 'iptal');
@@ -488,14 +488,44 @@ const AppointmentsPage = () => {
       const timeToMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
       const fmtMin = (m) => `${Math.floor(m/60).toString().padStart(2,'0')}:${(m%60).toString().padStart(2,'0')}`;
       const newStart = timeToMin(newAppointment.time);
-      const newEnd = newStart + newTotalDuration;
+
+      // Yeni randevunun sadece uzman gerektiren hizmet süresini hesapla
+      const newExpertDur = newAppointment.service_ids.reduce((sum, sId) => {
+        const svc = services.find(s => s.id === sId);
+        if (svc?.requires_expert !== false) return sum + (svc?.duration || 0);
+        return sum;
+      }, 0);
+      if (newExpertDur === 0) { setNewConflictWarning(null); return; } // Tüm hizmetler self-service
+      const newExpertEnd = newStart + newExpertDur;
 
       for (const app of existingApps) {
         const appStart = timeToMin(app.time);
-        const appDur = app.total_duration || app.company_services?.duration || 60;
-        const appEnd = appStart + appDur;
-        if (newStart < appEnd && newEnd > appStart) {
-          setNewConflictWarning({ existingTime: `${app.time.substring(0,5)} - ${fmtMin(appEnd)}` });
+
+        // Mevcut randevunun uzman meşguliyet penceresini hesapla
+        let expertStart = appStart;
+        let expertEnd = appStart;
+        if (app.appointment_services?.length > 0) {
+          let currentTime = appStart;
+          let hasExpert = false;
+          for (const as of app.appointment_services) {
+            const dur = as.company_services?.duration || 0;
+            const needsExpert = as.company_services?.requires_expert !== false;
+            if (needsExpert) {
+              if (!hasExpert) expertStart = currentTime;
+              expertEnd = currentTime + dur;
+              hasExpert = true;
+            }
+            currentTime += dur;
+          }
+          if (!hasExpert) continue; // Tamamen self-service randevu, çakışma yok
+        } else {
+          if (app.company_services?.requires_expert === false) continue;
+          const appDur = app.total_duration || app.company_services?.duration || 60;
+          expertEnd = appStart + appDur;
+        }
+
+        if (newStart < expertEnd && newExpertEnd > expertStart) {
+          setNewConflictWarning({ existingTime: `${fmtMin(expertStart)} - ${fmtMin(expertEnd)}` });
           return;
         }
       }
