@@ -41,5 +41,22 @@
   "cancelledAppointments": "İptal",
   "noAppointmentHistory": "Henüz randevu geçmişi yok.",
   "lunchBreakWarning": "Öğle Arası Uyarısı",
-  "lunchBreakMessage": "Bu saat öğle arası saatine denk gelmektedir."
+  "lunchBreakMessage": "Bu saat öğle arası saatine denk gelmektedir.",
+  "expertServices": "Uzman Hizmetleri",
+  "selfServiceSection": "Self Servis",
+  "selfServiceBadge": "Self Servis",
+  "selectExpertForService": "Bu hizmet için uzman seçin",
+  "expertAutoSelected": "Otomatik seçildi",
+  "noExpertsAvailable": "Müsait uzman yok",
+  "expertNotWorking": "Bu tarihte çalışmıyor",
+  "expertBusy": "Bu saatte meşgul",
+  "outsideWorkingHours": "Çalışma saatleri dışında",
+  "appointmentSummary": "Randevu Özeti",
+  "servicesAndExperts": "Hizmetler ve Uzmanlar",
+  "expertAssignment": "Uzman Ataması",
+  "totalServices": "{{count}} hizmet",
+  "expertConflictDetail": "{{name}}: {{time}} arası meşgul",
+  "allExpertsAssigned": "Tüm uzmanlar atandı",
+  "missingExpertWarning": "Bazı hizmetler için uzman seçilmedi",
+  "noCategory": "Diğer Hizmetler"
 }

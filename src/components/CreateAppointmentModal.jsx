@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,39 +19,60 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
-import { Calendar as CalendarIcon, Clock, AlertTriangle, Check, DoorOpen, Wrench, Info } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  Calendar as CalendarIcon, Clock, AlertTriangle, Check,
+  DoorOpen, Wrench, User, ChevronDown, ChevronRight, Sparkles,
+} from 'lucide-react';
 import { createAdminNotification, sendAppointmentConfirmation } from '@/services/notificationService';
-import { checkSlotAvailability, autoAssignResources } from '@/services/availabilityService';
+import { autoAssignResources } from '@/services/availabilityService';
 import { setAppointmentResources } from '@/services/resourceService';
 
+// Türkçe gün isimleri — company_working_hours tablosuyla eşleşmeli
+const DAY_NAMES_TR = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+
 const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppointmentCreated }) => {
-  const { company } = useAuth();
+  const { company, workingHours } = useAuth();
   const { toast } = useToast();
   const { t } = useTranslation();
 
+  // ── Temel State'ler ──
   const [customers, setCustomers] = useState([]);
   const [allServices, setAllServices] = useState([]);
-  const [expertServiceIds, setExpertServiceIds] = useState(new Set());
-  const [expertServicesLoaded, setExpertServicesLoaded] = useState(false);
-
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
-  const [selectedServiceIds, setSelectedServiceIds] = useState([]);
-  const [selectedExpert, setSelectedExpert] = useState('');
   const [appointmentDate, setAppointmentDate] = useState(currentDate);
   const [appointmentTime, setAppointmentTime] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [conflictWarning, setConflictWarning] = useState(null);
+
+  // ── Hizmet Bazlı Uzman Seçimleri ──
+  // [{ serviceId: 'abc', expertId: 'exp1' | null }]
+  const [serviceSelections, setServiceSelections] = useState([]);
+
+  // Tüm uzman-hizmet ilişkileri: Map<serviceId, Set<expertId>>
+  const [expertServiceMap, setExpertServiceMap] = useState(new Map());
+
+  // Uzman müsaitlik durumu: Map<expertId, { available: bool, reason: string }>
+  const [expertAvailability, setExpertAvailability] = useState(new Map());
+
+  // Çakışma uyarıları (çoklu uzman desteği)
+  const [conflictWarnings, setConflictWarnings] = useState([]);
 
   // Kaynak atama state'leri
-  const [assignedSpace, setAssignedSpace] = useState(null); // { id, name }
-  const [assignedEquipment, setAssignedEquipment] = useState([]); // [{ id, name }]
-  const [resourceConflicts, setResourceConflicts] = useState([]); // [{ type, name, message }]
+  const [assignedSpace, setAssignedSpace] = useState(null);
+  const [assignedEquipment, setAssignedEquipment] = useState([]);
+  const [resourceConflicts, setResourceConflicts] = useState([]);
   const [allSpaces, setAllSpaces] = useState([]);
   const [hasResources, setHasResources] = useState(false);
 
-  // Yardımcı fonksiyonlar
+  // Kategori açık/kapalı durumları
+  const [collapsedCategories, setCollapsedCategories] = useState(new Set());
+
+  // Tatil günleri
+  const [holidays, setHolidays] = useState([]);
+
+  // ── Yardımcı Fonksiyonlar ──
   const timeToMinutes = (time) => {
     if (!time) return 0;
     const [hours, minutes] = time.split(':').map(Number);
@@ -65,225 +85,327 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
     return `${h}:${m}`;
   };
 
-  // Uzmanın gerçekten meşgul olduğu zaman penceresini hesapla
-  // Sadece requires_expert=true olan hizmetlerin süresini sayar
-  // Hizmet sırası önemli: ilk uzman hizmetinden son uzman hizmetine kadar olan aralık
-  const calculateExpertWindow = (services, appointmentStartMinutes) => {
-    if (!services || services.length === 0) return null;
-    let currentTime = appointmentStartMinutes;
-    let expertStart = null;
-    let expertEnd = null;
-    for (const svc of services) {
-      const duration = svc.duration || 0;
-      const needsExpert = svc.requires_expert !== false; // null veya true = uzman gerekli
-      if (needsExpert) {
-        if (expertStart === null) expertStart = currentTime;
-        expertEnd = currentTime + duration;
-      }
-      currentTime += duration;
-    }
-    return (expertStart !== null && expertEnd !== null)
-      ? { start: expertStart, end: expertEnd }
-      : null;
-  };
-
-  // Toplam süre ve fiyat hesapla
+  // ── Hesaplanmış Değerler ──
   const totalDuration = useMemo(() => {
-    return selectedServiceIds.reduce((sum, sId) => {
-      const svc = allServices.find(s => s.id === sId);
+    return serviceSelections.reduce((sum, sel) => {
+      const svc = allServices.find(s => s.id === sel.serviceId);
       return sum + (svc?.duration || 0);
     }, 0);
-  }, [selectedServiceIds, allServices]);
+  }, [serviceSelections, allServices]);
 
   const totalPrice = useMemo(() => {
-    return selectedServiceIds.reduce((sum, sId) => {
-      const svc = allServices.find(s => s.id === sId);
+    return serviceSelections.reduce((sum, sel) => {
+      const svc = allServices.find(s => s.id === sel.serviceId);
       return sum + (svc?.price || 0);
     }, 0);
-  }, [selectedServiceIds, allServices]);
+  }, [serviceSelections, allServices]);
 
-  // Seçili hizmetlerden herhangi biri uzman gerektiriyor mu?
-  const requiresExpert = useMemo(() => {
-    if (selectedServiceIds.length === 0) return true; // Varsayılan: uzman gerekli
-    return selectedServiceIds.some(sId => {
-      const svc = allServices.find(s => s.id === sId);
-      return svc?.requires_expert !== false; // requires_expert null veya true ise uzman gerekli
+  // Seçili hizmetlerden en az biri uzman gerektiriyor mu?
+  const hasExpertRequiredService = useMemo(() => {
+    return serviceSelections.some(sel => {
+      const svc = allServices.find(s => s.id === sel.serviceId);
+      return svc?.requires_expert !== false;
     });
-  }, [selectedServiceIds, allServices]);
+  }, [serviceSelections, allServices]);
 
-  // Sadece uzman gerektiren hizmetlerin toplam süresi
-  const expertOnlyDuration = useMemo(() => {
-    return selectedServiceIds.reduce((sum, sId) => {
-      const svc = allServices.find(s => s.id === sId);
-      if (svc?.requires_expert !== false) {
-        return sum + (svc?.duration || 0);
-      }
-      return sum;
-    }, 0);
-  }, [selectedServiceIds, allServices]);
+  // Tüm uzman gerektiren hizmetlere uzman atanmış mı?
+  const allExpertsAssigned = useMemo(() => {
+    return serviceSelections.every(sel => {
+      const svc = allServices.find(s => s.id === sel.serviceId);
+      if (svc?.requires_expert === false) return true; // self-service, uzman gerekmez
+      return !!sel.expertId;
+    });
+  }, [serviceSelections, allServices]);
 
-  // Seçili uzmanın yapabildiği hizmetleri filtrele
-  const availableServices = useMemo(() => {
-    if (!selectedExpert) return allServices;
-    if (!expertServicesLoaded) return []; // Henüz yüklenmedi, boş göster
-    if (expertServiceIds.size === 0) return []; // Uzmanın hiç hizmeti yok
-    return allServices.filter(s => expertServiceIds.has(s.id));
-  }, [allServices, selectedExpert, expertServiceIds, expertServicesLoaded]);
+  // Hizmetleri grupla: requires_expert true/false + category
+  const groupedServices = useMemo(() => {
+    const expertServices = allServices.filter(s => s.requires_expert !== false);
+    const selfServices = allServices.filter(s => s.requires_expert === false);
 
+    // Kategori bazlı gruplama fonksiyonu
+    const groupByCategory = (services) => {
+      const groups = new Map();
+      services.forEach(svc => {
+        const cat = svc.category || t('noCategory');
+        if (!groups.has(cat)) groups.set(cat, []);
+        groups.get(cat).push(svc);
+      });
+      return groups;
+    };
+
+    return {
+      expert: groupByCategory(expertServices),
+      selfService: groupByCategory(selfServices),
+      hasExpertServices: expertServices.length > 0,
+      hasSelfServices: selfServices.length > 0,
+    };
+  }, [allServices, t]);
+
+  // ── Veri Yükleme ──
   useEffect(() => {
     if (isOpen && company) {
-      const fetchDropdownData = async () => {
-        const [customerRes, serviceRes, spacesRes] = await Promise.all([
+      const fetchData = async () => {
+        const [customerRes, serviceRes, spacesRes, expertServicesRes, holidaysRes] = await Promise.all([
           supabase.from('customers').select('*').eq('company_id', company.id),
           supabase.from('company_services').select('*').eq('company_id', company.id).eq('is_active', true),
           supabase.from('spaces').select('id, name, color').eq('company_id', company.id).eq('is_active', true).order('sort_order'),
+          // Tüm uzman-hizmet ilişkilerini tek seferde çek
+          supabase.from('expert_services').select('expert_id, service_id').eq('company_id', company.id),
+          // Tatil günlerini çek
+          supabase.from('company_holidays').select('expert_id, date').eq('company_id', company.id),
         ]);
+
         if (customerRes.data) setCustomers(customerRes.data);
         if (serviceRes.data) setAllServices(serviceRes.data);
         if (spacesRes.data) {
           setAllSpaces(spacesRes.data);
           setHasResources(spacesRes.data.length > 0);
         }
+        if (holidaysRes.data) setHolidays(holidaysRes.data);
+
+        // expertServiceMap oluştur: Map<serviceId, Set<expertId>>
+        if (expertServicesRes.data) {
+          const map = new Map();
+          expertServicesRes.data.forEach(({ service_id, expert_id }) => {
+            if (!map.has(service_id)) map.set(service_id, new Set());
+            map.get(service_id).add(expert_id);
+          });
+          setExpertServiceMap(map);
+        }
       };
-      fetchDropdownData();
+      fetchData();
       setAppointmentDate(currentDate);
     }
   }, [isOpen, company, currentDate]);
 
-  // Uzman seçildiğinde o uzmanın hizmetlerini çek
+  // ── Uzman Müsaitlik Kontrolü ──
+  // Tarih veya saat değiştiğinde tüm uzmanların müsaitliğini yeniden hesapla
   useEffect(() => {
-    if (selectedExpert && company) {
-      setExpertServicesLoaded(false); // Yükleme başladı
-      const fetchExpertServices = async () => {
+    if (!appointmentDate || !experts || experts.length === 0) return;
+
+    const dateStr = appointmentDate instanceof Date
+      ? appointmentDate.toISOString().split('T')[0]
+      : appointmentDate;
+    const dateObj = appointmentDate instanceof Date ? appointmentDate : new Date(appointmentDate);
+    const dayName = DAY_NAMES_TR[dateObj.getDay()];
+
+    const checkAvailability = async () => {
+      const availMap = new Map();
+
+      // O günkü mevcut randevuları çek (çakışma kontrolü için)
+      let existingApps = [];
+      if (appointmentTime) {
         const { data } = await supabase
-          .from('expert_services')
-          .select('service_id')
-          .eq('expert_id', selectedExpert)
-          .eq('company_id', company.id);
-        if (data) {
-          setExpertServiceIds(new Set(data.map(d => d.service_id)));
-        } else {
-          setExpertServiceIds(new Set());
-        }
-        setExpertServicesLoaded(true); // Yükleme bitti
-      };
-      fetchExpertServices();
-    } else {
-      setExpertServiceIds(new Set());
-      setExpertServicesLoaded(false);
-    }
-  }, [selectedExpert, company]);
-
-  // expert_services yüklendikten sonra seçili hizmetleri filtrele
-  useEffect(() => {
-    if (selectedExpert && expertServiceIds.size > 0) {
-      setSelectedServiceIds(prev =>
-        prev.filter(sId => expertServiceIds.has(sId))
-      );
-    }
-  }, [expertServiceIds, selectedExpert]);
-
-  // Çakışma kontrolü — tarih, saat veya süre değiştiğinde
-  useEffect(() => {
-    if (appointmentTime && totalDuration > 0 && appointmentDate && (selectedExpert || selectedServiceIds.length > 0)) {
-      checkConflict();
-    } else {
-      setConflictWarning(null);
-      setResourceConflicts([]);
-      setAssignedSpace(null);
-      setAssignedEquipment([]);
-    }
-  }, [selectedExpert, appointmentDate, appointmentTime, totalDuration, selectedServiceIds]);
-
-  const checkConflict = async () => {
-    if (!appointmentTime || totalDuration <= 0) return;
-
-    const dateStr = appointmentDate.toISOString().split('T')[0];
-    const newStart = timeToMinutes(appointmentTime);
-    const newEnd = newStart + totalDuration;
-
-    // Öğle molası kontrolü
-    if (selectedExpert) {
-      const expert = experts?.find(e => e.id === selectedExpert);
-      if (expert?.general_lunch_start_time && expert?.general_lunch_end_time) {
-        const lunchStart = timeToMinutes(expert.general_lunch_start_time);
-        const lunchEnd = timeToMinutes(expert.general_lunch_end_time);
-        if (newStart < lunchEnd && newEnd > lunchStart) {
-          setConflictWarning({
-            existingTime: `${expert.general_lunch_start_time.substring(0, 5)} - ${expert.general_lunch_end_time.substring(0, 5)}`,
-            isLunchBreak: true,
-          });
-          return;
-        }
+          .from('appointments')
+          .select('id, expert_id, time, total_duration, company_services(duration, requires_expert), appointment_services(service_id, company_services(duration, requires_expert))')
+          .eq('company_id', company.id)
+          .eq('date', dateStr)
+          .neq('status', 'iptal');
+        existingApps = data || [];
       }
+
+      for (const expert of experts) {
+        // 1. Tatil kontrolü
+        const isHoliday = holidays.some(h =>
+          (h.expert_id === expert.id || h.expert_id === null) && h.date === dateStr
+        );
+        if (isHoliday) {
+          availMap.set(expert.id, { available: false, reason: t('expertNotWorking') });
+          continue;
+        }
+
+        // 2. Çalışma saatleri kontrolü
+        const expertHours = workingHours?.filter(wh =>
+          wh.expert_id === expert.id && wh.day === dayName && wh.is_open
+        ) || [];
+
+        if (expertHours.length === 0) {
+          availMap.set(expert.id, { available: false, reason: t('expertNotWorking') });
+          continue;
+        }
+
+        // 3. Saat belirtilmişse, çalışma saatleri aralığında mı?
+        if (appointmentTime) {
+          const timeMin = timeToMinutes(appointmentTime);
+          const withinHours = expertHours.some(wh => {
+            const start = timeToMinutes(wh.start_time);
+            const end = timeToMinutes(wh.end_time);
+            return timeMin >= start && timeMin < end;
+          });
+          if (!withinHours) {
+            availMap.set(expert.id, { available: false, reason: t('outsideWorkingHours') });
+            continue;
+          }
+
+          // 4. Öğle molası kontrolü
+          if (expert.general_lunch_start_time && expert.general_lunch_end_time) {
+            const lunchStart = timeToMinutes(expert.general_lunch_start_time);
+            const lunchEnd = timeToMinutes(expert.general_lunch_end_time);
+            if (timeMin >= lunchStart && timeMin < lunchEnd) {
+              availMap.set(expert.id, {
+                available: false,
+                reason: `${t('lunchBreakWarning') || 'Öğle molası'}: ${expert.general_lunch_start_time.substring(0,5)}-${expert.general_lunch_end_time.substring(0,5)}`
+              });
+              continue;
+            }
+          }
+
+          // 5. Mevcut randevu çakışması kontrolü
+          // Bu uzmanın bu saatte meşgul olup olmadığını kontrol et
+          const expertApps = existingApps.filter(app => app.expert_id === expert.id);
+          let isBusy = false;
+          for (const app of expertApps) {
+            const appStart = timeToMinutes(app.time);
+            // Uzman meşguliyet penceresi hesapla
+            let expertEnd = appStart;
+            if (app.appointment_services?.length > 0) {
+              let currentTime = appStart;
+              let hasExpert = false;
+              for (const as of app.appointment_services) {
+                const dur = as.company_services?.duration || 0;
+                const needsExpert = as.company_services?.requires_expert !== false;
+                if (needsExpert) {
+                  if (!hasExpert) { /* expertStart tracked internally */ }
+                  expertEnd = currentTime + dur;
+                  hasExpert = true;
+                }
+                currentTime += dur;
+              }
+              if (!hasExpert) continue;
+            } else {
+              if (app.company_services?.requires_expert === false) continue;
+              expertEnd = appStart + (app.total_duration || app.company_services?.duration || 60);
+            }
+
+            if (timeMin < expertEnd && timeMin >= appStart) {
+              isBusy = true;
+              availMap.set(expert.id, {
+                available: false,
+                reason: `${t('expertBusy')}: ${formatMinutes(appStart)}-${formatMinutes(expertEnd)}`
+              });
+              break;
+            }
+          }
+          if (isBusy) continue;
+        }
+
+        availMap.set(expert.id, { available: true, reason: '' });
+      }
+
+      setExpertAvailability(availMap);
+    };
+
+    checkAvailability();
+  }, [appointmentDate, appointmentTime, experts, workingHours, holidays, company, t]);
+
+  // ── Çakışma Kontrolü (çoklu uzman) ──
+  useEffect(() => {
+    if (!appointmentTime || serviceSelections.length === 0 || !appointmentDate) {
+      setConflictWarnings([]);
+      return;
     }
 
-    // Uzman çakışma kontrolü — sadece requires_expert=true hizmet sürelerini sayar
-    if (selectedExpert) {
-      // Yeni randevunun uzman-meşguliyet penceresi
-      const newServices = selectedServiceIds.map(sId => {
-        const svc = allServices.find(s => s.id === sId);
-        return { duration: svc?.duration || 0, requires_expert: svc?.requires_expert };
-      });
-      const newExpertWindow = calculateExpertWindow(newServices, newStart);
+    const checkConflicts = async () => {
+      const dateStr = appointmentDate instanceof Date
+        ? appointmentDate.toISOString().split('T')[0]
+        : appointmentDate;
+      const warnings = [];
 
-      // Uzman gerektiren hizmet yoksa çakışma kontrolü atla
-      if (newExpertWindow) {
+      // Benzersiz uzmanları topla ve her birinin meşguliyet penceresini hesapla
+      const expertWindows = new Map(); // Map<expertId, { start, end }>
+      let currentTime = timeToMinutes(appointmentTime);
+
+      for (const sel of serviceSelections) {
+        const svc = allServices.find(s => s.id === sel.serviceId);
+        const duration = svc?.duration || 0;
+        const needsExpert = svc?.requires_expert !== false;
+
+        if (needsExpert && sel.expertId) {
+          if (!expertWindows.has(sel.expertId)) {
+            expertWindows.set(sel.expertId, { start: currentTime, end: currentTime + duration });
+          } else {
+            const win = expertWindows.get(sel.expertId);
+            win.end = currentTime + duration;
+          }
+        }
+        currentTime += duration;
+      }
+
+      // Her uzman için mevcut randevularla çakışma kontrolü
+      for (const [expertId, window] of expertWindows) {
         const { data: existingApps } = await supabase
           .from('appointments')
           .select('id, time, total_duration, company_services(duration, requires_expert), appointment_services(service_id, company_services(duration, requires_expert))')
-          .eq('expert_id', selectedExpert)
+          .eq('expert_id', expertId)
           .eq('date', dateStr)
           .neq('status', 'iptal');
 
-        if (existingApps) {
-          for (const app of existingApps) {
-            const appStart = timeToMinutes(app.time);
+        if (!existingApps) continue;
 
-            // Mevcut randevunun uzman-meşguliyet penceresini hesapla
-            let existingExpertWindow = null;
-            if (app.appointment_services?.length > 0) {
-              // Çoklu hizmet randevusu — her hizmetin requires_expert durumuna bak
-              const appServices = app.appointment_services.map(as => ({
-                duration: as.company_services?.duration || 0,
-                requires_expert: as.company_services?.requires_expert,
-              }));
-              existingExpertWindow = calculateExpertWindow(appServices, appStart);
-            }
+        for (const app of existingApps) {
+          const appStart = timeToMinutes(app.time);
+          let existingStart = appStart;
+          let existingEnd = appStart;
 
-            // appointment_services yoksa veya boşsa, legacy tek hizmet modunda çalış
-            if (!existingExpertWindow) {
-              const svcRequiresExpert = app.company_services?.requires_expert;
-              if (svcRequiresExpert === false) {
-                // Mevcut randevu self-service, uzman çakışması yok
-                continue;
+          if (app.appointment_services?.length > 0) {
+            let ct = appStart;
+            let hasExpert = false;
+            for (const as of app.appointment_services) {
+              const dur = as.company_services?.duration || 0;
+              const needsExp = as.company_services?.requires_expert !== false;
+              if (needsExp) {
+                if (!hasExpert) existingStart = ct;
+                existingEnd = ct + dur;
+                hasExpert = true;
               }
-              const appDuration = app.total_duration || app.company_services?.duration || 60;
-              existingExpertWindow = { start: appStart, end: appStart + appDuration };
+              ct += dur;
             }
+            if (!hasExpert) continue;
+          } else {
+            if (app.company_services?.requires_expert === false) continue;
+            existingEnd = appStart + (app.total_duration || app.company_services?.duration || 60);
+          }
 
-            // Uzman meşguliyet pencerelerini karşılaştır
-            if (newExpertWindow.start < existingExpertWindow.end && newExpertWindow.end > existingExpertWindow.start) {
-              setConflictWarning({
-                existingTime: `${formatMinutes(existingExpertWindow.start)} - ${formatMinutes(existingExpertWindow.end)}`,
-              });
-              // Uzman çakışması varsa kaynak kontrolüne devam etme
-              return;
-            }
+          if (window.start < existingEnd && window.end > existingStart) {
+            const expert = experts?.find(e => e.id === expertId);
+            warnings.push({
+              expertId,
+              expertName: expert?.name || '',
+              existingTime: `${formatMinutes(existingStart)} - ${formatMinutes(existingEnd)}`,
+            });
+            break;
           }
         }
       }
+
+      setConflictWarnings(warnings);
+    };
+
+    checkConflicts();
+  }, [serviceSelections, appointmentDate, appointmentTime, allServices, experts]);
+
+  // ── Kaynak Otomatik Atama ──
+  useEffect(() => {
+    if (!hasResources || serviceSelections.length === 0 || !appointmentTime || !company || conflictWarnings.length > 0) {
+      setAssignedSpace(null);
+      setAssignedEquipment([]);
+      setResourceConflicts([]);
+      return;
     }
 
-    setConflictWarning(null);
-
-    // Kaynak otomatik atama (alanlar tanımlıysa ve hizmet seçiliyse)
-    if (hasResources && selectedServiceIds.length > 0 && company) {
+    const assignResources = async () => {
       try {
-        const serviceId = selectedServiceIds[0]; // İlk hizmetin kaynaklarını kontrol et
+        const dateStr = appointmentDate instanceof Date
+          ? appointmentDate.toISOString().split('T')[0]
+          : appointmentDate;
+        const primaryExpertId = serviceSelections.find(sel => {
+          const svc = allServices.find(s => s.id === sel.serviceId);
+          return svc?.requires_expert !== false && sel.expertId;
+        })?.expertId || null;
+
         const result = await autoAssignResources(
           company.id, dateStr, appointmentTime, totalDuration,
-          selectedExpert || null, serviceId
+          primaryExpertId, serviceSelections[0].serviceId
         );
 
         if (result.error) {
@@ -292,7 +414,6 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
           setAssignedEquipment([]);
         } else {
           setResourceConflicts([]);
-          // Atanan alanın adını bul
           if (result.space_id) {
             const space = allSpaces.find(s => s.id === result.space_id);
             setAssignedSpace(space ? { id: space.id, name: space.name, color: space.color } : null);
@@ -307,153 +428,159 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
         setAssignedSpace(null);
         setAssignedEquipment([]);
       }
-    } else {
-      setResourceConflicts([]);
-      setAssignedSpace(null);
-      setAssignedEquipment([]);
-    }
-  };
+    };
 
-  // Hizmet seçim toggle
-  const toggleServiceSelection = (serviceId) => {
-    setSelectedServiceIds(prev => {
-      if (prev.includes(serviceId)) {
-        return prev.filter(id => id !== serviceId);
+    assignResources();
+  }, [serviceSelections, appointmentDate, appointmentTime, totalDuration, hasResources, company, conflictWarnings, allSpaces, allServices]);
+
+  // ── Hizmet Seçim/Kaldırma ──
+  const toggleService = useCallback((serviceId) => {
+    setServiceSelections(prev => {
+      const exists = prev.find(s => s.serviceId === serviceId);
+      if (exists) {
+        return prev.filter(s => s.serviceId !== serviceId);
       } else {
-        return [...prev, serviceId];
+        const svc = allServices.find(s => s.id === serviceId);
+        const needsExpert = svc?.requires_expert !== false;
+
+        // Uzman gerektiriyorsa ve bu hizmeti yapabilen tek uzman varsa otomatik seç
+        let autoExpertId = null;
+        if (needsExpert) {
+          const availableExperts = expertServiceMap.get(serviceId);
+          if (availableExperts && availableExperts.size === 1) {
+            const singleExpertId = [...availableExperts][0];
+            const avail = expertAvailability.get(singleExpertId);
+            if (avail?.available) {
+              autoExpertId = singleExpertId;
+            }
+          }
+        }
+
+        return [...prev, { serviceId, expertId: autoExpertId }];
       }
     });
-  };
+  }, [allServices, expertServiceMap, expertAvailability]);
 
+  // Hizmet bazlı uzman ata
+  const setExpertForService = useCallback((serviceId, expertId) => {
+    setServiceSelections(prev =>
+      prev.map(sel => sel.serviceId === serviceId ? { ...sel, expertId } : sel)
+    );
+  }, []);
+
+  // ── Kategori Aç/Kapat ──
+  const toggleCategory = useCallback((catKey) => {
+    setCollapsedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(catKey)) newSet.delete(catKey);
+      else newSet.add(catKey);
+      return newSet;
+    });
+  }, []);
+
+  // ── Randevu Oluştur ──
   const handleCreateAppointment = async () => {
-    // Enforcement kontrolü — zorunlu modda alan/ekipman atanmamışsa engelle
+    // Validasyon
     const enforcement = company?.resource_enforcement || 'optional';
     if (enforcement === 'mandatory' && hasResources && !assignedSpace) {
       toast({ title: t('error'), description: t('resourceConflict') + ': ' + t('noAvailableSpace'), variant: 'destructive' });
       return;
-    }
-    if (enforcement === 'recommended' && hasResources && !assignedSpace) {
-      // Sadece uyarı — devam etmesine izin ver (toast ile bilgilendir)
-      toast({ title: t('resourceConflict'), description: t('noAvailableSpace'), variant: 'default' });
     }
 
     setIsSubmitting(true);
     let customerId = selectedCustomer;
 
     try {
+      // Müşteri oluştur/seç
       if (selectedCustomer === 'new') {
         if (!newCustomerName || !newCustomerPhone) {
           toast({ title: t('error'), description: t('newCustomerRequired'), variant: 'destructive' });
           setIsSubmitting(false);
           return;
         }
-        const { data: newCustomer, error: customerError } = await supabase
+        const { data: newCust, error: custErr } = await supabase
           .from('customers')
-          .insert({
-            company_id: company.id,
-            name: newCustomerName,
-            phone: newCustomerPhone,
-          })
-          .select()
-          .single();
-
-        if (customerError) throw customerError;
-        customerId = newCustomer.id;
+          .insert({ company_id: company.id, name: newCustomerName, phone: newCustomerPhone })
+          .select().single();
+        if (custErr) throw custErr;
+        customerId = newCust.id;
       }
 
-      // Uzman gerektiren hizmetler seçilmişse uzman zorunlu, değilse opsiyonel
-      if (!customerId || selectedServiceIds.length === 0 || !appointmentDate || !appointmentTime) {
-        toast({ title: t('error'), description: t('allFieldsRequired'), variant: 'destructive' });
-        setIsSubmitting(false);
-        return;
-      }
-      if (requiresExpert && !selectedExpert) {
+      if (!customerId || serviceSelections.length === 0 || !appointmentDate || !appointmentTime) {
         toast({ title: t('error'), description: t('allFieldsRequired'), variant: 'destructive' });
         setIsSubmitting(false);
         return;
       }
 
-      // Ana randevuyu oluştur
-      const appointmentPayload = {
+      // Uzman gerektiren hizmetler için uzman kontrolü
+      if (hasExpertRequiredService && !allExpertsAssigned) {
+        toast({ title: t('error'), description: t('missingExpertWarning'), variant: 'destructive' });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Primary expert (backward compat: ilk expert-requiring hizmetin uzmanı)
+      const primaryExpertId = serviceSelections.find(sel => {
+        const svc = allServices.find(s => s.id === sel.serviceId);
+        return svc?.requires_expert !== false && sel.expertId;
+      })?.expertId || null;
+
+      const dateStr = appointmentDate instanceof Date
+        ? appointmentDate.toISOString().split('T')[0]
+        : appointmentDate;
+
+      // appointments INSERT
+      const payload = {
         company_id: company.id,
         customer_id: customerId,
-        service_id: selectedServiceIds[0], // backward compat
-        date: appointmentDate.toISOString().split('T')[0],
+        service_id: serviceSelections[0].serviceId, // backward compat
+        date: dateStr,
         time: appointmentTime,
         status: 'onaylandı',
         total_duration: totalDuration,
       };
+      if (primaryExpertId) payload.expert_id = primaryExpertId;
+      if (assignedSpace?.id) payload.space_id = assignedSpace.id;
 
-      // Uzman seçildiyse ekle (self-service hizmetlerde uzman opsiyonel)
-      if (selectedExpert) {
-        appointmentPayload.expert_id = selectedExpert;
-      }
+      const { data: newAppointment, error: apptErr } = await supabase
+        .from('appointments').insert(payload).select().single();
+      if (apptErr) throw apptErr;
 
-      // Otomatik atanan alan varsa ekle
-      if (assignedSpace?.id) {
-        appointmentPayload.space_id = assignedSpace.id;
-      }
+      // appointment_services INSERT (hizmet bazlı expert_id)
+      const junctionInserts = serviceSelections.map(sel => ({
+        appointment_id: newAppointment.id,
+        service_id: sel.serviceId,
+        expert_id: sel.expertId || null,
+      }));
+      await supabase.from('appointment_services').insert(junctionInserts);
 
-      const { data: newAppointment, error: appointmentError } = await supabase
-        .from('appointments')
-        .insert(appointmentPayload)
-        .select()
-        .single();
-
-      if (appointmentError) throw appointmentError;
-
-      // appointment_services junction kayıtlarını oluştur
-      if (selectedServiceIds.length > 0) {
-        const junctionInserts = selectedServiceIds.map(sId => ({
-          appointment_id: newAppointment.id,
-          service_id: sId,
-        }));
-        await supabase.from('appointment_services').insert(junctionInserts);
-      }
-
-      // appointment_resources — alan + ekipman kayıtlarını oluştur
+      // appointment_resources
       const resources = [];
-      if (assignedSpace?.id) {
-        resources.push({ resource_type: 'space', resource_id: assignedSpace.id });
-      }
-      if (assignedEquipment.length > 0) {
-        assignedEquipment.forEach(eqId => {
-          resources.push({ resource_type: 'equipment', resource_id: eqId });
-        });
-      }
-      if (resources.length > 0) {
-        await setAppointmentResources(newAppointment.id, resources);
-      }
+      if (assignedSpace?.id) resources.push({ resource_type: 'space', resource_id: assignedSpace.id });
+      assignedEquipment.forEach(eqId => resources.push({ resource_type: 'equipment', resource_id: eqId }));
+      if (resources.length > 0) await setAppointmentResources(newAppointment.id, resources);
 
-      // Bildirim ve WhatsApp
+      // Bildirimler
       const customer = customers.find(c => c.id === customerId);
-      const serviceNames = selectedServiceIds
-        .map(sId => allServices.find(s => s.id === sId)?.description)
-        .filter(Boolean)
-        .join(', ');
-      const expert = experts.find(e => e.id === selectedExpert);
-      const dateStr = appointmentDate.toISOString().split('T')[0];
+      const serviceNames = serviceSelections
+        .map(sel => allServices.find(s => s.id === sel.serviceId)?.description)
+        .filter(Boolean).join(', ');
+      const expertNames = [...new Set(
+        serviceSelections.filter(sel => sel.expertId).map(sel => experts?.find(e => e.id === sel.expertId)?.name).filter(Boolean)
+      )].join(', ');
 
-      // Admin bildirimi oluştur
       await createAdminNotification(
-        company.id,
-        'new_appointment',
-        t('notifNewAppointment'),
+        company.id, 'new_appointment', t('notifNewAppointment'),
         `${customer?.name || ''} — ${dateStr} ${appointmentTime} — ${serviceNames}`,
         newAppointment?.id
       );
 
-      // Müşteriye WhatsApp onay mesajı gönder
       if (customer?.phone) {
         await sendAppointmentConfirmation({
-          company_id: company.id,
-          salon_name: company.name,
-          customer_name: customer.name,
-          customer_phone: customer.phone,
-          date: dateStr,
-          time: appointmentTime,
-          service_name: serviceNames,
-          expert_name: expert?.name || '',
+          company_id: company.id, salon_name: company.name,
+          customer_name: customer.name, customer_phone: customer.phone,
+          date: dateStr, time: appointmentTime,
+          service_name: serviceNames, expert_name: expertNames,
         });
       }
 
@@ -471,127 +598,284 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
     setSelectedCustomer('');
     setNewCustomerName('');
     setNewCustomerPhone('');
-    setSelectedServiceIds([]);
-    setSelectedExpert('');
+    setServiceSelections([]);
     setAppointmentTime('');
-    setConflictWarning(null);
-    setExpertServiceIds(new Set());
-    setExpertServicesLoaded(false);
+    setConflictWarnings([]);
     setAssignedSpace(null);
     setAssignedEquipment([]);
     setResourceConflicts([]);
+    setExpertAvailability(new Map());
+    setCollapsedCategories(new Set());
     onClose();
   };
 
+  // ── Hizmet Satırı Render ──
+  const renderServiceRow = (service) => {
+    const sel = serviceSelections.find(s => s.serviceId === service.id);
+    const isSelected = !!sel;
+    const needsExpert = service.requires_expert !== false;
+    const serviceExperts = expertServiceMap.get(service.id) || new Set();
+
+    return (
+      <div key={service.id} className="space-y-0">
+        <button
+          type="button"
+          onClick={() => toggleService(service.id)}
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all
+            ${isSelected
+              ? 'bg-emerald-50 border border-emerald-300 text-emerald-800'
+              : 'bg-white border border-slate-200 text-slate-700 hover:border-emerald-200 hover:bg-emerald-50/30'
+            }`}
+        >
+          <div className="flex items-center gap-2.5">
+            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0
+              ${isSelected ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'}`}>
+              {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+            </div>
+            <span className="font-medium text-left">{service.description}</span>
+            {!needsExpert && (
+              <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">
+                {t('selfServiceBadge')}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0 ml-2">
+            <span className="text-xs text-slate-400">{service.duration} dk</span>
+            {service.price != null && (
+              <span className="text-xs font-medium text-slate-500">
+                {Number(service.price).toLocaleString('tr-TR')} TL
+              </span>
+            )}
+          </div>
+        </button>
+
+        {/* Uzman seçici satırı — hizmet seçili ve uzman gerektiriyorsa göster */}
+        <AnimatePresence>
+          {isSelected && needsExpert && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="ml-8 mt-1 mb-1 flex items-center gap-2 flex-wrap">
+                <User className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                <span className="text-xs text-slate-500 mr-1">{t('expertAssignment')}:</span>
+                {serviceExperts.size === 0 ? (
+                  <span className="text-xs text-red-500">{t('noExpertsAvailable')}</span>
+                ) : (
+                  [...serviceExperts].map(expId => {
+                    const expert = experts?.find(e => e.id === expId);
+                    if (!expert) return null;
+                    const avail = expertAvailability.get(expId);
+                    const isAvailable = avail?.available !== false;
+                    const isChosen = sel?.expertId === expId;
+                    const isAutoSelected = serviceExperts.size === 1 && isChosen;
+
+                    return (
+                      <button
+                        key={expId}
+                        type="button"
+                        disabled={!isAvailable}
+                        onClick={() => setExpertForService(service.id, isChosen ? null : expId)}
+                        title={!isAvailable ? avail?.reason : expert.name}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all
+                          ${isChosen
+                            ? 'text-white shadow-sm'
+                            : isAvailable
+                              ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                              : 'bg-slate-50 text-slate-400 line-through cursor-not-allowed border border-slate-100'
+                          }`}
+                        style={isChosen ? { backgroundColor: expert.color || '#059669' } : {}}
+                      >
+                        <div
+                          className={`w-2 h-2 rounded-full flex-shrink-0 ${!isAvailable ? 'bg-slate-300' : ''}`}
+                          style={isAvailable && !isChosen ? { backgroundColor: expert.color || '#059669' } : isChosen ? { backgroundColor: 'rgba(255,255,255,0.5)' } : {}}
+                        />
+                        {expert.name}
+                        {isChosen && <Check className="w-3 h-3" />}
+                        {isAutoSelected && (
+                          <span className="text-[9px] opacity-80">({t('expertAutoSelected')})</span>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
+  // ── Kategori Grubu Render ──
+  const renderCategoryGroup = (categoryName, services, groupKey) => {
+    const isCollapsed = collapsedCategories.has(groupKey);
+    const selectedCount = services.filter(s => serviceSelections.some(sel => sel.serviceId === s.id)).length;
+
+    return (
+      <div key={groupKey} className="space-y-1">
+        <button
+          type="button"
+          onClick={() => toggleCategory(groupKey)}
+          className="w-full flex items-center justify-between px-2 py-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider hover:text-slate-700"
+        >
+          <div className="flex items-center gap-1.5">
+            {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            {categoryName}
+          </div>
+          {selectedCount > 0 && (
+            <span className="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full text-[10px] font-bold">
+              {selectedCount}
+            </span>
+          )}
+        </button>
+        {!isCollapsed && (
+          <div className="space-y-1">
+            {services.map(svc => renderServiceRow(svc))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ── Özet: Uzman Atamaları ──
+  const expertAssignmentSummary = useMemo(() => {
+    const assignments = [];
+    serviceSelections.forEach(sel => {
+      if (sel.expertId) {
+        const expert = experts?.find(e => e.id === sel.expertId);
+        const svc = allServices.find(s => s.id === sel.serviceId);
+        if (expert && svc) {
+          assignments.push({ expertName: expert.name, expertColor: expert.color, serviceName: svc.description });
+        }
+      }
+    });
+    return assignments;
+  }, [serviceSelections, experts, allServices]);
+
+  // ── Buton aktif mi? ──
+  const canSubmit = useMemo(() => {
+    if (!selectedCustomer) return false;
+    if (selectedCustomer === 'new' && (!newCustomerName || !newCustomerPhone)) return false;
+    if (serviceSelections.length === 0) return false;
+    if (!appointmentDate || !appointmentTime) return false;
+    if (hasExpertRequiredService && !allExpertsAssigned) return false;
+    if (conflictWarnings.length > 0) return false;
+    return true;
+  }, [selectedCustomer, newCustomerName, newCustomerPhone, serviceSelections, appointmentDate, appointmentTime, hasExpertRequiredService, allExpertsAssigned, conflictWarnings]);
+
+  // ── RENDER ──
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{t('newAppointment')}</DialogTitle>
+      <DialogContent
+        className="sm:max-w-[900px] lg:max-w-[1100px] max-h-[95vh] flex flex-col p-0"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
+        {/* Header */}
+        <DialogHeader className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
+          <DialogTitle className="text-xl font-bold text-slate-800">
+            {t('newAppointment')}
+          </DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          {/* Müşteri seçimi */}
-          <Select onValueChange={setSelectedCustomer} value={selectedCustomer}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('selectCustomer')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="new">{t('addNewCustomer')}</SelectItem>
-              {customers.map(c => (
-                <SelectItem key={c.id} value={c.id}>{c.name} - {c.phone}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
 
-          {selectedCustomer === 'new' && (
-            <>
-              <Input
-                placeholder={t('newCustomerNamePlaceholder')}
-                value={newCustomerName}
-                onChange={(e) => setNewCustomerName(e.target.value)}
-              />
-              <Input
-                placeholder={t('newCustomerPhonePlaceholder')}
-                value={newCustomerPhone}
-                onChange={(e) => setNewCustomerPhone(e.target.value)}
-              />
-            </>
-          )}
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
 
-          {/* Uzman seçimi */}
-          <div>
-            <Select onValueChange={(val) => setSelectedExpert(val === 'none' ? '' : val)} value={selectedExpert || 'none'}>
-              <SelectTrigger>
-                <SelectValue placeholder={t('selectExpert')} />
+          {/* ── Bölüm 1: Müşteri Seçimi ── */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-2">
+              <User className="w-4 h-4" />
+              {t('selectCustomer')}
+            </h3>
+            <Select onValueChange={setSelectedCustomer} value={selectedCustomer}>
+              <SelectTrigger className="h-11">
+                <SelectValue placeholder={t('selectCustomer')} />
               </SelectTrigger>
               <SelectContent>
-                {!requiresExpert && (
-                  <SelectItem value="none">— {t('selfService') || 'Self Servis'} —</SelectItem>
-                )}
-                {experts.map(e => (
-                  <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                <SelectItem value="new">{t('addNewCustomer')}</SelectItem>
+                {customers.map(c => (
+                  <SelectItem key={c.id} value={c.id}>{c.name} - {c.phone}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {!requiresExpert && !selectedExpert && (
-              <p className="text-xs text-amber-600 mt-1">{t('selfService')}</p>
+            {selectedCustomer === 'new' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Input
+                  placeholder={t('newCustomerNamePlaceholder')}
+                  value={newCustomerName}
+                  onChange={(e) => setNewCustomerName(e.target.value.toUpperCase())}
+                  className="h-11"
+                />
+                <Input
+                  placeholder={t('newCustomerPhonePlaceholder')}
+                  value={newCustomerPhone}
+                  onChange={(e) => setNewCustomerPhone(e.target.value)}
+                  className="h-11"
+                />
+              </div>
             )}
           </div>
 
-          {/* Çoklu hizmet seçimi */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">{t('selectServices')}</label>
-            <div className="max-h-[200px] overflow-y-auto border border-slate-200 rounded-xl p-2 space-y-1 bg-slate-50/50">
-              {availableServices.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-3">
-                  {selectedExpert ? t('noServicesYet') : t('selectExpert')}
-                </p>
-              ) : (
-                availableServices.map(service => {
-                  const isSelected = selectedServiceIds.includes(service.id);
-                  return (
-                    <button
-                      key={service.id}
-                      type="button"
-                      onClick={() => toggleServiceSelection(service.id)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all
-                        ${isSelected
-                          ? 'bg-emerald-50 border border-emerald-300 text-emerald-800'
-                          : 'bg-white border border-slate-200 text-slate-700 hover:border-emerald-200'
-                        }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0
-                          ${isSelected ? 'bg-emerald-700 border-emerald-700' : 'border-slate-300'}`}>
-                          {isSelected && <Check className="w-3 h-3 text-white" />}
-                        </div>
-                        <span className="font-medium text-left">{service.description}</span>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                        <span className="text-xs text-slate-400">{service.duration} dk</span>
-                        {service.price != null && (
-                          <span className="text-xs text-slate-500">{Number(service.price).toLocaleString('tr-TR')} TL</span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })
+          {/* ── Bölüm 2: Hizmet Seçimi ── */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              {t('servicesAndExperts')}
+            </h3>
+
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              {/* Uzman Hizmetleri */}
+              {groupedServices.hasExpertServices && (
+                <div className="p-3 space-y-2 bg-white">
+                  <div className="flex items-center gap-2 px-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">
+                      {t('expertServices')}
+                    </span>
+                  </div>
+                  {[...groupedServices.expert.entries()].map(([cat, services]) =>
+                    renderCategoryGroup(cat, services, `expert-${cat}`)
+                  )}
+                </div>
+              )}
+
+              {/* Self Servis Ayırıcı */}
+              {groupedServices.hasExpertServices && groupedServices.hasSelfServices && (
+                <div className="border-t border-slate-200" />
+              )}
+
+              {/* Self Servis Hizmetleri */}
+              {groupedServices.hasSelfServices && (
+                <div className="p-3 space-y-2 bg-amber-50/30">
+                  <div className="flex items-center gap-2 px-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">
+                      {t('selfServiceSection')}
+                    </span>
+                  </div>
+                  {[...groupedServices.selfService.entries()].map(([cat, services]) =>
+                    renderCategoryGroup(cat, services, `self-${cat}`)
+                  )}
+                </div>
               )}
             </div>
 
-            {/* Toplam süre ve fiyat özeti */}
-            {selectedServiceIds.length > 0 && (
-              <div className="flex items-center justify-between px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm">
+            {/* Seçim Özeti */}
+            {serviceSelections.length > 0 && (
+              <div className="flex items-center justify-between px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-sm">
                 <span className="text-emerald-700 font-medium">
-                  {t('selectedServices', { count: selectedServiceIds.length })}
+                  {t('totalServices', { count: serviceSelections.length })}
                 </span>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
                   <span className="flex items-center gap-1 text-emerald-600">
                     <Clock className="w-3.5 h-3.5" />
                     {totalDuration} dk
                   </span>
                   {totalPrice > 0 && (
-                    <span className="text-emerald-600 font-medium">
+                    <span className="text-emerald-700 font-semibold">
                       {totalPrice.toLocaleString('tr-TR')} TL
                     </span>
                   )}
@@ -600,61 +884,64 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
             )}
           </div>
 
-          {/* Tarih ve Saat */}
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-              <Input
-                type="date"
-                value={appointmentDate.toISOString().split('T')[0]}
-                onChange={(e) => setAppointmentDate(new Date(e.target.value))}
-                className="pl-9"
-              />
-            </div>
-            <div className="relative">
-              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-              <Input
-                type="time"
-                value={appointmentTime}
-                onChange={(e) => setAppointmentTime(e.target.value)}
-                className="pl-9"
-              />
+          {/* ── Bölüm 3: Tarih ve Saat ── */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-2">
+              <CalendarIcon className="w-4 h-4" />
+              {t('dateAndTime') || 'Tarih ve Saat'}
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="relative">
+                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                <Input
+                  type="date"
+                  value={appointmentDate instanceof Date ? appointmentDate.toISOString().split('T')[0] : appointmentDate}
+                  onChange={(e) => setAppointmentDate(new Date(e.target.value))}
+                  className="pl-10 h-11"
+                />
+              </div>
+              <div className="relative">
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                <Input
+                  type="time"
+                  value={appointmentTime}
+                  onChange={(e) => setAppointmentTime(e.target.value)}
+                  className="pl-10 h-11"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Çakışma uyarısı */}
-          {conflictWarning && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-amber-800">
-                  {conflictWarning.isLunchBreak ? (t('lunchBreakWarning') || 'Öğle Molası Çakışması') : t('conflictWarning')}
-                </p>
-                <p className="text-xs text-amber-600">
-                  {conflictWarning.isLunchBreak
-                    ? (t('lunchBreakMessage', { time: conflictWarning.existingTime }) || `Uzmanın öğle molası: ${conflictWarning.existingTime}`)
-                    : t('conflictMessage', { time: conflictWarning.existingTime })}
-                </p>
+          {/* ── Bölüm 4: Uyarılar ── */}
+          {conflictWarnings.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                <p className="text-sm font-semibold text-amber-800">{t('conflictWarning')}</p>
               </div>
+              {conflictWarnings.map((cw, idx) => (
+                <p key={idx} className="text-xs text-amber-700 ml-7">
+                  {t('expertConflictDetail', { name: cw.expertName, time: cw.existingTime })}
+                </p>
+              ))}
             </div>
           )}
 
-          {/* Kaynak çakışma uyarısı */}
           {resourceConflicts.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2">
-              <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-red-800">{t('resourceConflict') || 'Kaynak Çakışması'}</p>
-                {resourceConflicts.map((rc, idx) => (
-                  <p key={idx} className="text-xs text-red-600">{rc.message}</p>
-                ))}
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                <p className="text-sm font-semibold text-red-800">{t('resourceConflict') || 'Kaynak Çakışması'}</p>
               </div>
+              {resourceConflicts.map((rc, idx) => (
+                <p key={idx} className="text-xs text-red-600 ml-7">{rc.message}</p>
+              ))}
             </div>
           )}
 
-          {/* Kaynak Atama bölümü — alanlar tanımlıysa ve çakışma yoksa göster */}
-          {hasResources && !conflictWarning && allSpaces.length > 0 && (
-            <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 space-y-2">
+          {/* ── Bölüm 5: Kaynak Atama ── */}
+          {hasResources && conflictWarnings.length === 0 && allSpaces.length > 0 && serviceSelections.length > 0 && (
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <DoorOpen className="w-4 h-4 text-purple-600 flex-shrink-0" />
                 <span className="text-sm font-medium text-purple-800">{t('spaceRequired')}</span>
@@ -667,15 +954,14 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
               <Select
                 value={assignedSpace?.id || 'none'}
                 onValueChange={(val) => {
-                  if (val === 'none') {
-                    setAssignedSpace(null);
-                  } else {
+                  if (val === 'none') setAssignedSpace(null);
+                  else {
                     const space = allSpaces.find(s => s.id === val);
                     setAssignedSpace(space ? { id: space.id, name: space.name, color: space.color } : null);
                   }
                 }}
               >
-                <SelectTrigger className="bg-white border-purple-200 text-sm h-9">
+                <SelectTrigger className="bg-white border-purple-200 text-sm h-10">
                   <SelectValue placeholder={t('selectSpace')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -699,18 +985,57 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
             </div>
           )}
         </div>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="outline">{t('cancel')}</Button>
-          </DialogClose>
-          <Button
-            type="submit"
-            onClick={handleCreateAppointment}
-            disabled={isSubmitting}
-            className="bg-emerald-700 hover:bg-emerald-800 text-white"
-          >
-            {isSubmitting ? t('creating') : t('createAppointment')}
-          </Button>
+
+        {/* ── Sticky Footer ── */}
+        <DialogFooter className="flex-shrink-0 border-t border-slate-200 px-6 py-4 bg-slate-50/80">
+          <div className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            {/* Sol: Özet bilgi */}
+            <div className="flex-1 min-w-0">
+              {serviceSelections.length > 0 && (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-3 text-sm text-slate-600">
+                    <span className="font-medium">{t('totalServices', { count: serviceSelections.length })}</span>
+                    <span className="text-slate-400">·</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5" /> {totalDuration} dk
+                    </span>
+                    {totalPrice > 0 && (
+                      <>
+                        <span className="text-slate-400">·</span>
+                        <span className="font-semibold text-slate-700">{totalPrice.toLocaleString('tr-TR')} TL</span>
+                      </>
+                    )}
+                  </div>
+                  {expertAssignmentSummary.length > 0 && (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {expertAssignmentSummary.map((a, i) => (
+                        <span key={i} className="inline-flex items-center gap-1 text-xs text-slate-500">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: a.expertColor || '#059669' }} />
+                          {a.expertName}
+                          {i < expertAssignmentSummary.length - 1 && <span className="text-slate-300 ml-0.5">·</span>}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Sağ: Butonlar */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button type="button" variant="outline" onClick={handleClose} className="h-10 px-5">
+                {t('cancel')}
+              </Button>
+              <Button
+                type="submit"
+                onClick={handleCreateAppointment}
+                disabled={isSubmitting || !canSubmit}
+                className="h-10 px-6 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {isSubmitting ? t('creating') : t('createAppointment')}
+              </Button>
+            </div>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

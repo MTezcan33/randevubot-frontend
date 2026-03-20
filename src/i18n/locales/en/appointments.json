@@ -41,5 +41,22 @@
   "cancelledAppointments": "Cancelled",
   "noAppointmentHistory": "No appointment history yet.",
   "lunchBreakWarning": "Lunch Break Warning",
-  "lunchBreakMessage": "This time falls during the lunch break."
+  "lunchBreakMessage": "This time falls during the lunch break.",
+  "expertServices": "Expert Services",
+  "selfServiceSection": "Self Service",
+  "selfServiceBadge": "Self Service",
+  "selectExpertForService": "Select expert for this service",
+  "expertAutoSelected": "Auto-selected",
+  "noExpertsAvailable": "No experts available",
+  "expertNotWorking": "Not working on this date",
+  "expertBusy": "Busy at this time",
+  "outsideWorkingHours": "Outside working hours",
+  "appointmentSummary": "Appointment Summary",
+  "servicesAndExperts": "Services & Experts",
+  "expertAssignment": "Expert Assignment",
+  "totalServices": "{{count}} services",
+  "expertConflictDetail": "{{name}}: busy between {{time}}",
+  "allExpertsAssigned": "All experts assigned",
+  "missingExpertWarning": "Expert not selected for some services",
+  "noCategory": "Other Services"
 }

@@ -41,5 +41,22 @@
   "cancelledAppointments": "Отменённые",
   "noAppointmentHistory": "Истории записей пока нет.",
   "lunchBreakWarning": "Предупреждение об обеденном перерыве",
-  "lunchBreakMessage": "Это время приходится на обеденный перерыв."
+  "lunchBreakMessage": "Это время приходится на обеденный перерыв.",
+  "expertServices": "Услуги специалиста",
+  "selfServiceSection": "Самообслуживание",
+  "selfServiceBadge": "Самообслуж.",
+  "selectExpertForService": "Выберите специалиста для этой услуги",
+  "expertAutoSelected": "Авто-выбран",
+  "noExpertsAvailable": "Нет доступных специалистов",
+  "expertNotWorking": "Не работает в этот день",
+  "expertBusy": "Занят в это время",
+  "outsideWorkingHours": "Вне рабочего времени",
+  "appointmentSummary": "Сводка записи",
+  "servicesAndExperts": "Услуги и специалисты",
+  "expertAssignment": "Назначение специалиста",
+  "totalServices": "{{count}} услуг",
+  "expertConflictDetail": "{{name}}: занят {{time}}",
+  "allExpertsAssigned": "Все специалисты назначены",
+  "missingExpertWarning": "Не выбран специалист для некоторых услуг",
+  "noCategory": "Другие услуги"
 }
