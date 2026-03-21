@@ -34,5 +34,7 @@
   "noTodayAppointments": "No appointments today",
   "vsYesterday": "vs yesterday",
   "vsLastMonth": "vs last month",
-  "newThisMonth": "new this month"
+  "newThisMonth": "new this month",
+  "administration": "Administration",
+  "reports": "Reports"
 }

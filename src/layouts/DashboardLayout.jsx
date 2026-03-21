@@ -27,6 +27,9 @@ import {
   Globe,
   DoorOpen,
   Wallet,
+  BarChart3,
+  ChevronDown,
+  Shield,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -63,24 +66,44 @@ const DashboardLayout = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const { t, i18n } = useTranslation();
 
-  const menuItems = [
-    { icon: <LayoutDashboard className="w-5 h-5" />, label: t('dashboard'), path: '/dashboard' },
-    { icon: <Calendar className="w-5 h-5" />, label: t('appointments'), path: '/dashboard/appointments' },
-    { icon: <Wallet className="w-5 h-5" />, label: t('payments'), path: '/dashboard/payments' },
-    { icon: <Briefcase className="w-5 h-5" />, label: t('services'), path: '/dashboard/services' },
-    { icon: <Users className="w-5 h-5" />, label: t('staff'), path: '/dashboard/staff' },
-    { icon: <UserCircle className="w-5 h-5" />, label: t('customers'), path: '/dashboard/customers' },
-    { icon: <Clock className="w-5 h-5" />, label: t('workingHours'), path: '/dashboard/working-hours' },
-    { icon: <DoorOpen className="w-5 h-5" />, label: t('resources'), path: '/dashboard/resources' },
-    { icon: <Calculator className="w-5 h-5" />, label: t('accounting'), path: '/dashboard/accounting' },
-    { icon: <CreditCard className="w-5 h-5" />, label: t('billing'), path: '/dashboard/billing' },
-    { icon: <Globe className="w-5 h-5" />, label: t('onlineBooking') || 'Online Randevu', path: '/dashboard/booking-settings' },
-    { icon: <Settings className="w-5 h-5" />, label: t('settings'), path: '/dashboard/settings' },
-    { icon: <HelpCircle className="w-5 h-5" />, label: t('support'), path: '/dashboard/support' },
+  // Collapsible grup state'i
+  const [adminOpen, setAdminOpen] = useState(false);
+
+  // Gruplu menu yapısı
+  const menuGroups = [
+    { items: [
+      { icon: <LayoutDashboard className="w-5 h-5" />, label: t('dashboard'), path: '/dashboard' },
+      { icon: <Calendar className="w-5 h-5" />, label: t('appointments'), path: '/dashboard/appointments' },
+      { icon: <Wallet className="w-5 h-5" />, label: t('payments'), path: '/dashboard/payments' },
+      { icon: <Briefcase className="w-5 h-5" />, label: t('services'), path: '/dashboard/services' },
+      { icon: <UserCircle className="w-5 h-5" />, label: t('customers'), path: '/dashboard/customers' },
+      { icon: <Clock className="w-5 h-5" />, label: t('workingHours'), path: '/dashboard/working-hours' },
+      { icon: <DoorOpen className="w-5 h-5" />, label: t('resources'), path: '/dashboard/resources' },
+    ]},
+    { title: t('administration') || 'İdari İşler', icon: <Shield className="w-4 h-4" />, collapsible: true, open: adminOpen, toggle: () => setAdminOpen(!adminOpen), items: [
+      { icon: <Users className="w-5 h-5" />, label: t('staff'), path: '/dashboard/staff' },
+      { icon: <Calculator className="w-5 h-5" />, label: t('accounting'), path: '/dashboard/accounting' },
+      { icon: <BarChart3 className="w-5 h-5" />, label: t('reports') || 'Raporlar', path: '/dashboard/reports' },
+    ]},
+    { items: [
+      { icon: <CreditCard className="w-5 h-5" />, label: t('billing'), path: '/dashboard/billing' },
+      { icon: <Globe className="w-5 h-5" />, label: t('onlineBooking') || 'Online Randevu', path: '/dashboard/booking-settings' },
+      { icon: <Settings className="w-5 h-5" />, label: t('settings'), path: '/dashboard/settings' },
+      { icon: <HelpCircle className="w-5 h-5" />, label: t('support'), path: '/dashboard/support' },
+    ]},
   ];
 
+  // Tüm menü itemlerini düz liste olarak al (başlık bulmak için)
+  const allMenuItems = menuGroups.flatMap(g => g.items);
+
+  // İdari İşler altındaki bir sayfa aktifse grubu otomatik aç
+  const adminPaths = menuGroups.find(g => g.collapsible)?.items.map(i => i.path) || [];
+  useEffect(() => {
+    if (adminPaths.includes(location.pathname)) setAdminOpen(true);
+  }, [location.pathname]);
+
   // Aktif sayfanın başlığını bul (header için)
-  const currentMenuItem = menuItems.find(item => location.pathname === item.path);
+  const currentMenuItem = allMenuItems.find(item => location.pathname === item.path);
   const pageTitle = currentMenuItem?.label || t('dashboard');
 
   // admin_notifications tablosundan bildirimleri çek
@@ -227,31 +250,56 @@ const DashboardLayout = () => {
 
       {/* Navigasyon */}
       <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/20">
-        {menuItems.map((item, index) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <button
-              key={index}
-              onClick={() => {
-                navigate(item.path);
-                if (isMobile) setMobileOpen(false);
-              }}
-              title={!isMobile && collapsed ? item.label : undefined}
-              className={`
-                w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-sm font-medium
-                border-l-[3px]
-                ${isActive
-                  ? 'bg-white/15 border-emerald-500 text-white'
-                  : 'border-transparent text-white/70 hover:bg-white/10 hover:text-white'
-                }
-                ${!isMobile && collapsed ? 'justify-center px-2' : ''}
-              `}
-            >
-              <span className="flex-shrink-0">{item.icon}</span>
-              {(isMobile || !collapsed) && <span>{item.label}</span>}
-            </button>
-          );
-        })}
+        {menuGroups.map((group, gi) => (
+          <React.Fragment key={gi}>
+            {/* Grup ayırıcı çizgi (ilk grup hariç) */}
+            {gi > 0 && (isMobile || !collapsed) && (
+              <div className="mx-3 my-2 border-t border-white/10" />
+            )}
+
+            {/* Collapsible grup başlığı */}
+            {group.title && (isMobile || !collapsed) && (
+              <button
+                onClick={group.toggle}
+                className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/40 hover:text-white/60 transition-colors"
+              >
+                <span className="flex items-center gap-1.5">
+                  {group.icon}
+                  {group.title}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${group.open ? 'rotate-0' : '-rotate-90'}`} />
+              </button>
+            )}
+
+            {/* Grup itemleri — collapsible ise open kontrolü */}
+            {(!group.collapsible || group.open) && group.items.map((item, index) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <button
+                  key={`${gi}-${index}`}
+                  onClick={() => {
+                    navigate(item.path);
+                    if (isMobile) setMobileOpen(false);
+                  }}
+                  title={!isMobile && collapsed ? item.label : undefined}
+                  className={`
+                    w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-sm font-medium
+                    border-l-[3px]
+                    ${isActive
+                      ? 'bg-white/15 border-emerald-500 text-white'
+                      : 'border-transparent text-white/70 hover:bg-white/10 hover:text-white'
+                    }
+                    ${!isMobile && collapsed ? 'justify-center px-2' : ''}
+                    ${group.collapsible ? 'pl-5' : ''}
+                  `}
+                >
+                  <span className="flex-shrink-0">{item.icon}</span>
+                  {(isMobile || !collapsed) && <span>{item.label}</span>}
+                </button>
+              );
+            })}
+          </React.Fragment>
+        ))}
       </nav>
 
       {/* Dil Değiştirici + Çıkış */}

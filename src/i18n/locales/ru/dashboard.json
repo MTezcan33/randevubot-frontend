@@ -34,5 +34,7 @@
   "noTodayAppointments": "Нет записей на сегодня",
   "vsYesterday": "к вчера",
   "vsLastMonth": "к прошлому месяцу",
-  "newThisMonth": "новых за месяц"
+  "newThisMonth": "новых за месяц",
+  "administration": "Администрация",
+  "reports": "Отчёты"
 }

@@ -34,5 +34,7 @@
   "noTodayAppointments": "Bugün randevu bulunmuyor",
   "vsYesterday": "dünden",
   "vsLastMonth": "geçen aydan",
-  "newThisMonth": "bu ay yeni"
+  "newThisMonth": "bu ay yeni",
+  "administration": "İdari İşler",
+  "reports": "Raporlar"
 }

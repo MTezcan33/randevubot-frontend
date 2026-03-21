@@ -24,6 +24,7 @@ import BookingPage from '@/pages/BookingPage';
 import BookingSettingsPage from '@/pages/dashboard/BookingSettingsPage';
 import ResourcesPage from '@/pages/dashboard/ResourcesPage';
 import PaymentsPage from '@/pages/dashboard/PaymentsPage';
+import ReportsPage from '@/pages/dashboard/ReportsPage';
 import { AuthProvider } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import OnboardingRoute from '@/components/OnboardingRoute';
@@ -66,6 +67,7 @@ function App() {
             <Route path="booking-settings" element={<BookingSettingsPage />} />
             <Route path="resources" element={<ResourcesPage />} />
             <Route path="payments" element={<PaymentsPage />} />
+            <Route path="reports" element={<ReportsPage />} />
           </Route>
 
           <Route path="/panel/*" element={<PanelApp />} />
