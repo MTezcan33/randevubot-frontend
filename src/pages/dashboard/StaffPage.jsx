@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
-import { Plus, User, Edit, Trash2, MoreVertical, Mail, Phone, Search, Briefcase, Check, DoorOpen, Star } from 'lucide-react';
+import { Plus, User, Edit, Trash2, MoreVertical, Mail, Phone, Search, Briefcase, Check, DoorOpen, Star, Calendar, Shield, Clock, Key, ChevronDown } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -37,6 +37,14 @@ const StaffPage = () => {
   const [staffToDelete, setStaffToDelete] = useState(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const { t } = useTranslation();
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState('experts');
+  // İzin yönetimi state
+  const [leaves, setLeaves] = useState([]);
+  const [leaveLoading, setLeaveLoading] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [leaveForm, setLeaveForm] = useState({ staff_id: '', leave_type: 'annual', start_date: '', end_date: '', reason: '' });
 
   const [formData, setFormData] = useState({
     name: '',
@@ -421,6 +429,96 @@ const StaffPage = () => {
     }
   };
 
+  // ═══ İzin Yönetimi Fonksiyonları ═══
+  const fetchLeaves = async () => {
+    if (!company) return;
+    setLeaveLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('staff_leaves')
+        .select('*, company_users!staff_leaves_staff_id_fkey(name, color)')
+        .eq('company_id', company.id)
+        .order('start_date', { ascending: false });
+      if (error) throw error;
+      setLeaves(data || []);
+    } catch (err) {
+      console.error('İzin listesi hatası:', err);
+    } finally {
+      setLeaveLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'leaves') fetchLeaves();
+  }, [activeTab, company]);
+
+  const handleAddLeave = async () => {
+    if (!leaveForm.staff_id || !leaveForm.start_date || !leaveForm.end_date) return;
+    const start = new Date(leaveForm.start_date);
+    const end = new Date(leaveForm.end_date);
+    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    if (days <= 0) { toast({ title: t('error'), description: 'Bitiş tarihi başlangıçtan sonra olmalı', variant: 'destructive' }); return; }
+
+    try {
+      const { error } = await supabase.from('staff_leaves').insert([{
+        company_id: company.id,
+        staff_id: leaveForm.staff_id,
+        leave_type: leaveForm.leave_type,
+        start_date: leaveForm.start_date,
+        end_date: leaveForm.end_date,
+        days,
+        reason: leaveForm.reason || null,
+        status: 'approved', // İşletme sahibi eklediğinde otomatik onay
+      }]);
+      if (error) throw error;
+      toast({ title: t('success'), description: t('leaveAdded') || 'İzin kaydı eklendi' });
+      setShowLeaveModal(false);
+      setLeaveForm({ staff_id: '', leave_type: 'annual', start_date: '', end_date: '', reason: '' });
+      fetchLeaves();
+    } catch (err) {
+      toast({ title: t('error'), description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteLeave = async (leaveId) => {
+    if (!window.confirm(t('deleteLeaveConfirm') || 'Bu izin kaydını silmek istediğinize emin misiniz?')) return;
+    try {
+      await supabase.from('staff_leaves').delete().eq('id', leaveId);
+      toast({ title: t('success'), description: t('leaveDeleted') || 'İzin kaydı silindi' });
+      fetchLeaves();
+    } catch (err) {
+      toast({ title: t('error'), description: err.message, variant: 'destructive' });
+    }
+  };
+
+  // Uzman bazlı kullanılan izin günlerini hesapla
+  const getUsedLeaveDays = (staffId) => {
+    return leaves
+      .filter(l => l.staff_id === staffId && l.status === 'approved')
+      .reduce((sum, l) => sum + l.days, 0);
+  };
+
+  const leaveTypeLabels = {
+    annual: t('leaveAnnual') || 'Yıllık İzin',
+    sick: t('leaveSick') || 'Hastalık İzni',
+    excuse: t('leaveExcuse') || 'Mazeret İzni',
+    unpaid: t('leaveUnpaid') || 'Ücretsiz İzin',
+  };
+
+  const leaveTypeColors = {
+    annual: 'bg-blue-100 text-blue-700',
+    sick: 'bg-red-100 text-red-700',
+    excuse: 'bg-amber-100 text-amber-700',
+    unpaid: 'bg-stone-100 text-stone-600',
+  };
+
+  // Tab tanımları
+  const tabs = [
+    { id: 'experts', label: t('staffTitle') || 'Uzmanlar', icon: <User className="w-4 h-4" /> },
+    { id: 'leaves', label: t('leaveManagement') || 'İzin Yönetimi', icon: <Calendar className="w-4 h-4" /> },
+    { id: 'access', label: t('contactAccess') || 'İletişim & Erişim', icon: <Key className="w-4 h-4" /> },
+  ];
+
   return (
     <>
       <Helmet>
@@ -431,15 +529,44 @@ const StaffPage = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold mb-2">{t('staffTitle')}</h1>
+            <h1 className="text-3xl font-bold mb-2">{t('staffTitle') || 'Personel'}</h1>
             <p className="text-slate-600">{t('staffSubtitle')}</p>
           </div>
-          <Button onClick={() => handleOpenModal()}>
-            <Plus className="w-4 h-4 mr-2" />
-            {t('addStaff')}
-          </Button>
+          {activeTab === 'experts' && (
+            <Button onClick={() => handleOpenModal()}>
+              <Plus className="w-4 h-4 mr-2" />
+              {t('addStaff')}
+            </Button>
+          )}
+          {activeTab === 'leaves' && (
+            <Button onClick={() => setShowLeaveModal(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              {t('addLeave') || 'İzin Ekle'}
+            </Button>
+          )}
         </div>
 
+        {/* Tab Seçici */}
+        <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
+                ${activeTab === tab.id
+                  ? 'bg-white text-slate-800 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+                }
+              `}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ═══ TAB: Uzmanlar ═══ */}
+        {activeTab === 'experts' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {staff.map((staffMember) => (
             <div key={staffMember.id} className="glass-effect p-6 rounded-2xl flex flex-col justify-between" style={{ borderTop: `4px solid ${staffMember.color || '#ccc'}` }}>
@@ -508,6 +635,172 @@ const StaffPage = () => {
             </div>
           ))}
         </div>
+        )}
+
+        {/* ═══ TAB: İzin Yönetimi ═══ */}
+        {activeTab === 'leaves' && (
+          <div className="space-y-4">
+            {/* Uzman bazlı izin özeti kartları */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {staff.map(s => {
+                const used = getUsedLeaveDays(s.id);
+                const total = s.annual_leave_days || 14;
+                const percentage = Math.min((used / total) * 100, 100);
+                return (
+                  <div key={s.id} className="bg-white rounded-xl border p-3" style={{ borderLeftColor: s.color, borderLeftWidth: 4 }}>
+                    <p className="text-sm font-semibold text-slate-700 truncate">{s.name}</p>
+                    <div className="flex items-baseline gap-1 mt-1">
+                      <span className="text-lg font-bold text-slate-800">{used}</span>
+                      <span className="text-xs text-slate-400">/ {total} gün</span>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
+                      <div className="h-1.5 rounded-full transition-all" style={{ width: `${percentage}%`, backgroundColor: percentage > 80 ? '#ef4444' : s.color }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* İzin listesi */}
+            {leaveLoading ? (
+              <div className="text-center py-8 text-slate-400">{t('loading')}</div>
+            ) : leaves.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-2xl border">
+                <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-slate-500">{t('noLeaves') || 'Henüz izin kaydı yok'}</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 border-b">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-medium text-slate-600">{t('staffMember') || 'Personel'}</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-600">{t('leaveType') || 'İzin Türü'}</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-600">{t('dates') || 'Tarih'}</th>
+                      <th className="text-center px-4 py-3 font-medium text-slate-600">{t('days') || 'Gün'}</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-600">{t('reason') || 'Sebep'}</th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {leaves.map(leave => (
+                      <tr key={leave.id} className="hover:bg-slate-50">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: leave.company_users?.color || '#ccc' }} />
+                            <span className="font-medium">{leave.company_users?.name || '—'}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${leaveTypeColors[leave.leave_type] || ''}`}>
+                            {leaveTypeLabels[leave.leave_type] || leave.leave_type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">{leave.start_date} → {leave.end_date}</td>
+                        <td className="px-4 py-3 text-center font-semibold">{leave.days}</td>
+                        <td className="px-4 py-3 text-slate-500 max-w-[150px] truncate">{leave.reason || '—'}</td>
+                        <td className="px-4 py-3">
+                          <button onClick={() => handleDeleteLeave(leave.id)} className="text-slate-400 hover:text-red-500">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* İzin Ekle Modal */}
+            {showLeaveModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowLeaveModal(false)}>
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
+                  <h3 className="text-lg font-bold text-slate-800 mb-4">{t('addLeave') || 'İzin Ekle'}</h3>
+                  <div className="space-y-3">
+                    <select value={leaveForm.staff_id} onChange={e => setLeaveForm({ ...leaveForm, staff_id: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border bg-white text-sm">
+                      <option value="">{t('selectStaff') || '— Personel Seçin —'}</option>
+                      {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                    <select value={leaveForm.leave_type} onChange={e => setLeaveForm({ ...leaveForm, leave_type: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border bg-white text-sm">
+                      {Object.entries(leaveTypeLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                    </select>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-slate-500 mb-1 block">{t('startDate') || 'Başlangıç'}</label>
+                        <input type="date" value={leaveForm.start_date} onChange={e => setLeaveForm({ ...leaveForm, start_date: e.target.value })} className="w-full px-3 py-2 rounded-xl border text-sm" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-500 mb-1 block">{t('endDate') || 'Bitiş'}</label>
+                        <input type="date" value={leaveForm.end_date} onChange={e => setLeaveForm({ ...leaveForm, end_date: e.target.value })} className="w-full px-3 py-2 rounded-xl border text-sm" />
+                      </div>
+                    </div>
+                    <input placeholder={t('reason') || 'Sebep (opsiyonel)'} value={leaveForm.reason} onChange={e => setLeaveForm({ ...leaveForm, reason: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border text-sm" />
+                  </div>
+                  <div className="flex justify-end gap-2 mt-5">
+                    <Button variant="outline" onClick={() => setShowLeaveModal(false)}>{t('cancel')}</Button>
+                    <Button onClick={handleAddLeave} disabled={!leaveForm.staff_id || !leaveForm.start_date || !leaveForm.end_date}>{t('save')}</Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══ TAB: İletişim & Erişim ═══ */}
+        {activeTab === 'access' && (
+          <div className="bg-white rounded-2xl border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b">
+                <tr>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t('name') || 'İsim'}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t('phone') || 'Telefon'}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t('email') || 'E-posta'}</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t('role') || 'Rol'}</th>
+                  <th className="text-center px-4 py-3 font-medium text-slate-600">PIN</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">{t('panelRoles') || 'Panel Rolleri'}</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {staff.map(s => (
+                  <tr key={s.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color || '#ccc' }} />
+                        <span className="font-medium">{s.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">{s.phone || <span className="text-slate-300 text-xs">—</span>}</td>
+                    <td className="px-4 py-3 text-slate-600">{s.email || <span className="text-slate-300 text-xs">—</span>}</td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700">{s.role}</span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {s.pin_code ? (
+                        <span className="font-mono text-xs bg-slate-100 px-2 py-1 rounded">••••</span>
+                      ) : (
+                        <span className="text-xs text-red-400">Yok</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1">
+                        {(s.panel_roles || []).map(r => (
+                          <span key={r} className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium">{r}</span>
+                        ))}
+                        {(!s.panel_roles || s.panel_roles.length === 0) && <span className="text-xs text-slate-300">—</span>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => handleOpenModal(s)} className="text-slate-400 hover:text-emerald-600">
+                        <Edit className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Uzman Oluştur / Düzenle Modal */}
