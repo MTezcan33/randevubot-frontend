@@ -81,5 +81,16 @@
   "card": "Kart",
   "online": "Online",
   "noData": "Veri bulunamadı",
-  "selfService": "Self Servis"
+  "selfService": "Self Servis",
+  "voidTransaction": "İşlem İptal",
+  "voidTransactionDesc": "Bu işlem iptal edilecek. İptal sebebi girin:",
+  "selectVoidReason": "İptal sebebi seçin",
+  "transactionVoided": "İşlem iptal edildi",
+  "confirmVoid": "İptal Et",
+  "voidReason": {
+    "wrongEntry": "Yanlış giriş",
+    "customerRefund": "Müşteri iadesi",
+    "duplicate": "Duplike kayıt",
+    "other": "Diğer"
+  }
 }

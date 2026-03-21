@@ -80,5 +80,17 @@
   "cash": "Наличные",
   "card": "Карта",
   "online": "Онлайн",
-  "noData": "Данные не найдены"
+  "noData": "Данные не найдены",
+  "selfService": "Самообслуживание",
+  "voidTransaction": "Отмена операции",
+  "voidTransactionDesc": "Эта операция будет отменена. Укажите причину:",
+  "selectVoidReason": "Выберите причину отмены",
+  "transactionVoided": "Операция отменена",
+  "confirmVoid": "Отменить",
+  "voidReason": {
+    "wrongEntry": "Ошибочный ввод",
+    "customerRefund": "Возврат клиенту",
+    "duplicate": "Дублирующая запись",
+    "other": "Другое"
+  }
 }

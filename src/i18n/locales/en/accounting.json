@@ -80,5 +80,17 @@
   "cash": "Cash",
   "card": "Card",
   "online": "Online",
-  "noData": "No data found"
+  "noData": "No data found",
+  "selfService": "Self Service",
+  "voidTransaction": "Void Transaction",
+  "voidTransactionDesc": "This transaction will be voided. Enter a reason:",
+  "selectVoidReason": "Select void reason",
+  "transactionVoided": "Transaction voided",
+  "confirmVoid": "Void It",
+  "voidReason": {
+    "wrongEntry": "Wrong entry",
+    "customerRefund": "Customer refund",
+    "duplicate": "Duplicate record",
+    "other": "Other"
+  }
 }
