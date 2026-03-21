@@ -5,7 +5,7 @@ import {
   Plus, Edit, Trash2, Clock, DollarSign, Search,
   LayoutGrid, List, FileText, Upload, Briefcase,
   MoreVertical, Eye, EyeOff, BookOpen, Check, Info,
-  DoorOpen, Wrench, UserCheck
+  DoorOpen, Wrench, UserCheck, Package, Gift, Calendar
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -354,6 +354,21 @@ const ServicesPage = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState('services');
+
+  // Paket state'leri
+  const [packages, setPackages] = useState([]);
+  const [pkgLoading, setPkgLoading] = useState(false);
+  const [showPkgModal, setShowPkgModal] = useState(false);
+  const [editingPkg, setEditingPkg] = useState(null);
+  const [pkgForm, setPkgForm] = useState({ name: '', description: '', total_sessions: 1, price: '', validity_days: 365, services: [] });
+
+  // Hediye kartı state'leri
+  const [giftCards, setGiftCards] = useState([]);
+  const [showGiftModal, setShowGiftModal] = useState(false);
+  const [giftForm, setGiftForm] = useState({ amount: '', recipient_name: '', purchased_by: '', expiry_date: '' });
+
   // Sayfa state'leri
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -457,6 +472,106 @@ const ServicesPage = () => {
       setServices(data || []);
     }
     setLoading(false);
+  };
+
+  // ═══ Paket Fonksiyonları ═══
+  const fetchPackages = async () => {
+    if (!company) return;
+    setPkgLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('service_packages')
+        .select('*')
+        .eq('company_id', company.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setPackages(data || []);
+    } catch (err) { console.error('Paket listesi hatası:', err); }
+    finally { setPkgLoading(false); }
+  };
+
+  const fetchGiftCards = async () => {
+    if (!company) return;
+    try {
+      const { data, error } = await supabase
+        .from('gift_cards')
+        .select('*, customers(name, phone)')
+        .eq('company_id', company.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setGiftCards(data || []);
+    } catch (err) { console.error('Hediye kartı listesi hatası:', err); }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'packages') { fetchPackages(); fetchGiftCards(); }
+  }, [activeTab, company]);
+
+  const handleSavePackage = async () => {
+    if (!pkgForm.name || !pkgForm.price || !pkgForm.total_sessions) return;
+    try {
+      if (editingPkg) {
+        await supabase.from('service_packages').update({
+          name: pkgForm.name, description: pkgForm.description,
+          total_sessions: parseInt(pkgForm.total_sessions), price: parseFloat(pkgForm.price),
+          validity_days: parseInt(pkgForm.validity_days) || 365,
+          services: pkgForm.services,
+        }).eq('id', editingPkg.id);
+      } else {
+        await supabase.from('service_packages').insert([{
+          company_id: company.id, name: pkgForm.name, description: pkgForm.description,
+          total_sessions: parseInt(pkgForm.total_sessions), price: parseFloat(pkgForm.price),
+          validity_days: parseInt(pkgForm.validity_days) || 365,
+          services: pkgForm.services,
+        }]);
+      }
+      toast({ title: t('success'), description: editingPkg ? 'Paket güncellendi' : 'Paket oluşturuldu' });
+      setShowPkgModal(false); setEditingPkg(null);
+      setPkgForm({ name: '', description: '', total_sessions: 1, price: '', validity_days: 365, services: [] });
+      fetchPackages();
+    } catch (err) {
+      toast({ title: t('error'), description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const handleDeletePackage = async (pkgId) => {
+    if (!window.confirm('Bu paket tanımını silmek istediğinize emin misiniz?')) return;
+    try {
+      const { data: activeSales } = await supabase.from('customer_packages').select('id').eq('package_id', pkgId).eq('status', 'active').limit(1);
+      if (activeSales?.length > 0) { toast({ title: t('error'), description: 'Aktif satışı olan paket silinemez.', variant: 'destructive' }); return; }
+      await supabase.from('service_packages').delete().eq('id', pkgId);
+      toast({ title: t('success'), description: 'Paket silindi' });
+      fetchPackages();
+    } catch (err) {
+      toast({ title: t('error'), description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const generateGiftCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 8; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+    return code.substring(0, 4) + '-' + code.substring(4);
+  };
+
+  const handleCreateGiftCard = async () => {
+    if (!giftForm.amount) return;
+    try {
+      const code = generateGiftCode();
+      await supabase.from('gift_cards').insert([{
+        company_id: company.id, code,
+        original_amount: parseFloat(giftForm.amount), remaining_amount: parseFloat(giftForm.amount),
+        purchased_by: giftForm.purchased_by || null,
+        recipient_name: giftForm.recipient_name || null,
+        expiry_date: giftForm.expiry_date || null,
+      }]);
+      toast({ title: t('success'), description: `Hediye kartı oluşturuldu: ${code}` });
+      setShowGiftModal(false);
+      setGiftForm({ amount: '', recipient_name: '', purchased_by: '', expiry_date: '' });
+      fetchGiftCards();
+    } catch (err) {
+      toast({ title: t('error'), description: err.message, variant: 'destructive' });
+    }
   };
 
   // Yeni hizmet için modal aç
@@ -746,18 +861,48 @@ const ServicesPage = () => {
           <p className="text-sm text-slate-500 mt-1">{t('servicesSubtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setIsCatalogOpen(true)}
-            className="border-slate-200 text-slate-700 hover:border-emerald-300 hover:text-emerald-700">
-            <BookOpen className="w-4 h-4 mr-2" />
-            Katalogdan Ekle
-          </Button>
-          <Button onClick={openModalForCreate}
-            className="bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm">
-            <Plus className="w-4 h-4 mr-2" />
-            {t('addService')}
-          </Button>
+          {activeTab === 'services' && (
+            <>
+              <Button variant="outline" onClick={() => setIsCatalogOpen(true)}
+                className="border-slate-200 text-slate-700 hover:border-emerald-300 hover:text-emerald-700">
+                <BookOpen className="w-4 h-4 mr-2" />
+                Katalogdan Ekle
+              </Button>
+              <Button onClick={openModalForCreate}
+                className="bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm">
+                <Plus className="w-4 h-4 mr-2" />
+                {t('addService')}
+              </Button>
+            </>
+          )}
+          {activeTab === 'packages' && (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowGiftModal(true)}>
+                <Gift className="w-4 h-4 mr-2" />
+                {t('createGiftCard') || 'Hediye Kartı'}
+              </Button>
+              <Button onClick={() => { setEditingPkg(null); setPkgForm({ name: '', description: '', total_sessions: 1, price: '', validity_days: 365, services: [] }); setShowPkgModal(true); }}
+                className="bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm">
+                <Plus className="w-4 h-4 mr-2" />
+                {t('addPackage') || 'Paket Ekle'}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Tab Seçici */}
+      <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
+        <button onClick={() => setActiveTab('services')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'services' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+          <Briefcase className="w-4 h-4" /> {t('services') || 'Hizmetler'}
+        </button>
+        <button onClick={() => setActiveTab('packages')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'packages' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+          <Package className="w-4 h-4" /> {t('packages') || 'Paketler & Hediye Kartları'}
+        </button>
+      </div>
+
+      {/* ═══ TAB: Hizmetler ═══ */}
+      {activeTab === 'services' && (<>
 
       {/* Arama + Görünüm Seçimi */}
       <div className="flex items-center gap-3">
@@ -847,6 +992,152 @@ const ServicesPage = () => {
           onEdit={openModalForEdit}
           onDelete={confirmDelete}
           onToggleActive={handleToggleActive} />
+      )}
+
+      </>)}
+
+      {/* ═══ TAB: Paketler & Hediye Kartları ═══ */}
+      {activeTab === 'packages' && (
+        <div className="space-y-6">
+          {/* Paket Tanımları */}
+          <div>
+            <h2 className="text-lg font-semibold text-slate-800 mb-3">{t('packageDefinitions') || 'Paket Tanımları'}</h2>
+            {pkgLoading ? (
+              <div className="text-center py-8 text-slate-400">{t('loading')}</div>
+            ) : packages.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-2xl border">
+                <Package className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-slate-500">{t('noPackages') || 'Henüz paket tanımlanmamış'}</p>
+                <p className="text-sm text-slate-400 mt-1">Müşterilerinize seans paketi satmak için paket oluşturun.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {packages.map(pkg => (
+                  <div key={pkg.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-semibold text-slate-800">{pkg.name}</h3>
+                        {pkg.description && <p className="text-xs text-slate-500 mt-0.5">{pkg.description}</p>}
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={() => { setEditingPkg(pkg); setPkgForm({ name: pkg.name, description: pkg.description || '', total_sessions: pkg.total_sessions, price: pkg.price, validity_days: pkg.validity_days, services: pkg.services || [] }); setShowPkgModal(true); }} className="text-slate-400 hover:text-emerald-600"><Edit className="w-4 h-4" /></button>
+                        <button onClick={() => handleDeletePackage(pkg.id)} className="text-slate-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                    <div className="flex items-baseline gap-2 mb-3">
+                      <span className="text-2xl font-bold text-emerald-600">{parseFloat(pkg.price).toFixed(0)} ₺</span>
+                      <span className="text-sm text-slate-400">/ {pkg.total_sessions} seans</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-slate-500">
+                      <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {pkg.validity_days} gün geçerli</span>
+                      <span className={`px-1.5 py-0.5 rounded-full font-medium ${pkg.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-500'}`}>
+                        {pkg.is_active ? 'Aktif' : 'Pasif'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Hediye Kartları */}
+          <div>
+            <h2 className="text-lg font-semibold text-slate-800 mb-3">{t('giftCards') || 'Hediye Kartları'}</h2>
+            {giftCards.length === 0 ? (
+              <div className="text-center py-8 bg-white rounded-2xl border">
+                <Gift className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-slate-500">{t('noGiftCards') || 'Henüz hediye kartı yok'}</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 border-b">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-medium text-slate-600">Kod</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-600">Alıcı</th>
+                      <th className="text-right px-4 py-3 font-medium text-slate-600">Tutar</th>
+                      <th className="text-right px-4 py-3 font-medium text-slate-600">Kalan</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-600">Durum</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-600">Son Kullanma</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {giftCards.map(gc => (
+                      <tr key={gc.id} className="hover:bg-slate-50">
+                        <td className="px-4 py-3 font-mono font-semibold text-emerald-700">{gc.code}</td>
+                        <td className="px-4 py-3 text-slate-600">{gc.recipient_name || gc.customers?.name || '—'}</td>
+                        <td className="px-4 py-3 text-right font-semibold">{parseFloat(gc.original_amount).toFixed(0)} ₺</td>
+                        <td className="px-4 py-3 text-right font-bold text-emerald-600">{parseFloat(gc.remaining_amount).toFixed(0)} ₺</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${gc.status === 'active' ? 'bg-emerald-100 text-emerald-700' : gc.status === 'used' ? 'bg-stone-100 text-stone-500' : 'bg-red-100 text-red-600'}`}>
+                            {gc.status === 'active' ? 'Aktif' : gc.status === 'used' ? 'Kullanıldı' : gc.status === 'expired' ? 'Süresi Doldu' : 'İptal'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-500">{gc.expiry_date || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Paket Oluştur/Düzenle Modal */}
+          {showPkgModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowPkgModal(false)}>
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-bold text-slate-800 mb-4">{editingPkg ? 'Paket Düzenle' : 'Yeni Paket'}</h3>
+                <div className="space-y-3">
+                  <input placeholder="Paket adı" value={pkgForm.name} onChange={e => setPkgForm({ ...pkgForm, name: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border text-sm" />
+                  <input placeholder="Açıklama (opsiyonel)" value={pkgForm.description} onChange={e => setPkgForm({ ...pkgForm, description: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border text-sm" />
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">Seans Sayısı</label>
+                      <input type="number" min="1" value={pkgForm.total_sessions} onChange={e => setPkgForm({ ...pkgForm, total_sessions: e.target.value })} className="w-full px-3 py-2 rounded-xl border text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">Fiyat (₺)</label>
+                      <input type="number" min="0" value={pkgForm.price} onChange={e => setPkgForm({ ...pkgForm, price: e.target.value })} className="w-full px-3 py-2 rounded-xl border text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">Geçerlilik (gün)</label>
+                      <input type="number" min="1" value={pkgForm.validity_days} onChange={e => setPkgForm({ ...pkgForm, validity_days: e.target.value })} className="w-full px-3 py-2 rounded-xl border text-sm" />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-5">
+                  <Button variant="outline" onClick={() => setShowPkgModal(false)}>{t('cancel')}</Button>
+                  <Button onClick={handleSavePackage} disabled={!pkgForm.name || !pkgForm.price}>{t('save')}</Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Hediye Kartı Oluştur Modal */}
+          {showGiftModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowGiftModal(false)}>
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-bold text-slate-800 mb-4">{t('createGiftCard') || 'Hediye Kartı Oluştur'}</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">Tutar (₺)</label>
+                    <input type="number" min="1" value={giftForm.amount} onChange={e => setGiftForm({ ...giftForm, amount: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border text-sm" />
+                  </div>
+                  <input placeholder="Alıcı adı (opsiyonel)" value={giftForm.recipient_name} onChange={e => setGiftForm({ ...giftForm, recipient_name: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border text-sm" />
+                  <input placeholder="Satın alan (opsiyonel)" value={giftForm.purchased_by} onChange={e => setGiftForm({ ...giftForm, purchased_by: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border text-sm" />
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">Son Kullanma Tarihi (opsiyonel)</label>
+                    <input type="date" value={giftForm.expiry_date} onChange={e => setGiftForm({ ...giftForm, expiry_date: e.target.value })} className="w-full px-3 py-2 rounded-xl border text-sm" />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-5">
+                  <Button variant="outline" onClick={() => setShowGiftModal(false)}>{t('cancel')}</Button>
+                  <Button onClick={handleCreateGiftCard} disabled={!giftForm.amount}>{t('save')}</Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Hizmet Oluştur / Düzenle Modal */}
