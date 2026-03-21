@@ -351,7 +351,7 @@ const AppointmentsPage = () => {
     try {
       const { data, error } = await supabase
         .from('appointments')
-        .select(`*, company_services(duration, description, price), customers(id, name, phone), company_users(name, color), appointment_services(id, service_id, expert_id, company_services(id, description, duration, price))`)
+        .select(`*, company_services(duration, description, price), customers(id, name, phone), company_users!appointments_expert_id_fkey(name, color), appointment_services(id, service_id, expert_id, company_services(id, description, duration, price))`)
         .eq('company_id', company.id)
         .eq('date', dateString)
         .neq('status', 'iptal') // İptal edilen randevuları takvimden gizle

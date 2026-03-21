@@ -197,7 +197,7 @@ const DashboardHome = () => {
 
     const { data: appointmentsData, error } = await supabase
       .from('appointments')
-      .select(`*, company_services(price, duration, description), customers(created_at, name), company_users(name, color)`)
+      .select(`*, company_services(price, duration, description), customers(created_at, name), company_users!appointments_expert_id_fkey(name, color)`)
       .eq('company_id', company.id)
       .gte('date', startDate.toISOString().split('T')[0]);
 
@@ -220,7 +220,7 @@ const DashboardHome = () => {
     const [todayRes, yesterdayRes] = await Promise.all([
       supabase
         .from('appointments')
-        .select(`*, company_services(description, duration, price), customers(name), company_users(name, color)`)
+        .select(`*, company_services(description, duration, price), customers(name), company_users!appointments_expert_id_fkey(name, color)`)
         .eq('company_id', company.id)
         .eq('date', todayStr)
         .order('time', { ascending: true }),

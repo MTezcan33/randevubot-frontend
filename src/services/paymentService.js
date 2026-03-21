@@ -381,7 +381,7 @@ export const getPaymentHistory = async (companyId, filters = {}) => {
       refunded_at, refund_reason, created_at,
       appointments(
         id, date, time, expert_id,
-        company_users(name, color),
+        company_users!appointments_expert_id_fkey(name, color),
         customers(name, phone)
       ),
       company_services(description)

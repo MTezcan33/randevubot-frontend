@@ -349,7 +349,7 @@ export const getExpertRevenueByDate = async (companyId, startDate, endDate) => {
       transaction_date,
       appointments(
         expert_id,
-        company_users(name, color)
+        company_users!appointments_expert_id_fkey(name, color)
       )
     `)
     .eq('company_id', companyId)
@@ -583,7 +583,7 @@ export const getReportLogs = async (companyId, limit = 20) => {
 export const reportAppointmentSummary = async (companyId, startDate, endDate) => {
   const { data, error } = await supabase
     .from('appointments')
-    .select('id, status, date, time, expert_id, company_users(name)')
+    .select('id, status, date, time, expert_id, company_users!appointments_expert_id_fkey(name)')
     .eq('company_id', companyId)
     .gte('date', startDate)
     .lte('date', endDate);
@@ -612,7 +612,7 @@ export const reportRevenueBreakdown = async (companyId, startDate, endDate) => {
 export const reportExpertPerformance = async (companyId, startDate, endDate) => {
   const { data: appointments } = await supabase
     .from('appointments')
-    .select('id, expert_id, status, company_users(name)')
+    .select('id, expert_id, status, company_users!appointments_expert_id_fkey(name)')
     .eq('company_id', companyId)
     .gte('date', startDate)
     .lte('date', endDate);
