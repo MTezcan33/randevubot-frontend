@@ -290,7 +290,23 @@ const AppointmentsPage = () => {
   const [cancelReason, setCancelReason] = useState(''); // İptal sebebi
   const [showCancelDialog, setShowCancelDialog] = useState(false); // İptal dialog
   const [expertServicesMap, setExpertServicesMap] = useState(new Map()); // Map<expertId, Set<serviceId>>
-  const companyTimezone = company?.timezone || 'UTC';
+  // company.timezone "(GMT+03:00) Istanbul" formatında olabilir — IANA'ya çevir
+  const companyTimezone = (() => {
+    const tz = company?.timezone || 'UTC';
+    // Zaten IANA formatındaysa (/ içeriyorsa) direkt kullan
+    if (tz.includes('/')) return tz;
+    // "(GMT+03:00) Istanbul" gibi formattan şehir adını çıkar ve IANA'ya map et
+    const cityMatch = tz.match(/\)\s*(.+)/);
+    const city = cityMatch ? cityMatch[1].trim() : '';
+    const tzMap = {
+      'Istanbul': 'Europe/Istanbul', 'London': 'Europe/London', 'Paris': 'Europe/Paris',
+      'Berlin': 'Europe/Berlin', 'Moscow': 'Europe/Moscow', 'Dubai': 'Asia/Dubai',
+      'New York': 'America/New_York', 'Los Angeles': 'America/Los_Angeles',
+      'Tokyo': 'Asia/Tokyo', 'Shanghai': 'Asia/Shanghai', 'Sydney': 'Australia/Sydney',
+      'Cairo': 'Africa/Cairo', 'Riyadh': 'Asia/Riyadh', 'Tehran': 'Asia/Tehran',
+    };
+    return tzMap[city] || 'Europe/Istanbul'; // Varsayılan: Istanbul
+  })();
 
   const getLocale = () => {
     if (i18n.language === 'tr') return 'tr-TR';
