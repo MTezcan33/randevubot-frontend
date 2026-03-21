@@ -65,5 +65,12 @@
   "noValidData": "Geçerli veri bulunamadı. Lütfen dosya formatını kontrol edin.",
   "fileReadError": "Dosya okunamadı. Lütfen geçerli bir Excel dosyası seçin.",
   "importSuccess": "{{count}} müşteri başarıyla içe aktarıldı",
-  "importError": "İçe aktarma sırasında bir hata oluştu"
+  "importError": "İçe aktarma sırasında bir hata oluştu",
+  "packagesTab": "Paketler",
+  "activePackages": "Aktif Paketler",
+  "noActivePackages": "Aktif paket yok",
+  "giftCardBalance": "Hediye Kartı Bakiyesi",
+  "pastPackages": "Geçmiş Paketler",
+  "cancellations": "İptal",
+  "noShows": "Gelmedi"
 }

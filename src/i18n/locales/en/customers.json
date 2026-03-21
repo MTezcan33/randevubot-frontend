@@ -65,5 +65,12 @@
   "noValidData": "No valid data found. Please check file format.",
   "fileReadError": "Could not read file. Please select a valid Excel file.",
   "importSuccess": "{{count}} customers imported successfully",
-  "importError": "An error occurred during import"
+  "importError": "An error occurred during import",
+  "packagesTab": "Packages",
+  "activePackages": "Active Packages",
+  "noActivePackages": "No active packages",
+  "giftCardBalance": "Gift Card Balance",
+  "pastPackages": "Past Packages",
+  "cancellations": "Cancellations",
+  "noShows": "No-Shows"
 }

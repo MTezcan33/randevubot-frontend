@@ -65,5 +65,12 @@
   "noValidData": "Действительные данные не найдены. Проверьте формат файла.",
   "fileReadError": "Не удалось прочитать файл. Выберите действительный файл Excel.",
   "importSuccess": "{{count}} клиентов успешно импортировано",
-  "importError": "Произошла ошибка при импорте"
+  "importError": "Произошла ошибка при импорте",
+  "packagesTab": "Пакеты",
+  "activePackages": "Активные пакеты",
+  "noActivePackages": "Нет активных пакетов",
+  "giftCardBalance": "Баланс подарочной карты",
+  "pastPackages": "Прошлые пакеты",
+  "cancellations": "Отмены",
+  "noShows": "Не пришёл"
 }

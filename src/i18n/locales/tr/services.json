@@ -56,5 +56,12 @@
   "contraindications": "Kontra-endikasyonlar",
   "contraindicationsPlaceholder": "Bu hizmet kimler için uygun değildir...",
   "detailedInfo": "Detaylı Bilgi",
-  "hasDetailedInfo": "Detaylı bilgi mevcut"
+  "hasDetailedInfo": "Detaylı bilgi mevcut",
+  "packages": "Paketler & Hediye Kartları",
+  "packageDefinitions": "Paket Tanımları",
+  "addPackage": "Paket Ekle",
+  "noPackages": "Henüz paket tanımlanmamış",
+  "createGiftCard": "Hediye Kartı",
+  "giftCards": "Hediye Kartları",
+  "noGiftCards": "Henüz hediye kartı yok"
 }

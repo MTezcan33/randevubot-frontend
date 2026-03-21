@@ -56,5 +56,12 @@
   "contraindications": "Contraindications",
   "contraindicationsPlaceholder": "This service is not suitable for...",
   "detailedInfo": "Detailed Info",
-  "hasDetailedInfo": "Detailed info available"
+  "hasDetailedInfo": "Detailed info available",
+  "packages": "Packages & Gift Cards",
+  "packageDefinitions": "Package Definitions",
+  "addPackage": "Add Package",
+  "noPackages": "No packages defined yet",
+  "createGiftCard": "Gift Card",
+  "giftCards": "Gift Cards",
+  "noGiftCards": "No gift cards yet"
 }

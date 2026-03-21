@@ -56,5 +56,12 @@
   "contraindications": "Противопоказания",
   "contraindicationsPlaceholder": "Эта услуга не подходит для...",
   "detailedInfo": "Подробная информация",
-  "hasDetailedInfo": "Подробная информация доступна"
+  "hasDetailedInfo": "Подробная информация доступна",
+  "packages": "Пакеты и подарочные карты",
+  "packageDefinitions": "Определения пакетов",
+  "addPackage": "Добавить пакет",
+  "noPackages": "Пакеты ещё не определены",
+  "createGiftCard": "Подарочная карта",
+  "giftCards": "Подарочные карты",
+  "noGiftCards": "Подарочных карт пока нет"
 }
