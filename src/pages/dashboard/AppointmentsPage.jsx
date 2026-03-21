@@ -406,17 +406,61 @@ const AppointmentsPage = () => {
 
     try {
       const { id, service_id, expert_id, date, time, status, customer_id } = selectedAppointment;
-      const { error } = await supabase.from('appointments').update({ service_id, expert_id, date, time, status, customer_id }).eq('id', id);
-      if (error) throw error;
+
+      // Hizmetler değiştiyse appointment_services güncelle
+      if (selectedAppointment._servicesChanged && selectedAppointment.appointment_services?.length > 0) {
+        const appServices = selectedAppointment.appointment_services;
+        const newTotalDuration = appServices.reduce((sum, as) => sum + (as.company_services?.duration || 0), 0);
+        const newTotalAmount = appServices.reduce((sum, as) => sum + (parseFloat(as.company_services?.price) || 0), 0);
+
+        // appointment_services sil ve yeniden ekle
+        await supabase.from('appointment_services').delete().eq('appointment_id', id);
+        const inserts = appServices.map(as => ({
+          appointment_id: id,
+          service_id: as.service_id,
+          expert_id: as.expert_id || null,
+        }));
+        await supabase.from('appointment_services').insert(inserts);
+
+        // appointments tablosunu güncelle
+        const { error } = await supabase.from('appointments').update({
+          service_id: appServices[0]?.service_id || service_id,
+          expert_id, date, time, status, customer_id,
+          total_duration: newTotalDuration,
+          total_amount: newTotalAmount,
+        }).eq('id', id);
+        if (error) throw error;
+
+        // Local state güncelle — tam re-fetch yerine
+        setAppointments(prev => prev.map(app => {
+          if (app.id !== id) return app;
+          return {
+            ...app,
+            service_id: appServices[0]?.service_id || service_id,
+            expert_id, date, time, status, customer_id,
+            total_duration: newTotalDuration,
+            total_amount: newTotalAmount,
+            appointment_services: appServices.map(as => ({ ...as })),
+          };
+        }));
+      } else {
+        // Sadece temel alanları güncelle
+        const { error } = await supabase.from('appointments').update({ service_id, expert_id, date, time, status, customer_id }).eq('id', id);
+        if (error) throw error;
+
+        // Local state güncelle
+        setAppointments(prev => prev.map(app =>
+          app.id === id ? { ...app, service_id, expert_id, date, time, status, customer_id } : app
+        ));
+      }
 
       // Durum yeni 'onaylandı' olduysa otomatik gelir kaydı oluştur
       if (status === 'onaylandı' && previousStatus !== 'onaylandı') {
-        // Çoklu hizmet varsa toplam fiyat, yoksa tek hizmet fiyatı
         let totalAmount = 0;
         let descriptionText = '';
         if (selectedAppointment.appointment_services?.length > 0) {
           totalAmount = selectedAppointment.appointment_services.reduce((sum, as) =>
-            sum + (as.company_services?.price || 0), 0);
+            sum + (parseFloat(as.company_services?.price) || 0), 0);
           descriptionText = selectedAppointment.appointment_services
             .map(as => as.company_services?.description).filter(Boolean).join(' + ');
         } else {
@@ -880,27 +924,75 @@ const AppointmentsPage = () => {
                 {customers.map(c => <option key={c.id} value={c.id}>{c.name} - {c.phone}</option>)}
               </select>
 
-              {/* Seçili hizmetler listesi */}
-              <div className="w-full mt-1 px-4 py-2 rounded-xl border bg-slate-50">
-                <p className="text-xs font-medium text-slate-500 mb-1">{t('selectServices')}</p>
-                {selectedAppointment.appointment_services?.length > 0 ? (
-                  <div className="space-y-1">
-                    {selectedAppointment.appointment_services.map(as => (
-                      <p key={as.service_id} className="text-sm text-slate-700">
-                        {as.company_services?.description || '—'}
-                        {as.company_services?.duration && <span className="text-xs text-slate-400 ml-2">{as.company_services.duration} dk</span>}
-                      </p>
-                    ))}
+              {/* Hizmet ekleme/çıkarma — düzenlenebilir */}
+              <div className="w-full mt-1 rounded-xl border bg-slate-50 overflow-hidden">
+                <p className="text-xs font-medium text-slate-500 px-4 pt-2 pb-1">{t('selectServices') || 'Hizmet Seçin (birden fazla seçebilirsiniz)'}</p>
+                <div className="max-h-48 overflow-y-auto px-2 pb-2 space-y-1">
+                  {services.map(svc => {
+                    const isSelected = selectedAppointment.appointment_services?.some(as => as.service_id === svc.id);
+                    const assignedExpert = selectedAppointment.appointment_services?.find(as => as.service_id === svc.id);
+                    return (
+                      <label
+                        key={svc.id}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${
+                          isSelected ? 'bg-emerald-50 border border-emerald-200' : 'bg-white border border-slate-100 hover:border-slate-200'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {
+                            setSelectedAppointment(prev => {
+                              const currentServices = prev.appointment_services || [];
+                              if (isSelected) {
+                                // Çıkar
+                                return {
+                                  ...prev,
+                                  appointment_services: currentServices.filter(as => as.service_id !== svc.id),
+                                  _servicesChanged: true,
+                                };
+                              } else {
+                                // Ekle
+                                return {
+                                  ...prev,
+                                  appointment_services: [...currentServices, {
+                                    service_id: svc.id,
+                                    expert_id: prev.expert_id || null,
+                                    company_services: { id: svc.id, description: svc.description, duration: svc.duration, price: svc.price },
+                                  }],
+                                  _servicesChanged: true,
+                                };
+                              }
+                            });
+                          }}
+                          className="w-4 h-4 rounded accent-emerald-600 flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm text-slate-800">{svc.description}</span>
+                          <span className="text-xs text-slate-400 ml-2">{svc.duration} dk</span>
+                        </div>
+                        <span className="text-xs font-semibold text-slate-600">{parseFloat(svc.price).toFixed(0)} ₺</span>
+                        {isSelected && assignedExpert?.expert_id && (() => {
+                          const exp = experts.find(e => e.id === assignedExpert.expert_id);
+                          return exp ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium text-white" style={{ backgroundColor: exp.color || '#6B7280' }}>
+                              {exp.name}
+                            </span>
+                          ) : null;
+                        })()}
+                      </label>
+                    );
+                  })}
+                </div>
+                {selectedAppointment.appointment_services?.length > 0 && (
+                  <div className="px-4 py-1.5 bg-emerald-50 border-t border-emerald-100 flex justify-between text-xs">
+                    <span className="text-emerald-700 font-medium">
+                      {t('totalDuration') || 'Toplam Süre'}: {selectedAppointment.appointment_services.reduce((sum, as) => sum + (as.company_services?.duration || 0), 0)} dk
+                    </span>
+                    <span className="text-emerald-700 font-bold">
+                      {selectedAppointment.appointment_services.reduce((sum, as) => sum + (parseFloat(as.company_services?.price) || 0), 0).toFixed(0)} ₺
+                    </span>
                   </div>
-                ) : (
-                  <p className="text-sm text-slate-700">
-                    {selectedAppointment.company_services?.description || '—'}
-                  </p>
-                )}
-                {selectedAppointment.total_duration && (
-                  <p className="text-xs text-emerald-600 font-medium mt-1">
-                    {t('totalDuration')}: {selectedAppointment.total_duration} dk
-                  </p>
                 )}
               </div>
 
