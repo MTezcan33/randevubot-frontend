@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
-import { Plus, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Trash2, GripVertical, Save, X } from 'lucide-react';
 import { createIncomeFromAppointment } from '../../services/accountingService';
 import { useTranslation } from 'react-i18next';
 import {
@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { motion } from 'framer-motion';
+import { motion, Reorder } from 'framer-motion';
 import PaymentCollectionModal from '@/components/PaymentCollectionModal';
 import CreateAppointmentModal from '@/components/CreateAppointmentModal';
 
@@ -271,6 +271,9 @@ const AppointmentsPage = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentAppointmentId, setPaymentAppointmentId] = useState(null);
+  const [reorderApp, setReorderApp] = useState(null); // Sıralama paneli için seçili randevu
+  const [reorderServices, setReorderServices] = useState([]); // Sürüklenebilir hizmet listesi
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
   const companyTimezone = company?.timezone || 'UTC';
 
   const getLocale = () => {
@@ -425,6 +428,45 @@ const AppointmentsPage = () => {
     return `${h}:${m}`;
   });
 
+  // ── Hizmet Sıralama Paneli ──
+  const openReorderPanel = (appointment) => {
+    if (!appointment.appointment_services?.length || appointment.appointment_services.length < 2) {
+      // Tek hizmetli randevularda direkt detay aç
+      openAppointmentDetails(appointment);
+      return;
+    }
+    setReorderApp(appointment);
+    setReorderServices([...appointment.appointment_services]);
+  };
+
+  const closeReorderPanel = () => {
+    setReorderApp(null);
+    setReorderServices([]);
+  };
+
+  const saveServiceOrder = async () => {
+    if (!reorderApp || reorderServices.length === 0) return;
+    setIsSavingOrder(true);
+    try {
+      // Mevcut appointment_services kayıtlarını sil ve yeni sırayla ekle
+      await supabase.from('appointment_services').delete().eq('appointment_id', reorderApp.id);
+      const inserts = reorderServices.map((as) => ({
+        appointment_id: reorderApp.id,
+        service_id: as.service_id,
+        expert_id: as.expert_id || null,
+      }));
+      const { error } = await supabase.from('appointment_services').insert(inserts);
+      if (error) throw error;
+      toast({ title: t('success'), description: t('orderSaved') || 'Sıralama kaydedildi' });
+      closeReorderPanel();
+      fetchAppointments();
+    } catch (err) {
+      toast({ title: t('error'), description: err.message, variant: 'destructive' });
+    } finally {
+      setIsSavingOrder(false);
+    }
+  };
+
   const openAppointmentDetails = (appointment) => {
     setSelectedAppointment({ ...appointment, customer_name: appointment.customers.name, customer_phone: appointment.customers.phone });
     setPreviousStatus(appointment.status);
@@ -571,7 +613,7 @@ const AppointmentsPage = () => {
                                 top: `${topPosition}px`,
                                 height: `${height}px`
                               }}
-                              onClick={() => openAppointmentDetails(block.app)}
+                              onClick={() => openReorderPanel(block.app)}
                             >
                               <AppointmentCard
                                 appointment={block.app}
@@ -736,6 +778,98 @@ const AppointmentsPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      )}
+
+
+      {/* Hizmet Sıralama Paneli — Takvimden tıklayınca açılır */}
+      {reorderApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={closeReorderPanel}>
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 bg-emerald-50 border-b">
+              <div>
+                <h3 className="text-base font-bold text-slate-800">{t('appointmentOrder') || 'Randevu Sırası'}</h3>
+                <p className="text-sm text-slate-500">{reorderApp.customers?.name}</p>
+              </div>
+              <button onClick={closeReorderPanel} className="p-1.5 rounded-lg hover:bg-slate-200 transition">
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+
+            {/* Sürüklenebilir Liste */}
+            <div className="px-2 py-3">
+              <p className="text-xs text-slate-400 px-3 mb-2">{t('dragToReorder') || 'Sırayı değiştirmek için sürükleyin'}</p>
+              <Reorder.Group
+                axis="y"
+                values={reorderServices}
+                onReorder={setReorderServices}
+                className="space-y-1"
+              >
+                {reorderServices.map((as, idx) => {
+                  const svc = as.company_services;
+                  const exp = as.expert_id ? experts.find(e => e.id === as.expert_id) : null;
+                  // Kümülatif zaman hesapla
+                  let cumStart = 0;
+                  for (let i = 0; i < idx; i++) {
+                    cumStart += reorderServices[i].company_services?.duration || 0;
+                  }
+                  const [h, m] = (reorderApp.time || '00:00').split(':').map(Number);
+                  const baseMin = h * 60 + m;
+                  const startMin = baseMin + cumStart;
+                  const endMin = startMin + (svc?.duration || 0);
+                  const fmt = (min) => `${Math.floor(min/60).toString().padStart(2,'0')}:${(min%60).toString().padStart(2,'0')}`;
+
+                  return (
+                    <Reorder.Item
+                      key={as.service_id}
+                      value={as}
+                      className="flex items-center gap-3 px-3 py-3 bg-white border border-slate-200 rounded-xl cursor-grab active:cursor-grabbing active:bg-emerald-50 active:shadow-lg active:border-emerald-300 active:z-20"
+                    >
+                      <GripVertical className="w-5 h-5 text-slate-300 flex-shrink-0" />
+                      <span className="text-sm font-bold text-slate-400 w-6">{idx + 1}.</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-800">{svc?.description || 'Hizmet'}</p>
+                        <p className="text-xs text-slate-400">{svc?.duration} dk · {fmt(startMin)}-{fmt(endMin)}</p>
+                      </div>
+                      {exp && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium text-white"
+                          style={{ backgroundColor: exp.color || '#059669' }}>
+                          {exp.name}
+                        </span>
+                      )}
+                    </Reorder.Item>
+                  );
+                })}
+              </Reorder.Group>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between px-5 py-3 bg-slate-50 border-t">
+              <button
+                onClick={() => { closeReorderPanel(); openAppointmentDetails(reorderApp); }}
+                className="text-sm text-slate-500 hover:text-slate-700 underline"
+              >
+                {t('appointmentDetails')}
+              </button>
+              <div className="flex gap-2">
+                <button onClick={closeReorderPanel} className="px-4 py-2 text-sm text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50">
+                  {t('cancel')}
+                </button>
+                <button
+                  onClick={saveServiceOrder}
+                  disabled={isSavingOrder}
+                  className="px-4 py-2 text-sm text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Save className="w-4 h-4" />
+                  {isSavingOrder ? '...' : (t('save'))}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Randevu Oluşturma Modal — Yeni tam sayfa modal */}

@@ -61,5 +61,6 @@
   "noCategory": "Other Services",
   "dateAndTime": "Date & Time",
   "appointmentOrder": "Appointment Order",
-  "dragToReorder": "Drag to reorder"
+  "dragToReorder": "Drag to reorder",
+  "orderSaved": "Order saved"
 }

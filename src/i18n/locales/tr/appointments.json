@@ -61,5 +61,6 @@
   "noCategory": "Diğer Hizmetler",
   "dateAndTime": "Tarih ve Saat",
   "appointmentOrder": "Randevu Sırası",
-  "dragToReorder": "Sırayı değiştirmek için sürükleyin"
+  "dragToReorder": "Sırayı değiştirmek için sürükleyin",
+  "orderSaved": "Sıralama kaydedildi"
 }

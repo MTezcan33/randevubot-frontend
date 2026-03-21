@@ -61,5 +61,6 @@
   "noCategory": "Другие услуги",
   "dateAndTime": "Дата и время",
   "appointmentOrder": "Порядок записи",
-  "dragToReorder": "Перетащите для изменения порядка"
+  "dragToReorder": "Перетащите для изменения порядка",
+  "orderSaved": "Порядок сохранён"
 }
