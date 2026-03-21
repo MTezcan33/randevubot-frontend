@@ -61,6 +61,11 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
   const [expandedApptId, setExpandedApptId] = useState(null);
   const [historyFilter, setHistoryFilter] = useState('all'); // all, upcoming, completed, cancelled
 
+  // Paketler tab state
+  const [customerPackages, setCustomerPackages] = useState([]);
+  const [customerGiftCards, setCustomerGiftCards] = useState([]);
+  const [pkgTabLoading, setPkgTabLoading] = useState(false);
+
   // Bilgiler tab state
   const [profileEdit, setProfileEdit] = useState({});
   const [selectedTags, setSelectedTags] = useState([]);
@@ -104,17 +109,39 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
     }
   };
 
+  // Paketler tab verisi
+  const fetchPackagesTab = async () => {
+    if (!customer || !company) return;
+    setPkgTabLoading(true);
+    try {
+      const [pkgRes, gcRes] = await Promise.all([
+        supabase.from('customer_packages').select('*, service_packages(name, description, total_sessions)').eq('customer_id', customer.id).eq('company_id', company.id).order('created_at', { ascending: false }),
+        supabase.from('gift_cards').select('*').eq('customer_id', customer.id).eq('company_id', company.id).order('created_at', { ascending: false }),
+      ]);
+      setCustomerPackages(pkgRes.data || []);
+      setCustomerGiftCards(gcRes.data || []);
+    } catch (err) { console.error('Paket tab hatası:', err); }
+    finally { setPkgTabLoading(false); }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'packages' && customer) fetchPackagesTab();
+  }, [activeTab, customer]);
+
   // İstatistikler
   const stats = useMemo(() => {
     const completedAppts = appointments.filter(a => a.status === 'onaylandı');
+    const cancelledAppts = appointments.filter(a => a.status === 'iptal');
+    const noShowAppts = cancelledAppts.filter(a => a.cancel_reason === 'musteri_gelmedi');
     const avgRating = feedbacks.length > 0
       ? (feedbacks.reduce((sum, f) => sum + (f.rating || 0), 0) / feedbacks.length).toFixed(1)
       : null;
     const totalSpent = completedAppts.reduce((sum, a) => {
+      if (parseFloat(a.paid_amount) > 0) return sum + parseFloat(a.paid_amount);
       const services = a.appointment_services?.length > 0
         ? a.appointment_services
         : (a.company_services ? [{ company_services: a.company_services }] : []);
-      return sum + services.reduce((s, as) => s + (as.company_services?.price || 0), 0);
+      return sum + services.reduce((s, as) => s + (parseFloat(as.company_services?.price) || 0), 0);
     }, 0);
     const memberMonths = customer ? Math.max(1, Math.floor((Date.now() - new Date(customer.created_at).getTime()) / (30 * 24 * 60 * 60 * 1000))) : 0;
 
@@ -123,6 +150,8 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
       totalSpent,
       avgRating,
       memberMonths,
+      cancelCount: cancelledAppts.length,
+      noShowCount: noShowAppts.length,
     };
   }, [appointments, feedbacks, customer]);
 
@@ -228,29 +257,41 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
               </div>
 
               {/* İstatistik barı */}
-              <div className="grid grid-cols-4 gap-3 mt-4">
+              <div className="grid grid-cols-3 gap-2 mt-4">
                 <div className="bg-white/15 rounded-lg p-2 text-center">
                   <p className="text-lg font-bold">{stats.totalVisits}</p>
-                  <p className="text-[10px] text-white/70">{t('totalVisits')}</p>
+                  <p className="text-[10px] text-white/70">{t('totalVisits') || 'Ziyaret'}</p>
                 </div>
                 <div className="bg-white/15 rounded-lg p-2 text-center">
-                  <p className="text-lg font-bold">{stats.totalSpent > 0 ? `${stats.totalSpent.toLocaleString()}` : '0'}</p>
-                  <p className="text-[10px] text-white/70">{t('totalSpent')}</p>
+                  <p className="text-lg font-bold">{stats.totalSpent > 0 ? `${stats.totalSpent.toLocaleString()}₺` : '0'}</p>
+                  <p className="text-[10px] text-white/70">{t('totalSpent') || 'Harcama'}</p>
                 </div>
                 <div className="bg-white/15 rounded-lg p-2 text-center">
                   <p className="text-lg font-bold">{stats.avgRating || '-'}</p>
-                  <p className="text-[10px] text-white/70">{t('avgRating')}</p>
+                  <p className="text-[10px] text-white/70">{t('avgRating') || 'Puan'}</p>
                 </div>
                 <div className="bg-white/15 rounded-lg p-2 text-center">
                   <p className="text-lg font-bold">{stats.memberMonths}</p>
-                  <p className="text-[10px] text-white/70">{t('memberSince')}</p>
+                  <p className="text-[10px] text-white/70">{t('memberSince') || 'Üyelik (ay)'}</p>
                 </div>
+                {stats.cancelCount > 0 && (
+                  <div className="bg-red-500/30 rounded-lg p-2 text-center">
+                    <p className="text-lg font-bold">{stats.cancelCount}</p>
+                    <p className="text-[10px] text-white/70">{t('cancellations') || 'İptal'}</p>
+                  </div>
+                )}
+                {stats.noShowCount > 0 && (
+                  <div className="bg-amber-500/30 rounded-lg p-2 text-center">
+                    <p className="text-lg font-bold">{stats.noShowCount}</p>
+                    <p className="text-[10px] text-white/70">{t('noShows') || 'Gelmedi'}</p>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Tabs */}
             <div className="flex border-b">
-              {['history', 'feedback', 'info'].map(tab => (
+              {['history', 'packages', 'feedback', 'info'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -260,9 +301,10 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                       : 'border-transparent text-slate-500 hover:text-slate-700'
                   }`}
                 >
-                  {tab === 'history' && t('customerHistory')}
-                  {tab === 'feedback' && t('customerFeedbackTab')}
-                  {tab === 'info' && t('customerInfo')}
+                  {tab === 'history' && (t('customerHistory') || 'Geçmiş')}
+                  {tab === 'packages' && (t('packagesTab') || 'Paketler')}
+                  {tab === 'feedback' && (t('customerFeedbackTab') || 'Yorumlar')}
+                  {tab === 'info' && (t('customerInfo') || 'Bilgiler')}
                 </button>
               ))}
             </div>
@@ -559,6 +601,113 @@ const CustomerDetailDrawer = ({ customer, isOpen, onClose, company, staff, t, to
                             )}
                           </div>
                         ))
+                      )}
+                    </div>
+                  )}
+
+                  {/* PAKETLER & KREDİLER TAB */}
+                  {activeTab === 'packages' && (
+                    <div className="space-y-4">
+                      {pkgTabLoading ? (
+                        <div className="text-center py-8 text-slate-400">{t('loading') || 'Yükleniyor...'}</div>
+                      ) : (
+                        <>
+                          {/* Aktif Paketler */}
+                          <div>
+                            <h3 className="text-sm font-semibold text-slate-700 mb-2">{t('activePackages') || 'Aktif Paketler'}</h3>
+                            {customerPackages.filter(p => p.status === 'active').length === 0 ? (
+                              <div className="text-center py-6 bg-slate-50 rounded-xl text-sm text-slate-400">
+                                {t('noActivePackages') || 'Aktif paket yok'}
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                {customerPackages.filter(p => p.status === 'active').map(pkg => {
+                                  const remaining = pkg.total_sessions - pkg.used_sessions;
+                                  const percentage = (pkg.used_sessions / pkg.total_sessions) * 100;
+                                  const isExpiringSoon = new Date(pkg.expiry_date) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                                  return (
+                                    <div key={pkg.id} className="bg-white rounded-xl border p-4">
+                                      <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                          <p className="font-semibold text-slate-800">{pkg.service_packages?.name || 'Paket'}</p>
+                                          <p className="text-xs text-slate-500">{pkg.service_packages?.description}</p>
+                                        </div>
+                                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Aktif</span>
+                                      </div>
+                                      <div className="flex items-baseline gap-2 mb-2">
+                                        <span className="text-2xl font-bold text-emerald-600">{remaining}</span>
+                                        <span className="text-sm text-slate-400">/ {pkg.total_sessions} seans kaldı</span>
+                                      </div>
+                                      <div className="w-full bg-slate-100 rounded-full h-2 mb-2">
+                                        <div className="h-2 rounded-full bg-emerald-500 transition-all" style={{ width: `${percentage}%` }} />
+                                      </div>
+                                      <div className="flex justify-between text-xs text-slate-500">
+                                        <span>Satın alma: {pkg.purchase_date}</span>
+                                        <span className={isExpiringSoon ? 'text-red-500 font-medium' : ''}>
+                                          Son kullanma: {pkg.expiry_date}
+                                          {isExpiringSoon && ' ⚠️'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Hediye Kartı Bakiyesi */}
+                          {customerGiftCards.length > 0 && (
+                            <div>
+                              <h3 className="text-sm font-semibold text-slate-700 mb-2">{t('giftCardBalance') || 'Hediye Kartı Bakiyesi'}</h3>
+                              <div className="space-y-2">
+                                {customerGiftCards.map(gc => (
+                                  <div key={gc.id} className="flex items-center justify-between bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100 p-3">
+                                    <div>
+                                      <p className="font-mono font-semibold text-purple-700">{gc.code}</p>
+                                      <p className="text-xs text-slate-500 mt-0.5">{gc.expiry_date ? `Son: ${gc.expiry_date}` : 'Süresiz'}</p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-xl font-bold text-purple-700">{parseFloat(gc.remaining_amount).toFixed(0)} ₺</p>
+                                      {parseFloat(gc.remaining_amount) < parseFloat(gc.original_amount) && (
+                                        <p className="text-[10px] text-slate-400">/ {parseFloat(gc.original_amount).toFixed(0)} ₺</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Tamamlanan / Süresi Dolan Paketler */}
+                          {customerPackages.filter(p => p.status !== 'active').length > 0 && (
+                            <div>
+                              <h3 className="text-sm font-semibold text-slate-500 mb-2">{t('pastPackages') || 'Geçmiş Paketler'}</h3>
+                              <div className="space-y-1">
+                                {customerPackages.filter(p => p.status !== 'active').map(pkg => (
+                                  <div key={pkg.id} className="flex items-center justify-between bg-slate-50 rounded-lg p-3 opacity-60">
+                                    <div>
+                                      <p className="text-sm font-medium text-slate-600">{pkg.service_packages?.name || 'Paket'}</p>
+                                      <p className="text-xs text-slate-400">{pkg.used_sessions}/{pkg.total_sessions} seans kullanıldı</p>
+                                    </div>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                      pkg.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                                      pkg.status === 'expired' ? 'bg-red-100 text-red-600' :
+                                      'bg-stone-100 text-stone-500'
+                                    }`}>
+                                      {pkg.status === 'completed' ? 'Tamamlandı' : pkg.status === 'expired' ? 'Süresi Doldu' : 'İptal'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {customerPackages.length === 0 && customerGiftCards.length === 0 && (
+                            <div className="text-center py-8 text-slate-400 text-sm">
+                              Bu müşterinin henüz paketi veya hediye kartı yok.
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   )}
