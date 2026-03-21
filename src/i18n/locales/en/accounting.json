@@ -53,6 +53,7 @@
   "autoReportsDesc": "Periodic report delivery",
   "reportSchedule": "Schedule",
   "frequency": "Frequency",
+  "daily": "Daily",
   "weekly": "Weekly",
   "monthly": "Monthly",
   "dayOfWeek": "Day",
@@ -72,5 +73,12 @@
   "expertRevenue": "Revenue by Expert",
   "expert": "Expert",
   "revenue": "Revenue",
-  "service": "Service"
+  "service": "Service",
+  "transaction": "transaction",
+  "total": "Total",
+  "count": "Count",
+  "cash": "Cash",
+  "card": "Card",
+  "online": "Online",
+  "noData": "No data found"
 }

@@ -297,6 +297,73 @@ export const getExpertRevenue = async (companyId, startDate, endDate) => {
 };
 
 /**
+ * Uzman bazlı detaylı gelir — günlük bazda tarih, ödeme yöntemi bilgisi ile
+ * Muhasebe → Raporlar → Uzman Gelir bölümü için kullanılır
+ */
+export const getExpertRevenueByDate = async (companyId, startDate, endDate) => {
+  // Doğrudan expert_id olan transaction'ları al
+  const { data: directData, error: directError } = await supabase
+    .from('transactions')
+    .select(`
+      amount,
+      payment_method,
+      transaction_date,
+      expert_id,
+      company_users!expert_id(name, color)
+    `)
+    .eq('company_id', companyId)
+    .eq('type', 'income')
+    .not('expert_id', 'is', null)
+    .gte('transaction_date', startDate)
+    .lte('transaction_date', endDate)
+    .order('transaction_date', { ascending: true });
+
+  if (!directError && directData?.length > 0) {
+    return directData.map(d => ({
+      amount: parseFloat(d.amount) || 0,
+      payment_method: d.payment_method,
+      transaction_date: d.transaction_date,
+      expert_id: d.expert_id,
+      expert_name: d.company_users?.name || 'Bilinmeyen',
+      expert_color: d.company_users?.color || '#6B7280',
+    }));
+  }
+
+  // Fallback: appointment.expert_id üzerinden
+  const { data, error } = await supabase
+    .from('transactions')
+    .select(`
+      amount,
+      payment_method,
+      transaction_date,
+      appointments!inner(
+        expert_id,
+        company_users!inner(name, color)
+      )
+    `)
+    .eq('company_id', companyId)
+    .eq('type', 'income')
+    .not('appointment_id', 'is', null)
+    .gte('transaction_date', startDate)
+    .lte('transaction_date', endDate)
+    .order('transaction_date', { ascending: true });
+
+  if (error) {
+    console.error('Uzman detaylı ciro hatası:', error);
+    return [];
+  }
+
+  return (data || []).map(d => ({
+    amount: parseFloat(d.amount) || 0,
+    payment_method: d.payment_method,
+    transaction_date: d.transaction_date,
+    expert_id: d.appointments?.expert_id,
+    expert_name: d.appointments?.company_users?.name || 'Bilinmeyen',
+    expert_color: d.appointments?.company_users?.color || '#6B7280',
+  }));
+};
+
+/**
  * Hizmet bazlı ciro (randevuya bağlı gelirler)
  */
 export const getServiceRevenue = async (companyId, startDate, endDate) => {

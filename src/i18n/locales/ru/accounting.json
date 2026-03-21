@@ -53,6 +53,7 @@
   "autoReportsDesc": "Периодическая отправка отчётов",
   "reportSchedule": "Расписание",
   "frequency": "Частота",
+  "daily": "Ежедневно",
   "weekly": "Еженедельно",
   "monthly": "Ежемесячно",
   "dayOfWeek": "День",
@@ -72,5 +73,12 @@
   "expertRevenue": "Доход по специалистам",
   "expert": "Специалист",
   "revenue": "Доход",
-  "service": "Услуга"
+  "service": "Услуга",
+  "transaction": "операция",
+  "total": "Итого",
+  "count": "Кол-во",
+  "cash": "Наличные",
+  "card": "Карта",
+  "online": "Онлайн",
+  "noData": "Данные не найдены"
 }

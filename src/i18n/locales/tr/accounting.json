@@ -53,6 +53,7 @@
   "autoReportsDesc": "Periyodik rapor gönderimi",
   "reportSchedule": "Zamanlama",
   "frequency": "Sıklık",
+  "daily": "Günlük",
   "weekly": "Haftalık",
   "monthly": "Aylık",
   "dayOfWeek": "Gün",
@@ -72,5 +73,12 @@
   "expertRevenue": "Uzman Bazlı Ciro",
   "expert": "Uzman",
   "revenue": "Gelir",
-  "service": "Hizmet"
+  "service": "Hizmet",
+  "transaction": "işlem",
+  "total": "Toplam",
+  "count": "Adet",
+  "cash": "Nakit",
+  "card": "Kart",
+  "online": "Online",
+  "noData": "Veri bulunamadı"
 }

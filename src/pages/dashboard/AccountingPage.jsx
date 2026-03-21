@@ -53,6 +53,7 @@ import {
   buildDailyChartData,
   buildCategoryChartData,
   getExpertRevenue,
+  getExpertRevenueByDate,
   getServiceRevenue,
 } from '@/services/accountingService';
 
@@ -137,6 +138,8 @@ const AccountingPage = () => {
   const [reportData, setReportData] = useState([]);
   const [reportLoading, setReportLoading] = useState(false);
   const [expertRevData, setExpertRevData] = useState([]);
+  const [expertRevDetailData, setExpertRevDetailData] = useState([]);
+  const [expertPeriod, setExpertPeriod] = useState('daily'); // daily | weekly | monthly
   const [serviceRevData, setServiceRevData] = useState([]);
 
   // ── Tab 4: Kategoriler ──
@@ -190,13 +193,15 @@ const AccountingPage = () => {
     if (!company) return;
     setReportLoading(true);
     try {
-      const [txs, expertRev, serviceRev] = await Promise.all([
+      const [txs, expertRev, expertRevDetail, serviceRev] = await Promise.all([
         getTransactionsByDateRange(company.id, reportRange.startDate, reportRange.endDate),
         getExpertRevenue(company.id, reportRange.startDate, reportRange.endDate),
+        getExpertRevenueByDate(company.id, reportRange.startDate, reportRange.endDate),
         getServiceRevenue(company.id, reportRange.startDate, reportRange.endDate),
       ]);
       setReportData(txs);
       setExpertRevData(expertRev);
+      setExpertRevDetailData(expertRevDetail);
       setServiceRevData(serviceRev);
     } catch (err) {
       console.error('Rapor hatası:', err);
@@ -848,30 +853,151 @@ const AccountingPage = () => {
               </div>
             </div>
 
-            {/* Uzman ciro tablosu */}
-            {Object.keys(expertSummary).length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100">
-                  <h3 className="font-semibold text-gray-900">{t('expertRevenue')}</h3>
-                </div>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50">
-                      <th className="text-left px-5 py-2 text-slate-500 font-medium">{t('expert')}</th>
-                      <th className="text-right px-5 py-2 text-slate-500 font-medium">{t('revenue')}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {Object.entries(expertSummary).sort((a, b) => b[1] - a[1]).map(([name, amt]) => (
-                      <tr key={name}>
-                        <td className="px-5 py-3 font-medium">{name}</td>
-                        <td className="px-5 py-3 text-right text-green-600 font-semibold">${formatCurrency(amt)}</td>
-                      </tr>
+            {/* ═══ Uzman Bazlı Gelir Takip Bölümü ═══ */}
+            {expertRevDetailData.length > 0 && (() => {
+              // Uzman bazlı toplam ve ödeme yöntemi hesapla
+              const expertTotals = {};
+              expertRevDetailData.forEach(d => {
+                if (!expertTotals[d.expert_id]) {
+                  expertTotals[d.expert_id] = { name: d.expert_name, color: d.expert_color, total: 0, cash: 0, card: 0, online: 0, count: 0 };
+                }
+                const e = expertTotals[d.expert_id];
+                e.total += d.amount;
+                e.count++;
+                if (d.payment_method === 'cash') e.cash += d.amount;
+                else if (d.payment_method === 'card') e.card += d.amount;
+                else if (d.payment_method === 'transfer') e.online += d.amount;
+              });
+              const expertList = Object.entries(expertTotals).sort((a, b) => b[1].total - a[1].total);
+
+              // Periyoda göre gruplama
+              const groupByPeriod = (data) => {
+                const groups = {};
+                data.forEach(d => {
+                  let key = d.transaction_date; // daily
+                  if (expertPeriod === 'weekly') {
+                    const dt = new Date(d.transaction_date);
+                    const weekStart = new Date(dt);
+                    weekStart.setDate(dt.getDate() - dt.getDay() + 1);
+                    key = weekStart.toISOString().split('T')[0];
+                  } else if (expertPeriod === 'monthly') {
+                    key = d.transaction_date.substring(0, 7);
+                  }
+                  if (!groups[key]) groups[key] = {};
+                  if (!groups[key][d.expert_id]) groups[key][d.expert_id] = 0;
+                  groups[key][d.expert_id] += d.amount;
+                });
+                return Object.entries(groups)
+                  .sort((a, b) => a[0].localeCompare(b[0]))
+                  .map(([period, experts]) => ({ period, ...experts }));
+              };
+
+              const chartData = groupByPeriod(expertRevDetailData);
+              const formatPeriodLabel = (val) => {
+                if (expertPeriod === 'monthly') return val; // YYYY-MM
+                const d = new Date(val + 'T00:00:00');
+                return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}`;
+              };
+
+              return (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
+                    <h3 className="font-semibold text-gray-900 text-lg">{t('expertRevenue') || 'Uzman Gelirleri'}</h3>
+                    <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5">
+                      {[
+                        { key: 'daily', label: t('daily') || 'Günlük' },
+                        { key: 'weekly', label: t('weekly') || 'Haftalık' },
+                        { key: 'monthly', label: t('monthly') || 'Aylık' },
+                      ].map(opt => (
+                        <button
+                          key={opt.key}
+                          onClick={() => setExpertPeriod(opt.key)}
+                          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all
+                            ${expertPeriod === opt.key ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}
+                          `}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Uzman Gelir Kartları */}
+                  <div className="p-5 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {expertList.map(([id, ex]) => (
+                      <div key={id} className="rounded-xl border-l-4 bg-slate-50 p-3" style={{ borderLeftColor: ex.color }}>
+                        <p className="text-sm font-semibold text-slate-700 truncate">{ex.name}</p>
+                        <p className="text-xl font-bold text-emerald-600 mt-1">{formatCurrency(ex.total)}</p>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {ex.cash > 0 && <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">💵 {formatCurrency(ex.cash)}</span>}
+                          {ex.card > 0 && <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">💳 {formatCurrency(ex.card)}</span>}
+                          {ex.online > 0 && <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">🌐 {formatCurrency(ex.online)}</span>}
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-1">{ex.count} {t('transaction') || 'işlem'}</p>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                  </div>
+
+                  {/* Kümülatif Bar Chart */}
+                  {chartData.length > 0 && (
+                    <div className="px-5 pb-5">
+                      <ResponsiveContainer width="100%" height={280}>
+                        <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                          <XAxis dataKey="period" tickFormatter={formatPeriodLabel} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                          <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}K` : v} />
+                          <Tooltip
+                            contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                            formatter={(value, name) => {
+                              const ex = expertTotals[name];
+                              return [formatCurrency(value), ex?.name || name];
+                            }}
+                            labelFormatter={formatPeriodLabel}
+                          />
+                          <Legend formatter={(value) => expertTotals[value]?.name || value} />
+                          {expertList.map(([id, ex]) => (
+                            <Bar key={id} dataKey={id} stackId="experts" fill={ex.color} name={id} radius={expertList.indexOf([id, ex]) === expertList.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
+                          ))}
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  {/* Detay Tablosu */}
+                  <div className="border-t border-gray-100">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-100 bg-gray-50">
+                          <th className="text-left px-5 py-2.5 text-slate-500 font-medium">{t('expert') || 'Uzman'}</th>
+                          <th className="text-right px-3 py-2.5 text-slate-500 font-medium">{t('total') || 'Toplam'}</th>
+                          <th className="text-right px-3 py-2.5 text-slate-500 font-medium hidden md:table-cell">💵 {t('cash') || 'Nakit'}</th>
+                          <th className="text-right px-3 py-2.5 text-slate-500 font-medium hidden md:table-cell">💳 {t('card') || 'Kart'}</th>
+                          <th className="text-right px-3 py-2.5 text-slate-500 font-medium hidden md:table-cell">🌐 {t('online') || 'Online'}</th>
+                          <th className="text-right px-5 py-2.5 text-slate-500 font-medium">{t('count') || 'Adet'}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {expertList.map(([id, ex]) => (
+                          <tr key={id} className="hover:bg-slate-50">
+                            <td className="px-5 py-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: ex.color }} />
+                                <span className="font-medium text-slate-800">{ex.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 text-right font-bold text-emerald-600">{formatCurrency(ex.total)}</td>
+                            <td className="px-3 py-3 text-right text-slate-600 hidden md:table-cell">{ex.cash > 0 ? formatCurrency(ex.cash) : '-'}</td>
+                            <td className="px-3 py-3 text-right text-slate-600 hidden md:table-cell">{ex.card > 0 ? formatCurrency(ex.card) : '-'}</td>
+                            <td className="px-3 py-3 text-right text-slate-600 hidden md:table-cell">{ex.online > 0 ? formatCurrency(ex.online) : '-'}</td>
+                            <td className="px-5 py-3 text-right text-slate-500">{ex.count}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Hizmet ciro tablosu */}
             {Object.keys(serviceSummary).length > 0 && (
