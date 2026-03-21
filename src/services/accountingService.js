@@ -301,7 +301,7 @@ export const getExpertRevenue = async (companyId, startDate, endDate) => {
  * Muhasebe → Raporlar → Uzman Gelir bölümü için kullanılır
  */
 export const getExpertRevenueByDate = async (companyId, startDate, endDate) => {
-  // Doğrudan expert_id olan transaction'ları al
+  // Tüm randevu bağlantılı gelir transaction'larını al (expert_id null olanlar dahil — self servis)
   const { data: directData, error: directError } = await supabase
     .from('transactions')
     .select(`
@@ -309,11 +309,12 @@ export const getExpertRevenueByDate = async (companyId, startDate, endDate) => {
       payment_method,
       transaction_date,
       expert_id,
+      appointment_id,
       company_users!expert_id(name, color)
     `)
     .eq('company_id', companyId)
     .eq('type', 'income')
-    .not('expert_id', 'is', null)
+    .not('appointment_id', 'is', null)
     .gte('transaction_date', startDate)
     .lte('transaction_date', endDate)
     .order('transaction_date', { ascending: true });
@@ -323,9 +324,9 @@ export const getExpertRevenueByDate = async (companyId, startDate, endDate) => {
       amount: parseFloat(d.amount) || 0,
       payment_method: d.payment_method,
       transaction_date: d.transaction_date,
-      expert_id: d.expert_id,
-      expert_name: d.company_users?.name || 'Bilinmeyen',
-      expert_color: d.company_users?.color || '#6B7280',
+      expert_id: d.expert_id || '__self_service__',
+      expert_name: d.expert_id ? (d.company_users?.name || 'Bilinmeyen') : 'Self Servis',
+      expert_color: d.expert_id ? (d.company_users?.color || '#6B7280') : '#F59E0B',
     }));
   }
 
@@ -336,9 +337,9 @@ export const getExpertRevenueByDate = async (companyId, startDate, endDate) => {
       amount,
       payment_method,
       transaction_date,
-      appointments!inner(
+      appointments(
         expert_id,
-        company_users!inner(name, color)
+        company_users(name, color)
       )
     `)
     .eq('company_id', companyId)
@@ -353,14 +354,17 @@ export const getExpertRevenueByDate = async (companyId, startDate, endDate) => {
     return [];
   }
 
-  return (data || []).map(d => ({
-    amount: parseFloat(d.amount) || 0,
-    payment_method: d.payment_method,
-    transaction_date: d.transaction_date,
-    expert_id: d.appointments?.expert_id,
-    expert_name: d.appointments?.company_users?.name || 'Bilinmeyen',
-    expert_color: d.appointments?.company_users?.color || '#6B7280',
-  }));
+  return (data || []).map(d => {
+    const eid = d.appointments?.expert_id;
+    return {
+      amount: parseFloat(d.amount) || 0,
+      payment_method: d.payment_method,
+      transaction_date: d.transaction_date,
+      expert_id: eid || '__self_service__',
+      expert_name: eid ? (d.appointments?.company_users?.name || 'Bilinmeyen') : 'Self Servis',
+      expert_color: eid ? (d.appointments?.company_users?.color || '#6B7280') : '#F59E0B',
+    };
+  });
 };
 
 /**

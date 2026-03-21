@@ -80,5 +80,6 @@
   "cash": "Nakit",
   "card": "Kart",
   "online": "Online",
-  "noData": "Veri bulunamadı"
+  "noData": "Veri bulunamadı",
+  "selfService": "Self Servis"
 }
