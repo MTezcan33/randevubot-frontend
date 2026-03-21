@@ -454,7 +454,6 @@ const AccountingPage = () => {
   const tabs = [
     { id: 'daily', label: t('dailyCash'), icon: <Wallet className="w-4 h-4" /> },
     { id: 'transactions', label: t('transactions'), icon: <TrendingUp className="w-4 h-4" /> },
-    { id: 'reports', label: t('reports'), icon: <BarChart3 className="w-4 h-4" /> },
     { id: 'categories', label: t('categories'), icon: <Tag className="w-4 h-4" /> },
   ];
 
@@ -772,10 +771,11 @@ const AccountingPage = () => {
           </div>
         )}
 
-        {/* ══ TAB 3: RAPORLAR ══ */}
-        {activeTab === 'reports' && (
+        {/* ══ TAB 3: KATEGORİLER (eski TAB 4) ══ */}
+        {/* Raporlar artık ayrı sayfada: /dashboard/reports */}
+        {false && (
           <div className="space-y-6">
-            {/* Tarih aralığı + PDF butonu */}
+            {/* KALDIRILDI — ReportsPage'e taşındı */}
             <div className="flex flex-wrap gap-3 items-end">
               <div>
                 <label className="text-xs text-slate-500 mb-1 block">{t('startDate')}</label>
