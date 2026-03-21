@@ -1112,7 +1112,16 @@ const AppointmentsPage = () => {
         appointmentId={paymentAppointmentId}
         companyId={company?.id}
         experts={experts}
-        onPaymentComplete={() => fetchAppointments()}
+        onPaymentComplete={(updatedAppt) => {
+          // Tam re-fetch yerine local state güncelle — diğer blokların yerini değiştirme
+          if (updatedAppt?.id) {
+            setAppointments(prev => prev.map(app =>
+              app.id === updatedAppt.id
+                ? { ...app, payment_status: updatedAppt.payment_status, paid_amount: updatedAppt.paid_amount, total_amount: updatedAppt.total_amount || app.total_amount }
+                : app
+            ));
+          }
+        }}
       />
     </>
   );
