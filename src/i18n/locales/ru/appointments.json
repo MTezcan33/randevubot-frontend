@@ -65,5 +65,17 @@
   "orderSaved": "Порядок сохранён",
   "movedToExpert": "Перемещено к {{expert}}",
   "expertCannotDoService": "{{expert}} не может выполнить эту услугу",
-  "dragToMoveExpert": "Перетащите к другому специалисту"
+  "dragToMoveExpert": "Перетащите к другому специалисту",
+  "cancelAppointment": "Отмена записи",
+  "cancelAppointmentDesc": "Эта запись будет отменена. Выберите причину:",
+  "selectCancelReason": "— Выберите причину отмены —",
+  "cancelReason": {
+    "customerCancel": "Клиент отменил",
+    "noShow": "Клиент не пришёл",
+    "expertUnavailable": "Специалист недоступен",
+    "other": "Другое"
+  },
+  "cancelPaidWarning": "Эта запись оплачена! При отмене необходимо вернуть оплату.",
+  "confirmCancel": "Отменить",
+  "appointmentCancelled": "Запись отменена"
 }

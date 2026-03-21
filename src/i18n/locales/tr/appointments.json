@@ -65,5 +65,17 @@
   "orderSaved": "Sıralama kaydedildi",
   "movedToExpert": "{{expert}} uzmanına taşındı",
   "expertCannotDoService": "{{expert}} bu hizmeti yapamaz",
-  "dragToMoveExpert": "Başka bir uzmana taşımak için sürükleyin"
+  "dragToMoveExpert": "Başka bir uzmana taşımak için sürükleyin",
+  "cancelAppointment": "Randevu İptal",
+  "cancelAppointmentDesc": "Bu randevu iptal edilecek. İptal sebebi seçin:",
+  "selectCancelReason": "— İptal sebebi seçin —",
+  "cancelReason": {
+    "customerCancel": "Müşteri iptal etti",
+    "noShow": "Müşteri gelmedi",
+    "expertUnavailable": "Uzman müsait değil",
+    "other": "Diğer"
+  },
+  "cancelPaidWarning": "Bu randevu ödenmiş! İptal edilirse ödeme iade edilmeli.",
+  "confirmCancel": "İptal Et",
+  "appointmentCancelled": "Randevu iptal edildi"
 }
