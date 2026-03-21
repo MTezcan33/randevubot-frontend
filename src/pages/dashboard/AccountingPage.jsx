@@ -94,7 +94,7 @@ const SummaryCard = ({ title, amount, icon, color, sub }) => (
 
 // ─── Ana Bileşen ───────────────────────────────────────────
 const AccountingPage = () => {
-  const { company } = useAuth();
+  const { company, staff, selectedExpert } = useAuth();
   const { toast } = useToast();
   const { t } = useTranslation();
 
