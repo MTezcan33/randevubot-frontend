@@ -26,7 +26,7 @@ const PAYMENT_METHODS = [
 
 const QUICK_AMOUNTS = [50, 100, 200, 500];
 
-const PaymentCollectionModal = ({ open, onClose, appointmentId, companyId, onPaymentComplete }) => {
+const PaymentCollectionModal = ({ open, onClose, appointmentId, companyId, experts = [], onPaymentComplete }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
 
@@ -78,12 +78,18 @@ const PaymentCollectionModal = ({ open, onClose, appointmentId, companyId, onPay
   const services = useMemo(() => {
     if (!detail) return [];
     if (detail.appointment_services && detail.appointment_services.length > 0) {
-      return detail.appointment_services.map(as => ({
-        id: as.service_id,
-        name: as.company_services?.description || '-',
-        price: parseFloat(as.company_services?.price) || 0,
-        duration: as.company_services?.duration || 0,
-      }));
+      return detail.appointment_services.map(as => {
+        const expert = as.expert_id ? experts.find(e => e.id === as.expert_id) : null;
+        return {
+          id: as.service_id,
+          name: as.company_services?.description || '-',
+          price: parseFloat(as.company_services?.price) || 0,
+          duration: as.company_services?.duration || 0,
+          expertId: as.expert_id,
+          expertName: expert?.name || null,
+          expertColor: expert?.color || null,
+        };
+      });
     }
     return [];
   }, [detail]);
@@ -295,11 +301,22 @@ const PaymentCollectionModal = ({ open, onClose, appointmentId, companyId, onPay
                               <p className={`text-sm font-medium ${isFullyPaid ? 'line-through text-stone-400' : 'text-stone-800'}`}>
                                 {s.name}
                               </p>
-                              {s.duration > 0 && (
-                                <p className="text-xs text-stone-400 flex items-center gap-1">
-                                  <Clock className="w-3 h-3" /> {s.duration} dk
-                                </p>
-                              )}
+                              <div className="flex items-center gap-2 mt-0.5">
+                                {s.duration > 0 && (
+                                  <span className="text-xs text-stone-400 flex items-center gap-1">
+                                    <Clock className="w-3 h-3" /> {s.duration} dk
+                                  </span>
+                                )}
+                                {s.expertName && (
+                                  <span
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-white"
+                                    style={{ backgroundColor: s.expertColor || '#6B7280' }}
+                                  >
+                                    <User className="w-2.5 h-2.5" />
+                                    {s.expertName}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <div className="text-right">
                               <p className={`text-sm font-bold ${isFullyPaid ? 'text-emerald-600' : 'text-stone-800'}`}>

@@ -81,7 +81,7 @@ export const getAppointmentPaymentDetail = async (appointmentId) => {
       company_users(id, name, color),
       customers(id, name, phone),
       appointment_services(
-        id, service_id,
+        id, service_id, expert_id,
         company_services(id, description, price, duration, category)
       ),
       appointment_payments(
@@ -94,7 +94,18 @@ export const getAppointmentPaymentDetail = async (appointmentId) => {
 
   if (error) throw error;
 
-  const totalAmount = parseFloat(data.total_amount) || 0;
+  // total_amount DB'de 0 veya null ise appointment_services'dan hesapla
+  let totalAmount = parseFloat(data.total_amount) || 0;
+  if (totalAmount === 0 && data.appointment_services?.length > 0) {
+    totalAmount = data.appointment_services.reduce(
+      (sum, as) => sum + (parseFloat(as.company_services?.price) || 0), 0
+    );
+    // DB'yi de güncelle
+    await supabase
+      .from('appointments')
+      .update({ total_amount: totalAmount })
+      .eq('id', appointmentId);
+  }
   const paidAmount = parseFloat(data.paid_amount) || 0;
   const remainingAmount = Math.max(0, totalAmount - paidAmount);
 

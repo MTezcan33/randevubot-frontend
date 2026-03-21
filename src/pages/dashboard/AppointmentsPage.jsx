@@ -1111,6 +1111,7 @@ const AppointmentsPage = () => {
         onClose={() => setPaymentModalOpen(false)}
         appointmentId={paymentAppointmentId}
         companyId={company?.id}
+        experts={experts}
         onPaymentComplete={() => fetchAppointments()}
       />
     </>
