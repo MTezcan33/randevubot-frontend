@@ -80,7 +80,7 @@ const PaymentsPage = () => {
   const [unpaidAppointments, setUnpaidAppointments] = useState([]);
   const [unpaidLoading, setUnpaidLoading] = useState(true);
   const [unpaidFilter, setUnpaidFilter] = useState({
-    dateRange: 'today',
+    dateRange: 'all',
     expertId: '',
     status: '',
     search: '',

@@ -256,8 +256,23 @@ export const collectPayment = async (companyId, {
     }
   }
 
-  // 3. Güncel randevu bilgisini döndür
+  // 3. paid_amount ve payment_status güncelle
   const updatedAppointment = await getAppointmentPaymentDetail(appointmentId);
+  const newPaidAmount = updatedAppointment.paidAmount;
+  const newPaymentStatus = newPaidAmount >= updatedAppointment.totalAmount
+    ? (paymentMethod === 'free' ? 'free' : 'paid')
+    : newPaidAmount > 0 ? 'partial' : 'unpaid';
+
+  await supabase
+    .from('appointments')
+    .update({
+      paid_amount: newPaidAmount,
+      payment_status: newPaymentStatus,
+    })
+    .eq('id', appointmentId);
+
+  updatedAppointment.payment_status = newPaymentStatus;
+  updatedAppointment.paid_amount = newPaidAmount;
 
   return { payment, transaction, updatedAppointment };
 };
@@ -309,6 +324,17 @@ export const refundPayment = async (paymentId, reason = null) => {
     } catch (err) {
       console.error('İade transaction oluşturma hatası:', err);
     }
+  }
+
+  // İade sonrası payment_status ve paid_amount güncelle
+  if (payment.appointment_id) {
+    const updated = await getAppointmentPaymentDetail(payment.appointment_id);
+    const status = updated.paidAmount <= 0 ? 'unpaid'
+      : updated.paidAmount >= updated.totalAmount ? 'paid' : 'partial';
+    await supabase.from('appointments').update({
+      paid_amount: updated.paidAmount,
+      payment_status: status,
+    }).eq('id', payment.appointment_id);
   }
 
   return true;
