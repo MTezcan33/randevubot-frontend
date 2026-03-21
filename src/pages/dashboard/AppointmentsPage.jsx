@@ -266,7 +266,7 @@ const MiniCalendar = ({ currentDate, onDateChange }) => {
 };
 
 const AppointmentsPage = () => {
-  const { company, staff } = useAuth();
+  const { company, staff, user, selectedExpert } = useAuth();
   const { toast } = useToast();
   const { t, i18n } = useTranslation();
   const experts = staff.filter(s => s.role === 'Uzman');
