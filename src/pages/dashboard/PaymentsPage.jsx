@@ -796,6 +796,7 @@ const PaymentsPage = () => {
         onClose={() => setModalOpen(false)}
         appointmentId={selectedAppointmentId}
         companyId={company?.id}
+        experts={experts}
         onPaymentComplete={handlePaymentComplete}
       />
     </div>

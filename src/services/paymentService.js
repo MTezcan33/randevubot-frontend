@@ -26,7 +26,7 @@ export const getUnpaidAppointments = async (companyId, filters = {}) => {
       )
     `)
     .eq('company_id', companyId)
-    .in('payment_status', ['unpaid', 'partial'])
+    .or('payment_status.eq.unpaid,payment_status.eq.partial,payment_status.is.null')
     .neq('status', 'iptal')
     .order('date', { ascending: true })
     .order('time', { ascending: true });
@@ -52,6 +52,27 @@ export const getUnpaidAppointments = async (companyId, filters = {}) => {
   if (error) throw error;
 
   let results = data || [];
+
+  // total_amount 0 olan randevuları appointment_services'dan hesapla ve DB'yi güncelle
+  const fixPromises = results
+    .filter(a => (!a.total_amount || parseFloat(a.total_amount) === 0) && a.appointment_services?.length > 0)
+    .map(async (a) => {
+      const total = a.appointment_services.reduce(
+        (sum, as) => sum + (parseFloat(as.company_services?.price) || 0), 0
+      );
+      a.total_amount = total;
+      // DB'yi de güncelle
+      await supabase.from('appointments').update({
+        total_amount: total,
+        payment_status: a.payment_status || 'unpaid',
+      }).eq('id', a.id);
+    });
+  await Promise.all(fixPromises);
+
+  // payment_status null olanları 'unpaid' olarak normalize et
+  results.forEach(a => {
+    if (!a.payment_status) a.payment_status = 'unpaid';
+  });
 
   // Müşteri adı/telefon arama
   if (filters.search) {
@@ -152,33 +173,83 @@ export const collectPayment = async (companyId, {
   if (paymentError) throw paymentError;
 
   // 2. Otomatik muhasebe kaydı oluştur (ücretsiz değilse)
+  // Uzman bazlı gelir takibi: her hizmetin fiyatını o hizmeti yapan uzmanın gelirine yaz
   let transaction = null;
+  const transactions = [];
   if (paymentMethod !== 'free') {
     try {
-      // payment_method mapping: cash→cash, card→card, online→transfer
       const txMethod = paymentMethod === 'online' ? 'transfer' : paymentMethod;
+      const today = new Date().toISOString().split('T')[0];
 
-      const { data: txData, error: txError } = await supabase
-        .from('transactions')
-        .insert([{
+      // Randevunun hizmet-uzman eşleşmelerini al
+      const { data: appServices } = await supabase
+        .from('appointment_services')
+        .select('service_id, expert_id, company_services(description, price)')
+        .eq('appointment_id', appointmentId);
+
+      if (appServices && appServices.length > 0) {
+        // Toplam fiyat ve ödeme oranını hesapla (kısmi ödeme desteği)
+        const totalServicePrice = appServices.reduce(
+          (sum, as) => sum + (parseFloat(as.company_services?.price) || 0), 0
+        );
+        const paymentRatio = totalServicePrice > 0 ? parseFloat(amount) / totalServicePrice : 1;
+
+        // Her hizmet için ayrı transaction oluştur (uzman bazlı)
+        const txInserts = appServices.map(as => ({
           company_id: companyId,
           type: 'income',
-          amount: parseFloat(amount),
+          amount: Math.round((parseFloat(as.company_services?.price) || 0) * paymentRatio * 100) / 100,
           payment_method: txMethod,
-          description: note || 'Randevu ödemesi',
+          description: `${as.company_services?.description || 'Hizmet'} — ${note || 'Randevu ödemesi'}`,
           appointment_id: appointmentId,
-          transaction_date: new Date().toISOString().split('T')[0],
-        }])
-        .select()
-        .single();
+          expert_id: as.expert_id || null,
+          transaction_date: today,
+        }));
 
-      if (!txError && txData) {
-        transaction = txData;
-        // Ödeme kaydına transaction_id bağla
-        await supabase
-          .from('appointment_payments')
-          .update({ transaction_id: txData.id })
-          .eq('id', payment.id);
+        // Yuvarlama farkını düzelt — toplam tam olarak ödenen miktara eşit olsun
+        const txTotal = txInserts.reduce((s, t) => s + t.amount, 0);
+        const diff = parseFloat(amount) - txTotal;
+        if (Math.abs(diff) > 0.001 && txInserts.length > 0) {
+          txInserts[0].amount = Math.round((txInserts[0].amount + diff) * 100) / 100;
+        }
+
+        const { data: txDataArr, error: txError } = await supabase
+          .from('transactions')
+          .insert(txInserts)
+          .select();
+
+        if (!txError && txDataArr?.length > 0) {
+          transactions.push(...txDataArr);
+          transaction = txDataArr[0]; // İlk transaction'ı referans olarak sakla
+          // Ödeme kaydına ilk transaction_id bağla
+          await supabase
+            .from('appointment_payments')
+            .update({ transaction_id: txDataArr[0].id })
+            .eq('id', payment.id);
+        }
+      } else {
+        // appointment_services yoksa eski yöntemle tek transaction oluştur
+        const { data: txData, error: txError } = await supabase
+          .from('transactions')
+          .insert([{
+            company_id: companyId,
+            type: 'income',
+            amount: parseFloat(amount),
+            payment_method: txMethod,
+            description: note || 'Randevu ödemesi',
+            appointment_id: appointmentId,
+            transaction_date: today,
+          }])
+          .select()
+          .single();
+
+        if (!txError && txData) {
+          transaction = txData;
+          await supabase
+            .from('appointment_payments')
+            .update({ transaction_id: txData.id })
+            .eq('id', payment.id);
+        }
       }
     } catch (err) {
       console.error('Otomatik transaction oluşturma hatası:', err);

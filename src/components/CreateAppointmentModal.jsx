@@ -529,6 +529,12 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
         ? appointmentDate.toISOString().split('T')[0]
         : appointmentDate;
 
+      // Toplam fiyat hesapla
+      const totalPrice = serviceSelections.reduce((sum, sel) => {
+        const svc = allServices.find(s => s.id === sel.serviceId);
+        return sum + (parseFloat(svc?.price) || 0);
+      }, 0);
+
       // appointments INSERT
       const payload = {
         company_id: company.id,
@@ -538,6 +544,8 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
         time: appointmentTime,
         status: 'onaylandı',
         total_duration: totalDuration,
+        total_amount: totalPrice,
+        payment_status: 'unpaid',
       };
       if (primaryExpertId) payload.expert_id = primaryExpertId;
       if (assignedSpace?.id) payload.space_id = assignedSpace.id;

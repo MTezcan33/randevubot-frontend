@@ -245,6 +245,34 @@ export const getMonthlySummary = async (companyId, month, year) => {
  * Uzman bazlı ciro (randevuya bağlı gelirler)
  */
 export const getExpertRevenue = async (companyId, startDate, endDate) => {
+  // Öncelikle doğrudan expert_id olan transaction'ları al
+  const { data: directData, error: directError } = await supabase
+    .from('transactions')
+    .select(`
+      amount,
+      payment_method,
+      expert_id,
+      company_users!expert_id(name, color)
+    `)
+    .eq('company_id', companyId)
+    .eq('type', 'income')
+    .not('expert_id', 'is', null)
+    .gte('transaction_date', startDate)
+    .lte('transaction_date', endDate);
+
+  if (!directError && directData?.length > 0) {
+    // Yeni format — doğrudan expert_id'den oku
+    return directData.map(d => ({
+      amount: d.amount,
+      payment_method: d.payment_method,
+      appointments: {
+        expert_id: d.expert_id,
+        company_users: d.company_users,
+      },
+    }));
+  }
+
+  // Fallback: eski format — appointment.expert_id üzerinden
   const { data, error } = await supabase
     .from('transactions')
     .select(`
