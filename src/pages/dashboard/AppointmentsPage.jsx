@@ -354,6 +354,12 @@ const AppointmentsPage = () => {
         .order('id', { foreignTable: 'appointment_services', ascending: true });
 
       if (error) throw error;
+      // Client-side sıralama — foreignTable ordering güvenilir olmayabilir
+      (data || []).forEach(app => {
+        if (app.appointment_services) {
+          app.appointment_services.sort((a, b) => a.id - b.id);
+        }
+      });
       setAppointments(data || []);
     } catch (error) {
       toast({ title: t('error'), description: t('fetchAppointmentsError', { error: error.message }), variant: "destructive" });
@@ -611,11 +617,23 @@ const AppointmentsPage = () => {
         service_id: as.service_id,
         expert_id: as.expert_id || null,
       }));
-      const { error } = await supabase.from('appointment_services').insert(inserts);
+      const { data: insertedData, error } = await supabase
+        .from('appointment_services')
+        .insert(inserts)
+        .select('id, service_id, expert_id, company_services(id, description, duration, price)');
       if (error) throw error;
+
+      // Local state güncelle — tam re-fetch yerine sadece bu randevunun servislerini güncelle
+      setAppointments(prev => prev.map(app => {
+        if (app.id !== reorderApp.id) return app;
+        return {
+          ...app,
+          appointment_services: (insertedData || []).sort((a, b) => a.id - b.id)
+        };
+      }));
+
       toast({ title: t('success'), description: t('orderSaved') || 'Sıralama kaydedildi' });
       closeReorderPanel();
-      fetchAppointments();
     } catch (err) {
       toast({ title: t('error'), description: err.message, variant: 'destructive' });
     } finally {
