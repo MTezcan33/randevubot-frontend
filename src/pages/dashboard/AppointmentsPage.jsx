@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
-import { Plus, ChevronLeft, ChevronRight, Trash2, GripVertical, Save, X, ArrowRightLeft } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Trash2, GripVertical, Save, X, ArrowRightLeft, Ban, AlertTriangle } from 'lucide-react';
 import { createIncomeFromAppointment } from '../../services/accountingService';
+import { logAction, AUDIT_ACTIONS } from '../../services/auditService';
 import { useTranslation } from 'react-i18next';
 import {
   Dialog,
@@ -286,6 +287,8 @@ const AppointmentsPage = () => {
   // ── Sürükle-Bırak (Expert Taşıma) State'leri ──
   const [dragData, setDragData] = useState(null); // { appointmentId, serviceId, currentExpertId, blockKey }
   const [dragOverExpertId, setDragOverExpertId] = useState(null); // Üzerine gelinen uzman
+  const [cancelReason, setCancelReason] = useState(''); // İptal sebebi
+  const [showCancelDialog, setShowCancelDialog] = useState(false); // İptal dialog
   const [expertServicesMap, setExpertServicesMap] = useState(new Map()); // Map<expertId, Set<serviceId>>
   const companyTimezone = company?.timezone || 'UTC';
 
@@ -351,6 +354,7 @@ const AppointmentsPage = () => {
         .select(`*, company_services(duration, description, price), customers(id, name, phone), company_users(name, color), appointment_services(id, service_id, expert_id, company_services(id, description, duration, price))`)
         .eq('company_id', company.id)
         .eq('date', dateString)
+        .neq('status', 'iptal') // İptal edilen randevuları takvimden gizle
         .order('id', { foreignTable: 'appointment_services', ascending: true });
 
       if (error) throw error;
@@ -490,16 +494,48 @@ const AppointmentsPage = () => {
 
 
 
-  const handleDeleteAppointment = async () => {
-    if (!selectedAppointment) return;
+  // Randevu İPTAL — silme yerine status='iptal' + audit log
+  const handleCancelAppointment = async () => {
+    if (!selectedAppointment || !cancelReason) return;
     try {
-      const { error } = await supabase.from('appointments').delete().eq('id', selectedAppointment.id);
+      const now = new Date().toISOString();
+      const currentUser = staff.find(s => s.id === selectedExpert?.id) || { id: null, name: user?.email || 'Admin' };
+
+      const { error } = await supabase.from('appointments').update({
+        status: 'iptal',
+        cancelled_at: now,
+        cancelled_by: currentUser.id,
+        cancel_reason: cancelReason,
+      }).eq('id', selectedAppointment.id);
       if (error) throw error;
-      toast({ title: t('success'), description: t('deleteAppointmentSuccess') });
+
+      // Takvimden kaldır (local state)
+      setAppointments(prev => prev.filter(a => a.id !== selectedAppointment.id));
+
+      // Audit log
+      await logAction(company.id, {
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action: AUDIT_ACTIONS.APPOINTMENT_CANCEL,
+        entityType: 'appointment',
+        entityId: selectedAppointment.id,
+        details: {
+          customer: customers.find(c => c.id === selectedAppointment.customer_id)?.name,
+          date: selectedAppointment.date,
+          time: selectedAppointment.time,
+          reason: cancelReason,
+          totalAmount: selectedAppointment.total_amount,
+          paymentStatus: selectedAppointment.payment_status,
+        },
+      });
+
+      toast({ title: t('success'), description: t('appointmentCancelled') || 'Randevu iptal edildi' });
       setIsDetailModalOpen(false);
+      setShowCancelDialog(false);
       setSelectedAppointment(null);
+      setCancelReason('');
     } catch (error) {
-      toast({ title: t('error'), description: t('deleteAppointmentError', { error: error.message }), variant: "destructive" });
+      toast({ title: t('error'), description: error.message, variant: "destructive" });
     }
   };
 
@@ -1068,21 +1104,47 @@ const AppointmentsPage = () => {
             </div>
 
             <DialogFooter className="flex justify-between w-full">
-              <AlertDialog>
+              {/* İptal Et butonu — iptal sebebi zorunlu dialog */}
+              <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="mr-auto">
-                    <Trash2 className="w-4 h-4 mr-2" /> {t('delete')}
+                  <Button variant="destructive" className="mr-auto" onClick={() => { setCancelReason(''); setShowCancelDialog(true); }}>
+                    <Ban className="w-4 h-4 mr-2" /> {t('cancelAppointment') || 'İptal Et'}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>{t('areYouSure')}</AlertDialogTitle>
-                    <AlertDialogDescription>{t('deleteAppointmentConfirm')}</AlertDialogDescription>
+                    <AlertDialogTitle>{t('cancelAppointment') || 'Randevu İptal'}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t('cancelAppointmentDesc') || 'Bu randevu iptal edilecek. İptal sebebi seçin:'}
+                    </AlertDialogDescription>
                   </AlertDialogHeader>
+                  <select
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border bg-white text-sm"
+                  >
+                    <option value="">{t('selectCancelReason') || '— İptal sebebi seçin —'}</option>
+                    <option value="musteri_iptal">{t('cancelReason.customerCancel') || 'Müşteri iptal etti'}</option>
+                    <option value="musteri_gelmedi">{t('cancelReason.noShow') || 'Müşteri gelmedi'}</option>
+                    <option value="uzman_musait_degil">{t('cancelReason.expertUnavailable') || 'Uzman müsait değil'}</option>
+                    <option value="diger">{t('cancelReason.other') || 'Diğer'}</option>
+                  </select>
+                  {selectedAppointment?.payment_status === 'paid' && (
+                    <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                      <p className="text-xs text-amber-700">
+                        {t('cancelPaidWarning') || 'Bu randevu ödenmiş! İptal edilirse ödeme iade edilmeli.'}
+                      </p>
+                    </div>
+                  )}
                   <AlertDialogFooter>
-                    <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteAppointment}>
-                      {t('confirm')}, {t('delete')}
+                    <AlertDialogCancel onClick={() => setShowCancelDialog(false)}>{t('close') || 'Vazgeç'}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleCancelAppointment}
+                      disabled={!cancelReason}
+                      className={!cancelReason ? 'opacity-50 cursor-not-allowed' : ''}
+                    >
+                      {t('confirmCancel') || 'İptal Et'}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -1204,6 +1266,7 @@ const AppointmentsPage = () => {
         appointmentId={paymentAppointmentId}
         companyId={company?.id}
         experts={experts}
+        currentUserId={selectedExpert?.id || null}
         onPaymentComplete={(updatedAppt) => {
           // Tam re-fetch yerine local state güncelle — diğer blokların yerini değiştirme
           if (updatedAppt?.id) {

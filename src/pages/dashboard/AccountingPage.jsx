@@ -23,6 +23,7 @@ import {
   BarChart3,
   RefreshCw,
   ChevronDown,
+  Ban,
 } from 'lucide-react';
 import {
   BarChart,
@@ -41,7 +42,7 @@ import * as XLSX from 'xlsx';
 import {
   addTransaction,
   getTransactions,
-  deleteTransaction,
+  voidTransaction,
   getCategories,
   addCategory,
   deleteCategory,
@@ -293,12 +294,18 @@ const AccountingPage = () => {
     }
   };
 
-  // İşlem sil
-  const handleDeleteTransaction = async (id) => {
-    if (!window.confirm(t('deleteTransactionConfirm'))) return;
+  // İşlem void et (iptal) — silmek yerine void yapar
+  const [voidDialogId, setVoidDialogId] = useState(null);
+  const [voidReason, setVoidReason] = useState('');
+
+  const handleVoidTransaction = async () => {
+    if (!voidDialogId || !voidReason) return;
     try {
-      await deleteTransaction(id);
-      toast({ title: t('success'), description: t('transactionDeleted') });
+      const currentUser = staff.find(s => s.id === selectedExpert?.id) || { id: null };
+      await voidTransaction(voidDialogId, voidReason, currentUser.id);
+      toast({ title: t('success'), description: t('transactionVoided') || 'İşlem iptal edildi' });
+      setVoidDialogId(null);
+      setVoidReason('');
       loadTransactions();
     } catch (err) {
       toast({ title: t('error'), description: err.message, variant: 'destructive' });
@@ -718,30 +725,45 @@ const AccountingPage = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {transactions.map((tx) => (
-                        <tr key={tx.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3">{formatDate(tx.transaction_date)}</td>
+                      {transactions.map((tx) => {
+                        const isVoided = tx.status === 'voided';
+                        return (
+                        <tr key={tx.id} className={`hover:bg-gray-50 ${isVoided ? 'opacity-50' : ''}`}>
+                          <td className={`px-4 py-3 ${isVoided ? 'line-through' : ''}`}>{formatDate(tx.transaction_date)}</td>
                           <td className="px-4 py-3">
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${tx.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                              {tx.type === 'income' ? t('income') : t('expense')}
-                            </span>
+                            {isVoided ? (
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-stone-100 text-stone-500">İptal</span>
+                            ) : (
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${tx.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                {tx.type === 'income' ? t('income') : t('expense')}
+                              </span>
+                            )}
                           </td>
-                          <td className="px-4 py-3 text-slate-600">{tx.transaction_categories?.name || '-'}</td>
-                          <td className="px-4 py-3 text-slate-600 max-w-[200px] truncate">{tx.description || '-'}</td>
+                          <td className={`px-4 py-3 text-slate-600 ${isVoided ? 'line-through' : ''}`}>{tx.transaction_categories?.name || '-'}</td>
+                          <td className={`px-4 py-3 text-slate-600 max-w-[200px] truncate ${isVoided ? 'line-through' : ''}`}>
+                            {tx.description || '-'}
+                            {isVoided && tx.void_reason && <span className="block text-xs text-red-400 no-underline">Sebep: {tx.void_reason}</span>}
+                          </td>
                           <td className="px-4 py-3 text-slate-600">{tx.payment_method || '-'}</td>
-                          <td className={`px-4 py-3 text-right font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                          <td className={`px-4 py-3 text-right font-semibold ${isVoided ? 'text-stone-400 line-through' : tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                             {tx.type === 'income' ? '+' : '-'}${formatCurrency(tx.amount)}
                           </td>
                           <td className="px-4 py-3">
-                            <button
-                              onClick={() => handleDeleteTransaction(tx.id)}
-                              className="text-slate-400 hover:text-red-500 transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {!isVoided ? (
+                              <button
+                                onClick={() => { setVoidDialogId(tx.id); setVoidReason(''); }}
+                                className="text-slate-400 hover:text-red-500 transition-colors"
+                                title={t('voidTransaction') || 'İşlemi iptal et'}
+                              >
+                                <Ban className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <span className="text-xs text-stone-400">—</span>
+                            )}
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -1326,6 +1348,37 @@ const AccountingPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Void (İptal) Dialog */}
+      {voidDialogId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setVoidDialogId(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-slate-800 mb-2">{t('voidTransaction') || 'İşlem İptal'}</h3>
+            <p className="text-sm text-slate-500 mb-4">{t('voidTransactionDesc') || 'Bu işlem iptal edilecek. İptal sebebi girin:'}</p>
+            <select
+              value={voidReason}
+              onChange={(e) => setVoidReason(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border bg-white text-sm mb-4"
+            >
+              <option value="">— {t('selectVoidReason') || 'İptal sebebi seçin'} —</option>
+              <option value="yanlis_giris">{t('voidReason.wrongEntry') || 'Yanlış giriş'}</option>
+              <option value="musteri_iade">{t('voidReason.customerRefund') || 'Müşteri iadesi'}</option>
+              <option value="duplike_kayit">{t('voidReason.duplicate') || 'Duplike kayıt'}</option>
+              <option value="diger">{t('voidReason.other') || 'Diğer'}</option>
+            </select>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setVoidDialogId(null)}>{t('close') || 'Vazgeç'}</Button>
+              <Button
+                variant="destructive"
+                onClick={handleVoidTransaction}
+                disabled={!voidReason}
+                className={!voidReason ? 'opacity-50 cursor-not-allowed' : ''}
+              >
+                <Ban className="w-4 h-4 mr-2" /> {t('confirmVoid') || 'İptal Et'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

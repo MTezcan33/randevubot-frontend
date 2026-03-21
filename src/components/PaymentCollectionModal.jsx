@@ -26,7 +26,7 @@ const PAYMENT_METHODS = [
 
 const QUICK_AMOUNTS = [50, 100, 200, 500];
 
-const PaymentCollectionModal = ({ open, onClose, appointmentId, companyId, experts = [], onPaymentComplete }) => {
+const PaymentCollectionModal = ({ open, onClose, appointmentId, companyId, experts = [], onPaymentComplete, currentUserId = null }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
 
@@ -164,6 +164,7 @@ const PaymentCollectionModal = ({ open, onClose, appointmentId, companyId, exper
         paymentMethod: selectedMethod,
         serviceId,
         note: note || null,
+        collectedBy: currentUserId || null,
       });
 
       const methodLabel = t(selectedMethod) || selectedMethod;

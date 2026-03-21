@@ -44,12 +44,22 @@ export const getTransactions = async (companyId, filters = {}) => {
 };
 
 /**
- * İşlem sil
+ * İşlem void et (iptal) — silmek yerine status='voided' yapar
+ * Audit trail korunur, işlem kayıtlardan silinmez
+ * @param {string} transactionId
+ * @param {string} reason - Void sebebi (zorunlu)
+ * @param {string} voidedBy - İptal eden kullanıcı ID (company_users.id)
  */
-export const deleteTransaction = async (transactionId) => {
+export const voidTransaction = async (transactionId, reason, voidedBy) => {
+  if (!reason) throw new Error('Void sebebi zorunludur');
   const { error } = await supabase
     .from('transactions')
-    .delete()
+    .update({
+      status: 'voided',
+      voided_at: new Date().toISOString(),
+      voided_by: voidedBy || null,
+      void_reason: reason,
+    })
     .eq('id', transactionId);
   if (error) throw error;
 };

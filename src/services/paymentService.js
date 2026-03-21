@@ -284,7 +284,10 @@ export const collectPayment = async (companyId, {
 /**
  * Tekil ödeme iade et
  */
-export const refundPayment = async (paymentId, reason = null) => {
+export const refundPayment = async (paymentId, reason = null, refundedBy = null) => {
+  // İade sebebi zorunlu
+  if (!reason) throw new Error('İade sebebi zorunludur');
+
   // Ödeme bilgisini al
   const { data: payment, error: fetchError } = await supabase
     .from('appointment_payments')
@@ -294,20 +297,21 @@ export const refundPayment = async (paymentId, reason = null) => {
 
   if (fetchError) throw fetchError;
 
-  // İade işaretle
+  // İade işaretle + refunded_by kaydet
   const { error: updateError } = await supabase
     .from('appointment_payments')
     .update({
       is_refunded: true,
       refunded_at: new Date().toISOString(),
       refund_reason: reason,
+      refunded_by: refundedBy || null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', paymentId);
 
   if (updateError) throw updateError;
 
-  // İlişkili transaction varsa, eksi transaction oluştur
+  // İlişkili transaction varsa, eksi transaction oluştur (void değil, iade kaydı)
   if (payment.transaction_id) {
     try {
       await supabase
@@ -317,9 +321,10 @@ export const refundPayment = async (paymentId, reason = null) => {
           type: 'expense',
           amount: parseFloat(payment.amount),
           payment_method: payment.payment_method === 'online' ? 'transfer' : payment.payment_method,
-          description: `İade: ${reason || 'Ödeme iadesi'}`,
+          description: `İade: ${reason}`,
           appointment_id: payment.appointment_id,
           transaction_date: new Date().toISOString().split('T')[0],
+          created_by: refundedBy || null,
         }]);
     } catch (err) {
       console.error('İade transaction oluşturma hatası:', err);
@@ -343,7 +348,7 @@ export const refundPayment = async (paymentId, reason = null) => {
 /**
  * Toplu iade — bir randevunun tüm ödemelerini iade et
  */
-export const refundAllPayments = async (appointmentId, reason = null) => {
+export const refundAllPayments = async (appointmentId, reason = null, refundedBy = null) => {
   // Aktif (iade edilmemiş) ödemeleri al
   const { data: payments, error } = await supabase
     .from('appointment_payments')
@@ -355,7 +360,7 @@ export const refundAllPayments = async (appointmentId, reason = null) => {
 
   // Her birini iade et
   for (const p of (payments || [])) {
-    await refundPayment(p.id, reason);
+    await refundPayment(p.id, reason, refundedBy);
   }
 
   return true;
