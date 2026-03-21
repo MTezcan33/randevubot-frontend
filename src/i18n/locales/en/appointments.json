@@ -62,5 +62,8 @@
   "dateAndTime": "Date & Time",
   "appointmentOrder": "Appointment Order",
   "dragToReorder": "Drag to reorder",
-  "orderSaved": "Order saved"
+  "orderSaved": "Order saved",
+  "movedToExpert": "Moved to {{expert}}",
+  "expertCannotDoService": "{{expert}} cannot perform this service",
+  "dragToMoveExpert": "Drag to move to another expert"
 }

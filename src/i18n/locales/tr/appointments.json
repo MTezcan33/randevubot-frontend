@@ -62,5 +62,8 @@
   "dateAndTime": "Tarih ve Saat",
   "appointmentOrder": "Randevu Sırası",
   "dragToReorder": "Sırayı değiştirmek için sürükleyin",
-  "orderSaved": "Sıralama kaydedildi"
+  "orderSaved": "Sıralama kaydedildi",
+  "movedToExpert": "{{expert}} uzmanına taşındı",
+  "expertCannotDoService": "{{expert}} bu hizmeti yapamaz",
+  "dragToMoveExpert": "Başka bir uzmana taşımak için sürükleyin"
 }

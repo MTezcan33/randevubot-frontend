@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
-import { Plus, ChevronLeft, ChevronRight, Trash2, GripVertical, Save, X } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Trash2, GripVertical, Save, X, ArrowRightLeft } from 'lucide-react';
 import { createIncomeFromAppointment } from '../../services/accountingService';
 import { useTranslation } from 'react-i18next';
 import {
@@ -25,14 +25,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { motion, Reorder } from 'framer-motion';
+import { Reorder } from 'framer-motion';
 import PaymentCollectionModal from '@/components/PaymentCollectionModal';
 import CreateAppointmentModal from '@/components/CreateAppointmentModal';
 
 const ROW_HEIGHT = 20; // px - her 10 dakika için
 const PIXELS_PER_MINUTE = ROW_HEIGHT / 10;
 
-const AppointmentCard = ({ appointment, t, expertColor, overrideStartMinutes, overrideDuration, overrideServiceNames }) => {
+const AppointmentCard = ({ appointment, t, expertColor, overrideStartMinutes, overrideDuration, overrideServiceNames, disableHover }) => {
   const timeToMinutes = (time) => {
     if (!time) return 0;
     const [hours, minutes] = time.split(':').map(Number);
@@ -58,19 +58,25 @@ const AppointmentCard = ({ appointment, t, expertColor, overrideStartMinutes, ov
       ? appointment.appointment_services.map(as => as.company_services?.description).filter(Boolean).join(', ')
       : appointment.company_services?.description || t('unknownService'));
 
+  // Renk tonlarını hesapla
+  const bgColor = expertColor ? `${expertColor}18` : '#e0f2fe';
+  const borderColor = expertColor || '#0ea5e9';
+
   return (
-    <motion.div
-      className="text-center rounded p-1.5 text-[10px] shadow-md cursor-pointer hover:scale-[1.02] transition-transform duration-200 text-slate-800 overflow-hidden h-full"
+    <div
+      className={`rounded-lg text-[10px] shadow-sm ${disableHover ? '' : 'hover:shadow-lg'} cursor-grab active:cursor-grabbing transition-shadow duration-200 text-slate-800 overflow-hidden h-full`}
       style={{
-        backgroundColor: expertColor ? `${expertColor}BF` : '#e0f2fe',
-        borderLeft: `3px solid ${expertColor || '#0ea5e9'}`,
+        backgroundColor: bgColor,
+        borderLeft: `4px solid ${borderColor}`,
+        boxShadow: `0 1px 3px ${borderColor}20`,
       }}
-      initial={{ opacity: 0, y: 5 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
     >
-      <div className="flex items-center justify-between">
-        <p className="font-medium text-[10px] leading-tight">{`${displayTime}-${displayEndTime}`}</p>
+      {/* Üst şerit — saat bilgisi */}
+      <div
+        className="flex items-center justify-between px-2 py-0.5"
+        style={{ backgroundColor: `${borderColor}15` }}
+      >
+        <p className="font-bold text-[10px] leading-tight text-slate-700">{`${displayTime} - ${displayEndTime}`}</p>
         {appointment.payment_status && appointment.payment_status !== 'unpaid' && (
           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
             appointment.payment_status === 'paid' ? 'bg-emerald-400' :
@@ -79,9 +85,12 @@ const AppointmentCard = ({ appointment, t, expertColor, overrideStartMinutes, ov
           }`} title={appointment.payment_status === 'paid' ? t('paid') : appointment.payment_status === 'partial' ? t('partiallyPaid') : ''} />
         )}
       </div>
-      <p className="font-medium text-xs truncate leading-tight">{appointment.customers?.name?.toUpperCase() || t('unknownCustomer')}</p>
-      <p className="text-[9px] truncate opacity-90 leading-tight">{serviceNames}</p>
-    </motion.div>
+      {/* İçerik */}
+      <div className="px-2 py-1">
+        <p className="font-bold text-[11px] truncate leading-tight">{appointment.customers?.name?.toUpperCase() || t('unknownCustomer')}</p>
+        <p className="text-[9px] truncate text-slate-500 leading-tight mt-0.5">{serviceNames}</p>
+      </div>
+    </div>
   );
 };
 
@@ -274,6 +283,10 @@ const AppointmentsPage = () => {
   const [reorderApp, setReorderApp] = useState(null); // Sıralama paneli için seçili randevu
   const [reorderServices, setReorderServices] = useState([]); // Sürüklenebilir hizmet listesi
   const [isSavingOrder, setIsSavingOrder] = useState(false);
+  // ── Sürükle-Bırak (Expert Taşıma) State'leri ──
+  const [dragData, setDragData] = useState(null); // { appointmentId, serviceId, currentExpertId, blockKey }
+  const [dragOverExpertId, setDragOverExpertId] = useState(null); // Üzerine gelinen uzman
+  const [expertServicesMap, setExpertServicesMap] = useState(new Map()); // Map<expertId, Set<serviceId>>
   const companyTimezone = company?.timezone || 'UTC';
 
   const getLocale = () => {
@@ -306,8 +319,28 @@ const AppointmentsPage = () => {
   const fetchData = async () => {
     if (!company) return;
     setLoading(true);
-    await Promise.all([fetchAppointments(), fetchServices(), fetchCustomers()]);
+    await Promise.all([fetchAppointments(), fetchServices(), fetchCustomers(), fetchExpertServices()]);
     setLoading(false);
+  };
+
+  // Uzman-hizmet ilişkilerini yükle (drag-drop doğrulaması için)
+  const fetchExpertServices = async () => {
+    if (!company) return;
+    try {
+      const { data, error } = await supabase
+        .from('expert_services')
+        .select('expert_id, service_id')
+        .eq('company_id', company.id);
+      if (error) throw error;
+      const map = new Map();
+      (data || []).forEach(es => {
+        if (!map.has(es.expert_id)) map.set(es.expert_id, new Set());
+        map.get(es.expert_id).add(es.service_id);
+      });
+      setExpertServicesMap(map);
+    } catch (err) {
+      console.error('Expert services fetch error:', err);
+    }
   };
 
   const fetchAppointments = async () => {
@@ -315,9 +348,10 @@ const AppointmentsPage = () => {
     try {
       const { data, error } = await supabase
         .from('appointments')
-        .select(`*, company_services(duration, description, price), customers(id, name, phone), company_users(name, color), appointment_services(service_id, expert_id, company_services(id, description, duration, price))`)
+        .select(`*, company_services(duration, description, price), customers(id, name, phone), company_users(name, color), appointment_services(id, service_id, expert_id, company_services(id, description, duration, price))`)
         .eq('company_id', company.id)
-        .eq('date', dateString);
+        .eq('date', dateString)
+        .order('id', { foreignTable: 'appointment_services', ascending: true });
 
       if (error) throw error;
       setAppointments(data || []);
@@ -428,6 +462,128 @@ const AppointmentsPage = () => {
     return `${h}:${m}`;
   });
 
+  // ── Sürükle-Bırak: Uzmanlar Arası Taşıma ──
+  const handleDragStart = (e, appointmentId, serviceId, currentExpertId, blockKey) => {
+    const data = { appointmentId, serviceId, currentExpertId, blockKey };
+    setDragData(data);
+    e.dataTransfer.setData('text/plain', JSON.stringify(data));
+    e.dataTransfer.effectAllowed = 'move';
+    // Sürüklenen bloğu yarı saydam yap
+    if (e.target) {
+      setTimeout(() => { e.target.style.opacity = '0.4'; }, 0);
+    }
+  };
+
+  const handleDragEnd = (e) => {
+    setDragData(null);
+    setDragOverExpertId(null);
+    if (e.target) e.target.style.opacity = '1';
+  };
+
+  const handleDragOver = (e, expertId) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverExpertId(expertId);
+  };
+
+  const handleDragLeave = (e, expertId) => {
+    // Sadece gerçek ayrılma durumunda temizle (child elementlerden ayrılmayı ignore et)
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setDragOverExpertId(null);
+    }
+  };
+
+  const handleDrop = async (e, targetExpertId) => {
+    e.preventDefault();
+    setDragOverExpertId(null);
+    setDragData(null);
+
+    let data;
+    try {
+      data = JSON.parse(e.dataTransfer.getData('text/plain'));
+    } catch { return; }
+
+    const { appointmentId, serviceId, currentExpertId } = data;
+
+    // Aynı uzmana bırakıldıysa bir şey yapma
+    if (targetExpertId === currentExpertId) return;
+
+    // Hedef uzman bu hizmeti yapabiliyor mu kontrol et
+    const targetExpertServices = expertServicesMap.get(targetExpertId);
+    if (targetExpertServices && !targetExpertServices.has(serviceId)) {
+      const targetExpert = experts.find(ex => ex.id === targetExpertId);
+      toast({
+        title: t('error'),
+        description: t('expertCannotDoService', { expert: targetExpert?.name || 'Uzman' }),
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      // appointment_services tablosunda expert_id güncelle
+      const { error } = await supabase
+        .from('appointment_services')
+        .update({ expert_id: targetExpertId })
+        .eq('appointment_id', appointmentId)
+        .eq('service_id', serviceId);
+
+      if (error) throw error;
+
+      // Local state güncelle — sadece ilgili hizmetin expert_id'si değişir, sıralama aynı kalır
+      setAppointments(prev => prev.map(app => {
+        if (app.id !== appointmentId) return app; // Diğer randevulara dokunma
+
+        const updatedServices = app.appointment_services?.map(as =>
+          as.service_id === serviceId ? { ...as, expert_id: targetExpertId } : as
+        ) || [];
+
+        // İlk expert-requiring hizmetin uzmanını primary expert yap
+        const primaryExpert = updatedServices.find(as => as.expert_id)?.expert_id || app.expert_id;
+
+        return {
+          ...app,
+          expert_id: primaryExpert,
+          appointment_services: updatedServices,
+        };
+      }));
+
+      // Parent appointment expert_id'yi DB'de de güncelle (arka planda)
+      const app = appointments.find(a => a.id === appointmentId);
+      if (app) {
+        const updatedServices = app.appointment_services?.map(as =>
+          as.service_id === serviceId ? { ...as, expert_id: targetExpertId } : as
+        ) || [];
+        const primaryExpert = updatedServices.find(as => as.expert_id)?.expert_id;
+        if (primaryExpert) {
+          supabase
+            .from('appointments')
+            .update({ expert_id: primaryExpert })
+            .eq('id', appointmentId)
+            .then(); // Arka planda çalışsın, UI beklemesin
+        }
+      }
+
+      const targetExpert = experts.find(ex => ex.id === targetExpertId);
+      toast({
+        title: t('success'),
+        description: t('movedToExpert', { expert: targetExpert?.name || 'Uzman' })
+      });
+    } catch (err) {
+      toast({ title: t('error'), description: err.message, variant: 'destructive' });
+    }
+  };
+
+  // Hedef uzman hizmeti yapabilir mi? (drag feedback için)
+  const canExpertDoService = (expertId, serviceId) => {
+    const services = expertServicesMap.get(expertId);
+    if (!services) return true; // expert_services kaydı yoksa izin ver (eski veri)
+    return services.has(serviceId);
+  };
+
   // ── Hizmet Sıralama Paneli ──
   const openReorderPanel = (appointment) => {
     if (!appointment.appointment_services?.length || appointment.appointment_services.length < 2) {
@@ -535,16 +691,43 @@ const AppointmentsPage = () => {
               <div className="flex-grow grid relative" style={{ gridTemplateColumns: `repeat(${Math.max(1, experts.length)}, minmax(120px, 1fr))` }}>
                 <TimeIndicator companyTimezone={companyTimezone} />
 
-                {experts.length > 0 ? experts.map(expert => (
-                  <div key={expert.id} className="border-l relative">
+                {experts.length > 0 ? experts.map(expert => {
+                  const isDragTarget = dragOverExpertId === expert.id;
+                  const isValidDrop = dragData && dragData.currentExpertId !== expert.id;
+
+                  return (
+                  <div
+                    key={expert.id}
+                    className={`border-l relative transition-all duration-300 ${
+                      isDragTarget && isValidDrop
+                        ? 'bg-emerald-50/50 ring-2 ring-inset ring-emerald-300/60'
+                        : ''
+                    }`}
+                    onDragOver={(e) => handleDragOver(e, expert.id)}
+                    onDragLeave={(e) => handleDragLeave(e, expert.id)}
+                    onDrop={(e) => handleDrop(e, expert.id)}
+                  >
                     {/* Uzman Başlığı */}
                     <div
-                      className="h-8 sticky top-0 bg-white/95 backdrop-blur-sm z-30 px-2 border-b flex items-center justify-center"
-                      style={{ borderBottomColor: expert.color || '#e2e8f0' }}
+                      className={`h-8 sticky top-0 backdrop-blur-sm z-30 px-2 border-b flex items-center justify-center transition-all duration-300 ${
+                        isDragTarget && isValidDrop
+                          ? 'bg-emerald-500 shadow-md'
+                          : 'bg-white/95'
+                      }`}
+                      style={{ borderBottomColor: isDragTarget && isValidDrop ? '#10b981' : (expert.color || '#e2e8f0') }}
                     >
-                      <p className="font-medium text-xs truncate" style={{ color: expert.color || '#1e293b' }}>
-                        {expert.name.toUpperCase()}
-                      </p>
+                      {isDragTarget && isValidDrop ? (
+                        <div className="flex items-center gap-1.5">
+                          <ArrowRightLeft className="w-3.5 h-3.5 text-white flex-shrink-0 animate-pulse" />
+                          <p className="font-semibold text-xs text-white truncate">
+                            {expert.name.toUpperCase()}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="font-medium text-xs truncate" style={{ color: expert.color || '#1e293b' }}>
+                          {expert.name.toUpperCase()}
+                        </p>
+                      )}
                     </div>
 
                     {/* Zaman Grid'i */}
@@ -556,6 +739,13 @@ const AppointmentsPage = () => {
                           className={`border-t ${index % 6 === 0 ? 'border-slate-300' : 'border-slate-100'}`}
                         />
                       ))}
+
+                      {/* Drop hedefi göstergesi */}
+                      {isDragTarget && isValidDrop && (
+                        <div className="absolute inset-0 pointer-events-none z-5">
+                          <div className="absolute inset-x-1 inset-y-0 border-2 border-dashed border-emerald-400/60 rounded-xl bg-gradient-to-b from-emerald-50/40 via-transparent to-emerald-50/40" />
+                        </div>
+                      )}
 
                       {/* Randevular — her hizmet ayrı blok olarak gösterilir */}
                       {(() => {
@@ -584,6 +774,7 @@ const AppointmentsPage = () => {
                                   startMinutes: appStartMinutes + cumulative,
                                   duration: dur,
                                   serviceName: as.company_services?.description || '',
+                                  serviceId: as.service_id,
                                   blockKey: app.id + '-svc-' + idx,
                                 });
                               }
@@ -596,6 +787,7 @@ const AppointmentsPage = () => {
                               startMinutes: appStartMinutes,
                               duration: app.total_duration || app.company_services?.duration || 30,
                               serviceName: null,
+                              serviceId: app.service_id,
                               blockKey: app.id,
                             });
                           }
@@ -604,16 +796,28 @@ const AppointmentsPage = () => {
                         return blocks.map(block => {
                           const topPosition = (block.startMinutes - 5 * 60) * PIXELS_PER_MINUTE;
                           const height = block.duration * PIXELS_PER_MINUTE;
+                          const isDragging = dragData?.blockKey === block.blockKey;
+                          const isAnyDragging = !!dragData; // Herhangi bir blok sürükleniyor mu?
 
                           return (
                             <div
                               key={block.blockKey}
-                              className="absolute w-full px-0.5 z-10"
+                              className={`absolute w-full px-0.5 z-10 ${
+                                isDragging
+                                  ? 'opacity-30 scale-95 transition-all duration-200'
+                                  : isAnyDragging
+                                  ? 'pointer-events-none' // Sürükleme sırasında diğer blokları etkisiz yap
+                                  : 'hover:z-20 hover:scale-[1.02] transition-all duration-200'
+                              }`}
                               style={{
                                 top: `${topPosition}px`,
-                                height: `${height}px`
+                                height: `${height}px`,
+                                cursor: isDragging ? 'grabbing' : 'grab',
                               }}
-                              onClick={() => openReorderPanel(block.app)}
+                              draggable={!isAnyDragging || isDragging}
+                              onDragStart={(e) => handleDragStart(e, block.app.id, block.serviceId, expert.id, block.blockKey)}
+                              onDragEnd={handleDragEnd}
+                              onClick={() => !isAnyDragging && openReorderPanel(block.app)}
                             >
                               <AppointmentCard
                                 appointment={block.app}
@@ -622,6 +826,7 @@ const AppointmentsPage = () => {
                                 overrideStartMinutes={block.startMinutes}
                                 overrideDuration={block.duration}
                                 overrideServiceNames={block.serviceName}
+                                disableHover={isAnyDragging}
                               />
                             </div>
                           );
@@ -629,7 +834,8 @@ const AppointmentsPage = () => {
                       })()}
                     </div>
                   </div>
-                )) : (
+                  );
+                }) : (
                   <div className="absolute inset-0 flex items-center justify-center text-slate-500 p-4 text-center">
                     {t('noExpertToAdd')}
                   </div>

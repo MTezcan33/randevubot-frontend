@@ -62,5 +62,8 @@
   "dateAndTime": "Дата и время",
   "appointmentOrder": "Порядок записи",
   "dragToReorder": "Перетащите для изменения порядка",
-  "orderSaved": "Порядок сохранён"
+  "orderSaved": "Порядок сохранён",
+  "movedToExpert": "Перемещено к {{expert}}",
+  "expertCannotDoService": "{{expert}} не может выполнить эту услугу",
+  "dragToMoveExpert": "Перетащите к другому специалисту"
 }
