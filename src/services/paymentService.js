@@ -15,7 +15,7 @@ export const getUnpaidAppointments = async (companyId, filters = {}) => {
     .select(`
       id, date, time, status, payment_status, total_amount, paid_amount,
       expert_id, customer_id, service_id, space_id,
-      company_users(id, name, color),
+      company_users!appointments_expert_id_fkey(id, name, color),
       customers(id, name, phone),
       appointment_services(
         id, service_id,
@@ -99,7 +99,7 @@ export const getAppointmentPaymentDetail = async (appointmentId) => {
     .select(`
       id, date, time, status, payment_status, total_amount, paid_amount,
       expert_id, customer_id, service_id, space_id,
-      company_users(id, name, color),
+      company_users!appointments_expert_id_fkey(id, name, color),
       customers(id, name, phone),
       appointment_services(
         id, service_id, expert_id,

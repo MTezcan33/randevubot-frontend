@@ -40,7 +40,7 @@ export default function ResepsiyonistRandevular() {
         .select(`
           id, date, time, duration, status, expert_id, notes,
           customers(id, name, phone),
-          company_users(id, name, color),
+          company_users!appointments_expert_id_fkey(id, name, color),
           appointment_services(company_services(description))
         `)
         .eq('company_id', company.id)
