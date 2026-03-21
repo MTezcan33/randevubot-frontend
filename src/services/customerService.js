@@ -32,9 +32,10 @@ export const getCustomerAppointments = async (customerId, companyId) => {
     .from('appointments')
     .select(`
       id, date, time, status, total_duration, notes, created_at,
+      payment_status, total_amount, paid_amount, cancel_reason, cancelled_at,
       company_services(id, description, duration, price, category, color),
-      company_users(id, name, color),
-      appointment_services(service_id, company_services(id, description, duration, price, category, color))
+      company_users!appointments_expert_id_fkey(id, name, color),
+      appointment_services(service_id, expert_id, company_services(id, description, duration, price, category, color))
     `)
     .eq('customer_id', customerId)
     .eq('company_id', companyId)
@@ -102,27 +103,32 @@ export const respondToFeedback = async (feedbackId, adminResponse, status = 'res
  */
 export const recalculateStats = async (customerId, companyId) => {
   try {
-    // Tamamlanan randevuları çek
-    const { data: appointments, error: apptErr } = await supabase
+    // Tüm randevuları çek (iptal dahil — istatistik için)
+    const { data: allAppointments, error: apptErr } = await supabase
       .from('appointments')
-      .select('id, date, appointment_services(service_id, company_services(price))')
+      .select('id, date, status, cancel_reason, paid_amount, total_amount, appointment_services(service_id, company_services(price))')
       .eq('customer_id', customerId)
-      .eq('company_id', companyId)
-      .eq('status', 'onaylandı');
+      .eq('company_id', companyId);
 
     if (apptErr) throw apptErr;
 
-    const totalVisits = appointments?.length || 0;
-    const totalSpent = (appointments || []).reduce((sum, appt) => {
-      const apptTotal = (appt.appointment_services || []).reduce((s, as) => {
-        return s + (as.company_services?.price || 0);
-      }, 0);
+    const completed = (allAppointments || []).filter(a => a.status === 'onaylandı');
+    const cancelled = (allAppointments || []).filter(a => a.status === 'iptal');
+    const noShows = cancelled.filter(a => a.cancel_reason === 'musteri_gelmedi');
+
+    const totalVisits = completed.length;
+
+    // Harcama: paid_amount (gerçek ödenen) varsa onu kullan, yoksa hizmet fiyatlarından hesapla
+    const totalSpent = completed.reduce((sum, appt) => {
+      if (parseFloat(appt.paid_amount) > 0) return sum + parseFloat(appt.paid_amount);
+      const apptTotal = (appt.appointment_services || []).reduce((s, as) =>
+        s + (parseFloat(as.company_services?.price) || 0), 0);
       return sum + apptTotal;
     }, 0);
 
     // Son ziyaret tarihi
-    const lastVisit = appointments?.length > 0
-      ? appointments.sort((a, b) => b.date.localeCompare(a.date))[0].date
+    const lastVisit = completed.length > 0
+      ? completed.sort((a, b) => b.date.localeCompare(a.date))[0].date
       : null;
 
     // Ortalama puanı çek
@@ -148,8 +154,12 @@ export const recalculateStats = async (customerId, companyId) => {
       .eq('id', customerId);
 
     if (updateErr) throw updateErr;
+
+    // İptal ve no-show sayılarını da döndür (drawer'da kullanılacak)
+    return { totalVisits, totalSpent, lastVisit, avgRating, cancelCount: cancelled.length, noShowCount: noShows.length };
   } catch (err) {
     console.error('Stat recalc error:', err);
+    return null;
   }
 };
 
