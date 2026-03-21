@@ -58,5 +58,8 @@
   "expertConflictDetail": "{{name}}: занят {{time}}",
   "allExpertsAssigned": "Все специалисты назначены",
   "missingExpertWarning": "Не выбран специалист для некоторых услуг",
-  "noCategory": "Другие услуги"
+  "noCategory": "Другие услуги",
+  "dateAndTime": "Дата и время",
+  "appointmentOrder": "Порядок записи",
+  "dragToReorder": "Перетащите для изменения порядка"
 }

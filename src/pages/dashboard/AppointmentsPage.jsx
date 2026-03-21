@@ -32,16 +32,15 @@ import CreateAppointmentModal from '@/components/CreateAppointmentModal';
 const ROW_HEIGHT = 20; // px - her 10 dakika için
 const PIXELS_PER_MINUTE = ROW_HEIGHT / 10;
 
-const AppointmentCard = ({ appointment, t, expertColor }) => {
+const AppointmentCard = ({ appointment, t, expertColor, overrideStartMinutes, overrideDuration, overrideServiceNames }) => {
   const timeToMinutes = (time) => {
     if (!time) return 0;
     const [hours, minutes] = time.split(':').map(Number);
     return hours * 60 + minutes;
   };
 
-  const startMinutes = timeToMinutes(appointment.time);
-  // total_duration öncelikli, yoksa tek hizmetin süresi
-  const duration = appointment.total_duration || appointment.company_services?.duration || 60;
+  const startMinutes = overrideStartMinutes ?? timeToMinutes(appointment.time);
+  const duration = overrideDuration ?? (appointment.total_duration || appointment.company_services?.duration || 60);
   const endMinutes = startMinutes + duration;
 
   const formatTime = (minutes) => {
@@ -50,17 +49,18 @@ const AppointmentCard = ({ appointment, t, expertColor }) => {
     return `${h}:${m}`;
   };
 
-  const displayTime = appointment.time?.substring(0, 5) || '00:00';
+  const displayTime = formatTime(startMinutes).substring(0, 5);
   const displayEndTime = formatTime(endMinutes).substring(0, 5);
 
-  // Hizmet isimlerini göster (çoklu hizmet desteği)
-  const serviceNames = appointment.appointment_services?.length > 0
-    ? appointment.appointment_services.map(as => as.company_services?.description).filter(Boolean).join(', ')
-    : appointment.company_services?.description || t('unknownService');
+  // Hizmet isimlerini göster (override varsa onu kullan)
+  const serviceNames = overrideServiceNames
+    || (appointment.appointment_services?.length > 0
+      ? appointment.appointment_services.map(as => as.company_services?.description).filter(Boolean).join(', ')
+      : appointment.company_services?.description || t('unknownService'));
 
   return (
     <motion.div
-      className="text-center rounded p-1.5 text-[10px] shadow-md cursor-pointer hover:scale-[1.02] transition-transform duration-200 text-slate-800 overflow-hidden"
+      className="text-center rounded p-1.5 text-[10px] shadow-md cursor-pointer hover:scale-[1.02] transition-transform duration-200 text-slate-800 overflow-hidden h-full"
       style={{
         backgroundColor: expertColor ? `${expertColor}BF` : '#e0f2fe',
         borderLeft: `3px solid ${expertColor || '#0ea5e9'}`,
@@ -312,7 +312,7 @@ const AppointmentsPage = () => {
     try {
       const { data, error } = await supabase
         .from('appointments')
-        .select(`*, company_services(duration, description, price), customers(id, name, phone), company_users(name, color), appointment_services(service_id, company_services(id, description, duration, price))`)
+        .select(`*, company_services(duration, description, price), customers(id, name, phone), company_users(name, color), appointment_services(service_id, expert_id, company_services(id, description, duration, price))`)
         .eq('company_id', company.id)
         .eq('date', dateString);
 
@@ -515,27 +515,76 @@ const AppointmentsPage = () => {
                         />
                       ))}
 
-                      {/* Randevular */}
-                      {appointments.filter(app => app.expert_id === expert.id).map(app => {
-                        const [hours, minutes] = app.time.split(':').map(Number);
-                        const startMinutes = hours * 60 + minutes;
-                        const topPosition = (startMinutes - 5 * 60) * PIXELS_PER_MINUTE; // 05:00 başlangıç
-                        const height = (app.total_duration || app.company_services?.duration || 30) * PIXELS_PER_MINUTE;
+                      {/* Randevular — her hizmet ayrı blok olarak gösterilir */}
+                      {(() => {
+                        // Bu uzmanla ilgili randevuları bul
+                        const relevantApps = appointments.filter(app => {
+                          if (app.expert_id === expert.id) return true;
+                          if (app.appointment_services?.some(as => as.expert_id === expert.id)) return true;
+                          return false;
+                        });
 
-                        return (
-                          <div
-                            key={app.id}
-                            className="absolute w-full px-0.5 z-10"
-                            style={{
-                              top: `${topPosition}px`,
-                              height: `${height}px`
-                            }}
-                            onClick={() => openAppointmentDetails(app)}
-                          >
-                            <AppointmentCard appointment={app} t={t} expertColor={expert.color} />
-                          </div>
-                        );
-                      })}
+                        // Her randevu için, bu uzmanın hizmetlerini ayrı bloklar olarak oluştur
+                        const blocks = [];
+                        relevantApps.forEach(app => {
+                          const [hours, minutes] = app.time.split(':').map(Number);
+                          const appStartMinutes = hours * 60 + minutes;
+                          const hasPerServiceExperts = app.appointment_services?.some(as => as.expert_id);
+
+                          if (hasPerServiceExperts && app.appointment_services?.length > 0) {
+                            // Kümülatif süre ile her hizmetin gerçek başlangıç zamanını hesapla
+                            let cumulative = 0;
+                            app.appointment_services.forEach((as, idx) => {
+                              const dur = as.company_services?.duration || 0;
+                              if (as.expert_id === expert.id) {
+                                blocks.push({
+                                  app,
+                                  startMinutes: appStartMinutes + cumulative,
+                                  duration: dur,
+                                  serviceName: as.company_services?.description || '',
+                                  blockKey: app.id + '-svc-' + idx,
+                                });
+                              }
+                              cumulative += dur;
+                            });
+                          } else {
+                            // Eski tip randevu (tek uzman) — tek blok olarak göster
+                            blocks.push({
+                              app,
+                              startMinutes: appStartMinutes,
+                              duration: app.total_duration || app.company_services?.duration || 30,
+                              serviceName: null,
+                              blockKey: app.id,
+                            });
+                          }
+                        });
+
+                        return blocks.map(block => {
+                          const topPosition = (block.startMinutes - 5 * 60) * PIXELS_PER_MINUTE;
+                          const height = block.duration * PIXELS_PER_MINUTE;
+
+                          return (
+                            <div
+                              key={block.blockKey}
+                              className="absolute w-full px-0.5 z-10"
+                              style={{
+                                top: `${topPosition}px`,
+                                height: `${height}px`
+                              }}
+                              onClick={() => openAppointmentDetails(block.app)}
+                            >
+                              <AppointmentCard
+                                appointment={block.app}
+                                t={t}
+                                expertColor={expert.color}
+                                overrideStartMinutes={block.startMinutes}
+                                overrideDuration={block.duration}
+                                overrideServiceNames={block.serviceName}
+                              />
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
                 )) : (

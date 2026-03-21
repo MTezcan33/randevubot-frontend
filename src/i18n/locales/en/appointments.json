@@ -58,5 +58,8 @@
   "expertConflictDetail": "{{name}}: busy between {{time}}",
   "allExpertsAssigned": "All experts assigned",
   "missingExpertWarning": "Expert not selected for some services",
-  "noCategory": "Other Services"
+  "noCategory": "Other Services",
+  "dateAndTime": "Date & Time",
+  "appointmentOrder": "Appointment Order",
+  "dragToReorder": "Drag to reorder"
 }
