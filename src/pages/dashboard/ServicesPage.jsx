@@ -369,6 +369,10 @@ const ServicesPage = () => {
   const [showGiftModal, setShowGiftModal] = useState(false);
   const [giftForm, setGiftForm] = useState({ amount: '', recipient_name: '', purchased_by: '', expiry_date: '' });
 
+  // PDF önizleme state'leri
+  const [pdfPreview, setPdfPreview] = useState(null); // { type: 'package'|'giftcard', data: {...} }
+  const [pdfNote, setPdfNote] = useState('');
+
   // Sayfa state'leri
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -574,162 +578,175 @@ const ServicesPage = () => {
     }
   };
 
-  // ═══ PDF Oluşturma Fonksiyonları ═══
-  const generatePackagePdf = async (pkg) => {
+  // ═══ Türkçe karakter düzeltme (jsPDF varsayılan font desteklemiyor) ═══
+  const trText = (text) => {
+    if (!text) return '';
+    return text
+      .replace(/ş/g, 's').replace(/Ş/g, 'S')
+      .replace(/ç/g, 'c').replace(/Ç/g, 'C')
+      .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
+      .replace(/ı/g, 'i').replace(/İ/g, 'I')
+      .replace(/ö/g, 'o').replace(/Ö/g, 'O')
+      .replace(/ü/g, 'u').replace(/Ü/g, 'U')
+      .replace(/₺/g, 'TL');
+  };
+
+  // ═══ Logo yükleme yardımcı fonksiyonu ═══
+  const loadLogoImage = async () => {
+    if (!company?.logo_url) return null;
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = company.logo_url; });
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width; canvas.height = img.height;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      return canvas.toDataURL('image/png');
+    } catch { return null; }
+  };
+
+  // ═══ PDF Oluşturma — Paket ═══
+  const generatePackagePdf = async (pkg, note = '') => {
     try {
       const { default: jsPDF } = await import('jspdf');
       const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
+      const pw = doc.internal.pageSize.getWidth();
+      const logoData = await loadLogoImage();
 
-      // Logo eklemeye çalış
-      if (company?.logo_url) {
-        try {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          await new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = reject;
-            img.src = company.logo_url;
-          });
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-          canvas.getContext('2d').drawImage(img, 0, 0);
-          const imgData = canvas.toDataURL('image/png');
-          doc.addImage(imgData, 'PNG', pageWidth / 2 - 15, 10, 30, 30);
-        } catch { /* logo yüklenemezse devam et */ }
-      }
+      if (logoData) doc.addImage(logoData, 'PNG', pw / 2 - 15, 10, 30, 30);
 
-      // Şirket adı
       doc.setFontSize(18);
-      doc.setTextColor(5, 150, 105); // emerald
-      doc.text(company?.name || 'RandevuBot', pageWidth / 2, company?.logo_url ? 48 : 25, { align: 'center' });
+      doc.setTextColor(5, 150, 105);
+      doc.text(trText(company?.name || 'RandevuBot'), pw / 2, logoData ? 48 : 25, { align: 'center' });
 
-      // Başlık çizgisi
-      const startY = company?.logo_url ? 55 : 32;
+      const startY = logoData ? 55 : 32;
       doc.setDrawColor(5, 150, 105);
       doc.setLineWidth(0.5);
-      doc.line(20, startY, pageWidth - 20, startY);
+      doc.line(20, startY, pw - 20, startY);
 
-      // Paket adı
       doc.setFontSize(22);
       doc.setTextColor(30, 30, 30);
-      doc.text(pkg.name, pageWidth / 2, startY + 15, { align: 'center' });
+      doc.text(trText(pkg.name), pw / 2, startY + 15, { align: 'center' });
 
-      // Açıklama
       if (pkg.description) {
         doc.setFontSize(11);
         doc.setTextColor(100, 100, 100);
-        doc.text(pkg.description, pageWidth / 2, startY + 24, { align: 'center' });
+        doc.text(trText(pkg.description), pw / 2, startY + 24, { align: 'center' });
       }
 
-      // Detay kutusu
       const boxY = startY + 35;
       doc.setFillColor(245, 245, 245);
-      doc.roundedRect(30, boxY, pageWidth - 60, 50, 3, 3, 'F');
+      doc.roundedRect(30, boxY, pw - 60, 50, 3, 3, 'F');
 
       doc.setFontSize(13);
       doc.setTextColor(50, 50, 50);
       doc.text('Seans Sayisi:', 45, boxY + 15);
       doc.setTextColor(5, 150, 105);
-      doc.text(`${pkg.total_sessions} seans`, 110, boxY + 15);
+      doc.text(`${pkg.total_sessions} seans`, 115, boxY + 15);
 
       doc.setTextColor(50, 50, 50);
       doc.text('Paket Fiyati:', 45, boxY + 28);
       doc.setTextColor(5, 150, 105);
       doc.setFontSize(16);
-      doc.text(`${parseFloat(pkg.price).toLocaleString('tr-TR')} TL`, 110, boxY + 28);
+      doc.text(`${parseFloat(pkg.price).toLocaleString('tr-TR')} TL`, 115, boxY + 28);
 
       doc.setFontSize(13);
       doc.setTextColor(50, 50, 50);
       doc.text('Gecerlilik:', 45, boxY + 41);
       doc.setTextColor(100, 100, 100);
-      doc.text(`${pkg.validity_days} gun`, 110, boxY + 41);
+      doc.text(`${pkg.validity_days} gun`, 115, boxY + 41);
 
-      // Alt bilgi
+      // Not alanı
+      if (note.trim()) {
+        const noteY = boxY + 60;
+        doc.setFontSize(10);
+        doc.setTextColor(80, 80, 80);
+        doc.text('Not:', 30, noteY);
+        doc.setFontSize(10);
+        doc.setTextColor(60, 60, 60);
+        const noteLines = doc.splitTextToSize(trText(note), pw - 60);
+        doc.text(noteLines, 30, noteY + 7);
+      }
+
       doc.setFontSize(9);
       doc.setTextColor(150, 150, 150);
-      doc.text('Bu belge bilgilendirme amaclidir. Detaylar icin isletme ile iletisime gecin.', pageWidth / 2, 270, { align: 'center' });
-      doc.text(`Olusturulma: ${new Date().toLocaleDateString('tr-TR')}`, pageWidth / 2, 278, { align: 'center' });
+      doc.text(trText('Bu belge bilgilendirme amaclidir. Detaylar icin isletme ile iletisime gecin.'), pw / 2, 270, { align: 'center' });
+      doc.text(`Tarih: ${new Date().toLocaleDateString('tr-TR')}`, pw / 2, 278, { align: 'center' });
 
-      doc.save(`paket-${pkg.name.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+      doc.save(`paket-${trText(pkg.name).replace(/\s+/g, '-').toLowerCase()}.pdf`);
       toast({ title: t('success'), description: 'PDF oluşturuldu' });
     } catch (err) {
-      console.error('PDF hatası:', err);
-      toast({ title: t('error'), description: 'PDF oluşturulamadı', variant: 'destructive' });
+      console.error('PDF hatasi:', err);
+      toast({ title: t('error'), description: 'PDF olusturulamadi', variant: 'destructive' });
     }
   };
 
-  const generateGiftCardPdf = async (gc) => {
+  // ═══ PDF Oluşturma — Hediye Kartı ═══
+  const generateGiftCardPdf = async (gc, note = '') => {
     try {
       const { default: jsPDF } = await import('jspdf');
-      const doc = new jsPDF({ orientation: 'landscape', format: [150, 90] }); // Kart boyutu
-      const w = 150, h = 90;
+      const doc = new jsPDF({ orientation: 'landscape', format: [150, 100] });
+      const w = 150, h = 100;
+      const logoData = await loadLogoImage();
 
-      // Arka plan gradient efekti
-      doc.setFillColor(88, 28, 135); // purple-900
+      doc.setFillColor(88, 28, 135);
       doc.rect(0, 0, w, h, 'F');
-      doc.setFillColor(124, 58, 237); // purple-600
+      doc.setFillColor(124, 58, 237);
       doc.roundedRect(5, 5, w - 10, h - 10, 4, 4, 'F');
 
-      // Logo
-      if (company?.logo_url) {
-        try {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = company.logo_url; });
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width; canvas.height = img.height;
-          canvas.getContext('2d').drawImage(img, 0, 0);
-          doc.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, 18, 18);
-        } catch { /* logo yüklenemezse devam */ }
-      }
+      if (logoData) doc.addImage(logoData, 'PNG', 10, 10, 18, 18);
 
-      // Şirket adı
       doc.setFontSize(12);
       doc.setTextColor(255, 255, 255);
-      doc.text(company?.name || 'RandevuBot', company?.logo_url ? 32 : 10, 22);
+      doc.text(trText(company?.name || 'RandevuBot'), logoData ? 32 : 10, 22);
 
-      // "HEDİYE KARTI" başlık
       doc.setFontSize(8);
       doc.setTextColor(200, 180, 255);
       doc.text('HEDIYE KARTI', w - 15, 15, { align: 'right' });
 
-      // Tutar
       doc.setFontSize(28);
       doc.setTextColor(255, 255, 255);
       doc.text(`${parseFloat(gc.original_amount).toFixed(0)} TL`, w / 2, 48, { align: 'center' });
 
-      // Kod
       doc.setFontSize(14);
       doc.setTextColor(220, 200, 255);
       doc.text(gc.code, w / 2, 60, { align: 'center' });
 
-      // Alıcı bilgisi
       if (gc.recipient_name) {
         doc.setFontSize(8);
         doc.setTextColor(180, 160, 220);
-        doc.text(`Alici: ${gc.recipient_name}`, 12, 73);
+        doc.text(`Alici: ${trText(gc.recipient_name)}`, 12, 73);
       }
 
-      // Son kullanma
       if (gc.expiry_date) {
         doc.setFontSize(7);
         doc.setTextColor(180, 160, 220);
         doc.text(`Son Kullanma: ${gc.expiry_date}`, w - 12, 73, { align: 'right' });
       }
 
-      // Alt bilgi
+      // Not
+      if (note.trim()) {
+        doc.setFontSize(7);
+        doc.setTextColor(220, 210, 255);
+        doc.text(trText(note).substring(0, 60), w / 2, 80, { align: 'center' });
+      }
+
       doc.setFontSize(6);
       doc.setTextColor(150, 130, 200);
-      doc.text('Bu kart gosterildigi isletmede gecerlidir.', w / 2, 82, { align: 'center' });
+      doc.text(trText('Bu kart gosterildigi isletmede gecerlidir.'), w / 2, 90, { align: 'center' });
 
       doc.save(`hediye-karti-${gc.code}.pdf`);
-      toast({ title: t('success'), description: 'Hediye kartı PDF oluşturuldu' });
+      toast({ title: t('success'), description: 'Hediye karti PDF olusturuldu' });
     } catch (err) {
-      console.error('PDF hatası:', err);
-      toast({ title: t('error'), description: 'PDF oluşturulamadı', variant: 'destructive' });
+      console.error('PDF hatasi:', err);
+      toast({ title: t('error'), description: 'PDF olusturulamadi', variant: 'destructive' });
     }
+  };
+
+  // PDF önizleme modal'ını aç
+  const openPdfPreview = (type, data) => {
+    setPdfPreview({ type, data });
+    setPdfNote('');
   };
 
   // Yeni hizmet için modal aç
@@ -1171,7 +1188,7 @@ const ServicesPage = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {packages.map(pkg => (
-                  <div key={pkg.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow cursor-pointer" onClick={() => generatePackagePdf(pkg)}>
+                  <div key={pkg.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow cursor-pointer" onClick={() => openPdfPreview('package', pkg)}>
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className="font-semibold text-slate-800">{pkg.name}</h3>
@@ -1180,7 +1197,7 @@ const ServicesPage = () => {
                       <div className="flex gap-1" onClick={e => e.stopPropagation()}>
                         <button onClick={() => { setEditingPkg(pkg); setPkgForm({ name: pkg.name, description: pkg.description || '', total_sessions: pkg.total_sessions, price: pkg.price, validity_days: pkg.validity_days, services: pkg.services || [] }); setShowPkgModal(true); }} className="text-slate-400 hover:text-emerald-600"><Edit className="w-4 h-4" /></button>
                         <button onClick={() => handleDeletePackage(pkg.id)} className="text-slate-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
-                        <button onClick={() => generatePackagePdf(pkg)} className="text-slate-400 hover:text-blue-600" title="PDF İndir"><FileText className="w-4 h-4" /></button>
+                        <button onClick={() => openPdfPreview('package', pkg)} className="text-slate-400 hover:text-blue-600" title="PDF İndir"><FileText className="w-4 h-4" /></button>
                       </div>
                     </div>
                     <div className="flex items-baseline gap-2 mb-3">
@@ -1234,7 +1251,7 @@ const ServicesPage = () => {
                         </td>
                         <td className="px-4 py-3 text-slate-500">{gc.expiry_date || '—'}</td>
                         <td className="px-4 py-3">
-                          <button onClick={() => generateGiftCardPdf(gc)} className="text-slate-400 hover:text-purple-600" title="PDF İndir">
+                          <button onClick={() => openPdfPreview('giftcard', gc)} className="text-slate-400 hover:text-purple-600" title="PDF İndir">
                             <FileText className="w-4 h-4" />
                           </button>
                         </td>
@@ -1301,6 +1318,73 @@ const ServicesPage = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* PDF Önizleme Modal */}
+      {pdfPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setPdfPreview(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className={`p-5 text-white ${pdfPreview.type === 'giftcard' ? 'bg-gradient-to-r from-purple-800 to-purple-600' : 'bg-gradient-to-r from-emerald-800 to-teal-700'}`}>
+              <h3 className="text-lg font-bold">
+                {pdfPreview.type === 'package' ? 'Paket PDF' : 'Hediye Kartı PDF'}
+              </h3>
+              <p className="text-sm text-white/70 mt-1">
+                {pdfPreview.type === 'package'
+                  ? `${pdfPreview.data.name} — ${parseFloat(pdfPreview.data.price).toFixed(0)} ₺ / ${pdfPreview.data.total_sessions} seans`
+                  : `${pdfPreview.data.code} — ${parseFloat(pdfPreview.data.original_amount).toFixed(0)} ₺`
+                }
+              </p>
+            </div>
+
+            {/* Önizleme bilgileri */}
+            <div className="p-5 space-y-4">
+              {pdfPreview.type === 'package' && (
+                <div className="bg-slate-50 rounded-xl p-4 space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-slate-500">Paket:</span><span className="font-medium">{pdfPreview.data.name}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Seans:</span><span className="font-medium">{pdfPreview.data.total_sessions} seans</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Fiyat:</span><span className="font-bold text-emerald-600">{parseFloat(pdfPreview.data.price).toFixed(0)} ₺</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Geçerlilik:</span><span>{pdfPreview.data.validity_days} gün</span></div>
+                </div>
+              )}
+              {pdfPreview.type === 'giftcard' && (
+                <div className="bg-purple-50 rounded-xl p-4 space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-slate-500">Kod:</span><span className="font-mono font-bold text-purple-700">{pdfPreview.data.code}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Tutar:</span><span className="font-bold text-purple-600">{parseFloat(pdfPreview.data.original_amount).toFixed(0)} ₺</span></div>
+                  {pdfPreview.data.recipient_name && <div className="flex justify-between"><span className="text-slate-500">Alıcı:</span><span>{pdfPreview.data.recipient_name}</span></div>}
+                  {pdfPreview.data.expiry_date && <div className="flex justify-between"><span className="text-slate-500">Son Kullanma:</span><span>{pdfPreview.data.expiry_date}</span></div>}
+                </div>
+              )}
+
+              {/* Not alanı */}
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1 block">Not ekle (opsiyonel)</label>
+                <textarea
+                  value={pdfNote}
+                  onChange={e => setPdfNote(e.target.value)}
+                  placeholder="PDF'e eklenecek özel not yazın..."
+                  rows={3}
+                  className="w-full px-4 py-2.5 rounded-xl border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                />
+              </div>
+            </div>
+
+            {/* Butonlar */}
+            <div className="flex justify-end gap-2 px-5 pb-5">
+              <Button variant="outline" onClick={() => setPdfPreview(null)}>Vazgeç</Button>
+              <Button
+                onClick={() => {
+                  if (pdfPreview.type === 'package') generatePackagePdf(pdfPreview.data, pdfNote);
+                  else generateGiftCardPdf(pdfPreview.data, pdfNote);
+                  setPdfPreview(null);
+                }}
+                className={pdfPreview.type === 'giftcard' ? 'bg-purple-700 hover:bg-purple-800 text-white' : ''}
+              >
+                <FileText className="w-4 h-4 mr-2" /> PDF İndir
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
