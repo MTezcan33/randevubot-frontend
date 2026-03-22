@@ -568,7 +568,7 @@ const StaffPage = () => {
         {/* ═══ TAB: Uzmanlar ═══ */}
         {activeTab === 'experts' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {staff.map((staffMember) => (
+          {[...staff].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).map((staffMember) => (
             <div key={staffMember.id} className="glass-effect p-6 rounded-2xl flex flex-col justify-between" style={{ borderTop: `4px solid ${staffMember.color || '#ccc'}` }}>
               <div>
                 <div className="flex justify-between items-start">
