@@ -41,7 +41,8 @@ export const AuthProvider = ({ children }) => {
         const { data: staffData, error: staffError } = await supabase
             .from('company_users')
             .select(`*, company_user_tokens(user_id)`)
-            .eq('company_id', companyData.id);
+            .eq('company_id', companyData.id)
+            .order('created_at', { ascending: true });
         
         if (staffError) throw staffError;
         const experts = staffData.filter(s => s.role === 'Uzman');
