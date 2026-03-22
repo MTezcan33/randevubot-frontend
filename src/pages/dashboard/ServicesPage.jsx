@@ -168,15 +168,15 @@ function ServiceCard({ service, onEdit, onDelete, onToggleActive }) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden
+      className={`bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden
         transition-all hover:shadow-md ${!service.is_active ? 'opacity-60' : ''}`}
-      style={{ borderTop: `3px solid ${service.color || '#059669'}` }}
+      style={{ borderLeft: `3px solid ${service.color || '#059669'}` }}
     >
       {/* Kart Başlığı */}
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2 flex-wrap flex-1">
-            <div className="w-3 h-3 rounded-full flex-shrink-0"
+      <div className="px-3 py-2">
+        <div className="flex items-start justify-between gap-1 mb-1">
+          <div className="flex items-center gap-1.5 flex-wrap flex-1">
+            <div className="w-2 h-2 rounded-full flex-shrink-0"
               style={{ backgroundColor: service.color || '#059669' }} />
             {service.category && (
               <span className="text-xs font-medium px-2 py-0.5 rounded-full
@@ -220,28 +220,25 @@ function ServiceCard({ service, onEdit, onDelete, onToggleActive }) {
         </div>
 
         {/* Hizmet Adı ve Detay Bilgisi */}
-        <h3 className="font-semibold text-slate-800 text-base leading-snug mb-1">
+        <h3 className="font-semibold text-slate-800 text-sm leading-snug">
           {service.description}
         </h3>
-        {service.service_content && (
-          <p className="text-sm text-slate-500 line-clamp-1">{service.service_content}</p>
-        )}
         {(service.service_content || service.preparation_info || service.contraindications) && (
-          <span className="inline-flex items-center gap-1 mt-1 text-xs text-emerald-700">
-            <Info className="w-3 h-3" />
+          <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700">
+            <Info className="w-2.5 h-2.5" />
             {t('hasDetailedInfo')}
           </span>
         )}
       </div>
 
-      {/* Süre ve Fiyat */}
-      <div className="px-4 py-3 border-t border-slate-50 flex items-center gap-4">
-        <span className="flex items-center gap-1.5 text-sm text-slate-600">
-          <Clock className="w-4 h-4 text-slate-400" />
+      {/* Süre ve Fiyat — tek satır */}
+      <div className="px-3 py-1.5 border-t border-slate-50 flex items-center gap-3">
+        <span className="flex items-center gap-1 text-xs text-slate-500">
+          <Clock className="w-3 h-3 text-slate-400" />
           {service.duration} dk
         </span>
-        <span className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
-          <DollarSign className="w-4 h-4 text-slate-400" />
+        <span className="flex items-center gap-1 text-xs font-semibold text-slate-700">
+          <DollarSign className="w-3 h-3 text-slate-400" />
           {service.price != null
             ? `${Number(service.price).toLocaleString('tr-TR')} TL`
             : <span className="text-slate-400 font-normal">{t('priceNotSpecified')}</span>
@@ -249,15 +246,8 @@ function ServiceCard({ service, onEdit, onDelete, onToggleActive }) {
         </span>
       </div>
 
-      {/* Notlar (varsa) */}
-      {service.notes && (
-        <div className="px-4 pb-3">
-          <p className="text-xs text-slate-500 line-clamp-1">{service.notes}</p>
-        </div>
-      )}
-
-      {/* PDF ve Alt Aksiyonlar */}
-      <div className="px-4 pb-4 flex items-center justify-between gap-2 border-t border-slate-50 pt-3">
+      {/* Alt Aksiyonlar — kompakt */}
+      <div className="px-3 pb-2 flex items-center justify-between gap-1 border-t border-slate-50 pt-1.5">
         {service.pdf_url ? (
           <a href={service.pdf_url} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-xs text-teal-700 hover:underline">
@@ -265,16 +255,16 @@ function ServiceCard({ service, onEdit, onDelete, onToggleActive }) {
             {t('viewPdf')}
           </a>
         ) : <div />}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <button onClick={() => onEdit(service)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-700
+            className="p-1 rounded text-slate-400 hover:text-emerald-700
               hover:bg-emerald-50 transition-colors">
-            <Edit className="w-4 h-4" />
+            <Edit className="w-3.5 h-3.5" />
           </button>
           <button onClick={() => onDelete(service)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600
+            className="p-1 rounded text-slate-400 hover:text-red-600
               hover:bg-red-50 transition-colors">
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -1180,7 +1170,7 @@ const ServicesPage = () => {
         </div>
       ) : viewMode === 'grid' ? (
         /* Izgara Görünümü */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
           {filteredServices.map(service => (
             <ServiceCard key={service.id} service={service}
               onEdit={openModalForEdit}
