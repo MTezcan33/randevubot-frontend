@@ -79,6 +79,11 @@ const RoomCalendarGrid = ({
   onAppointmentClick,
   ROW_HEIGHT,
   PIXELS_PER_MINUTE,
+  // Drag-drop props
+  onExpertDrop,
+  dragOverSpaceId,
+  onDragOver,
+  onDragLeave,
 }) => {
   const { t } = useTranslation();
 
@@ -193,12 +198,37 @@ const RoomCalendarGrid = ({
           const isShared = space.booking_mode === 'shared';
           const spaceApps = appointmentsBySpace[space.id] || [];
 
+          const isDragTarget = dragOverSpaceId === space.id;
+
           return (
-            <div key={space.id} className="border-l relative">
+            <div
+              key={space.id}
+              className={`border-l relative transition-all duration-200 ${
+                isDragTarget ? 'bg-emerald-50/40 ring-2 ring-inset ring-emerald-300/50' : ''
+              }`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                onDragOver?.(space.id);
+              }}
+              onDragLeave={() => onDragLeave?.()}
+              onDrop={(e) => {
+                e.preventDefault();
+                try {
+                  const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                  if (data.type === 'expert') {
+                    onExpertDrop?.(data.expertId, space.id);
+                  }
+                } catch {}
+                onDragLeave?.();
+              }}
+            >
               {/* Oda Basligi */}
               <div
-                className="h-8 sticky top-0 backdrop-blur-sm z-30 px-2 border-b flex items-center justify-center gap-1 bg-white/95"
-                style={{ borderBottomColor: space.color || '#e2e8f0' }}
+                className={`h-8 sticky top-0 backdrop-blur-sm z-30 px-2 border-b flex items-center justify-center gap-1 transition-colors ${
+                  isDragTarget ? 'bg-emerald-100/90 border-emerald-400' : 'bg-white/95'
+                }`}
+                style={!isDragTarget ? { borderBottomColor: space.color || '#e2e8f0' } : {}}
               >
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: space.color || '#94a3b8' }} />
                 <p className="font-medium text-[10px] truncate" style={{ color: space.color || '#1e293b' }}>

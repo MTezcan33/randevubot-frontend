@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { getSpaces, getAppointmentResourcesByDate } from '../../services/resourceService';
 import CalendarViewToggle from '@/components/calendar/CalendarViewToggle';
 import RoomCalendarGrid from '@/components/calendar/RoomCalendarGrid';
+import StaffSidebar from '@/components/appointment/StaffSidebar';
 import {
   Dialog,
   DialogContent,
@@ -316,6 +317,9 @@ const AppointmentsPage = () => {
   // ── Oda Görünümü State'leri ──
   const [calendarView, setCalendarView] = useState(() => localStorage.getItem('calendarView') || 'expert');
   const [spaces, setSpaces] = useState([]);
+  // Drag-drop uzman-oda ataması
+  const [dragOverSpaceId, setDragOverSpaceId] = useState(null);
+  const [draggingExpert, setDraggingExpert] = useState(null);
   const [appointmentResources, setAppointmentResources] = useState([]);
   // company.timezone "(GMT+03:00) Istanbul" formatında olabilir — IANA'ya çevir
   const companyTimezone = (() => {
@@ -388,6 +392,44 @@ const AppointmentsPage = () => {
   const handleViewChange = (view) => {
     setCalendarView(view);
     localStorage.setItem('calendarView', view);
+  };
+
+  // ── Uzmanı odaya sürükle-bırak ile ata ──
+  const handleExpertDropToRoom = async (expertId, spaceId) => {
+    if (!company) return;
+    try {
+      // expert_spaces'de kayıt var mı kontrol et
+      const { data: existing } = await supabase
+        .from('expert_spaces')
+        .select('id')
+        .eq('expert_id', expertId)
+        .eq('space_id', spaceId)
+        .maybeSingle();
+
+      if (existing) {
+        toast({ title: t('info') || 'Bilgi', description: t('expertAlreadyAssigned') || 'Bu uzman zaten bu odaya atanmış' });
+        return;
+      }
+
+      // Yeni atama oluştur
+      const { error } = await supabase.from('expert_spaces').insert([{
+        expert_id: expertId,
+        space_id: spaceId,
+        is_preferred: false,
+      }]);
+
+      if (error) throw error;
+
+      const expert = experts.find(e => e.id === expertId);
+      const space = spaces.find(s => s.id === spaceId);
+      toast({
+        title: t('success'),
+        description: `${expert?.name || 'Uzman'} → ${space?.name || 'Oda'} atandı`,
+      });
+    } catch (err) {
+      console.error('Uzman-oda atama hatası:', err);
+      toast({ title: t('error'), description: err.message, variant: 'destructive' });
+    }
   };
 
   // Uzman-hizmet ilişkilerini yükle (drag-drop doğrulaması için)
@@ -843,16 +885,32 @@ const AppointmentsPage = () => {
 
             {/* ═══ ODA GÖRÜNÜMÜ ═══ */}
             {calendarView === 'room' && (
-              <RoomCalendarGrid
-                spaces={spaces}
-                appointments={appointments}
-                appointmentResources={appointmentResources}
-                timeSlots={timeSlots}
-                experts={experts}
-                onAppointmentClick={(app) => openReorderPanel(app)}
-                ROW_HEIGHT={ROW_HEIGHT}
-                PIXELS_PER_MINUTE={PIXELS_PER_MINUTE}
-              />
+              <div className="flex h-full">
+                {/* Sol: Sürüklenebilir Uzman Sidebar */}
+                <StaffSidebar
+                  experts={experts}
+                  onDragStart={(exp) => setDraggingExpert(exp)}
+                  onDragEnd={() => { setDraggingExpert(null); setDragOverSpaceId(null); }}
+                  compact
+                />
+                {/* Sağ: Oda Takvimi */}
+                <div className="flex-1 overflow-auto">
+                  <RoomCalendarGrid
+                    spaces={spaces}
+                    appointments={appointments}
+                    appointmentResources={appointmentResources}
+                    timeSlots={timeSlots}
+                    experts={experts}
+                    onAppointmentClick={(app) => openReorderPanel(app)}
+                    ROW_HEIGHT={ROW_HEIGHT}
+                    PIXELS_PER_MINUTE={PIXELS_PER_MINUTE}
+                    onExpertDrop={handleExpertDropToRoom}
+                    dragOverSpaceId={dragOverSpaceId}
+                    onDragOver={(spaceId) => setDragOverSpaceId(spaceId)}
+                    onDragLeave={() => setDragOverSpaceId(null)}
+                  />
+                </div>
+              </div>
             )}
 
             {/* ═══ UZMAN GÖRÜNÜMÜ (mevcut) ═══ */}
