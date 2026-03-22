@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Lock, Users, Droplets, DoorOpen } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Lock, Users, Droplets, DoorOpen, Plus, Minus, UserPlus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 // ═══ Kapasite cubugu — paylasimli alanlar icin ═══
@@ -84,6 +84,9 @@ const RoomCalendarGrid = ({
   dragOverSpaceId,
   onDragOver,
   onDragLeave,
+  // Walk-in kapasite props
+  onWalkIn,
+  onWalkOut,
 }) => {
   const { t } = useTranslation();
 
@@ -237,7 +240,26 @@ const RoomCalendarGrid = ({
                 {isShared && space.capacity && (
                   <span className="text-[8px] text-slate-400">({space.capacity})</span>
                 )}
-                <span className="text-slate-300 flex-shrink-0">{getModeIcon(space.booking_mode)}</span>
+                {!isShared && <span className="text-slate-300 flex-shrink-0">{getModeIcon(space.booking_mode)}</span>}
+                {/* Walk-in butonları — paylaşımlı alanlar için */}
+                {isShared && onWalkIn && (
+                  <div className="flex items-center gap-0.5 ml-auto flex-shrink-0">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onWalkOut?.(space.id, space); }}
+                      className="w-5 h-5 rounded flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+                      title="Müşteri çıkışı"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onWalkIn?.(space.id, space); }}
+                      className="w-5 h-5 rounded flex items-center justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                      title="Müşteri girişi"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Zaman Grid */}
@@ -251,23 +273,59 @@ const RoomCalendarGrid = ({
                   />
                 ))}
 
-                {/* Paylasimli alan — kapasite cubuklari */}
+                {/* Paylasimli alan — kapasite cubuklari + randevu bloklari */}
                 {isShared && (() => {
-                  const hourSlots = [];
+                  const elements = [];
+                  // Saatlik kapasite çubukları
                   for (let h = 5; h <= 23; h++) {
                     const minute = h * 60;
                     const cap = getCapacityAtMinute(space.id, minute, space);
+                    const top = (minute - 5 * 60) * PIXELS_PER_MINUTE;
+                    // Her saat dilimi için arka plan doluluk göstergesi
                     if (cap.used > 0) {
-                      const top = (minute - 5 * 60) * PIXELS_PER_MINUTE;
-                      hourSlots.push(
-                        <div key={h} className="absolute left-0 right-0 px-1 z-10"
+                      const fillPercent = Math.min((cap.used / cap.total) * 100, 100);
+                      const fillColor = fillPercent >= 80 ? 'rgba(239,68,68,0.08)' : fillPercent >= 50 ? 'rgba(245,158,11,0.06)' : 'rgba(16,185,129,0.05)';
+                      elements.push(
+                        <div key={`bg-${h}`} className="absolute left-0 right-0 z-[1]"
+                          style={{ top: `${top}px`, height: `${60 * PIXELS_PER_MINUTE}px`, backgroundColor: fillColor }} />
+                      );
+                      elements.push(
+                        <div key={`bar-${h}`} className="absolute left-0 right-0 px-1 z-10"
                           style={{ top: `${top + 2}px` }}>
                           <CapacityMeter used={cap.used} total={cap.total} color={space.color} />
                         </div>
                       );
                     }
                   }
-                  return hourSlots;
+
+                  // Paylaşımlı alandaki randevu blokları da göster
+                  spaceApps.forEach(app => {
+                    const appStart = timeToMinutes(app.time);
+                    const dur = app.total_duration || 60;
+                    const top = (appStart - 5 * 60) * PIXELS_PER_MINUTE;
+                    const height = dur * PIXELS_PER_MINUTE;
+                    const expert = app.expert_id ? experts.find(e => e.id === app.expert_id) : null;
+
+                    elements.push(
+                      <div
+                        key={`shared-${app.id}`}
+                        className="absolute left-0 w-[95%] px-0.5 z-10 hover:z-20 hover:brightness-110 transition-all"
+                        style={{ top: `${top}px`, height: `${Math.max(height, 12)}px` }}
+                        onClick={() => onAppointmentClick?.(app)}
+                      >
+                        <RoomAppointmentCard
+                          appointment={app}
+                          startMinutes={appStart}
+                          duration={dur}
+                          serviceName={app.appointment_services?.[0]?.company_services?.description || app.company_services?.description || '—'}
+                          expert={expert}
+                          spaceColor={space.color}
+                        />
+                      </div>
+                    );
+                  });
+
+                  return elements;
                 })()}
 
                 {/* Ozel/Grup ozel alan — randevu bloklari */}

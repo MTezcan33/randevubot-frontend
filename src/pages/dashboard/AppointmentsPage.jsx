@@ -388,6 +388,85 @@ const AppointmentsPage = () => {
     }
   };
 
+  // ── Walk-in: Paylaşımlı alana hızlı müşteri girişi ──
+  const handleWalkIn = async (spaceId, space) => {
+    if (!company) return;
+    try {
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+      // Varsayılan süre: 30 dk
+      const defaultDuration = space.buffer_minutes || 30;
+
+      const { data, error } = await supabase.from('appointments').insert([{
+        company_id: company.id,
+        customer_id: null, // Walk-in — müşteri kaydı yok
+        expert_id: null,   // Uzman gerektirmiyor
+        space_id: spaceId,
+        date: dateStr,
+        time: timeStr,
+        total_duration: defaultDuration,
+        status: 'onaylandı',
+        payment_status: 'unpaid',
+        notes: `Walk-in — ${space.name}`,
+      }]).select().single();
+
+      if (error) throw error;
+
+      // Local state güncelle
+      setAppointments(prev => [...prev, { ...data, customers: { name: 'WALK-IN' } }]);
+
+      toast({
+        title: '✓ Giriş',
+        description: `${space.name} — ${timeStr} (${defaultDuration} dk)`,
+      });
+    } catch (err) {
+      console.error('Walk-in hatası:', err);
+      toast({ title: t('error'), description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const handleWalkOut = async (spaceId, space) => {
+    if (!company) return;
+    try {
+      // Bu alandaki en son aktif walk-in randevuyu bul
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      const walkInApps = appointments.filter(app =>
+        app.space_id === spaceId &&
+        app.status === 'onaylandı' &&
+        app.notes?.includes('Walk-in')
+      );
+
+      if (walkInApps.length === 0) {
+        toast({ title: t('info') || 'Bilgi', description: 'Bu alanda aktif walk-in müşteri yok' });
+        return;
+      }
+
+      // En son eklenen walk-in'i tamamla
+      const lastWalkIn = walkInApps[walkInApps.length - 1];
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: 'tamamlandı', notes: `${lastWalkIn.notes} — Çıkış: ${timeStr}` })
+        .eq('id', lastWalkIn.id);
+
+      if (error) throw error;
+
+      // Local state güncelle
+      setAppointments(prev => prev.filter(app => app.id !== lastWalkIn.id));
+
+      toast({
+        title: '✓ Çıkış',
+        description: `${space.name} — müşteri çıkışı kaydedildi`,
+      });
+    } catch (err) {
+      console.error('Walk-out hatası:', err);
+      toast({ title: t('error'), description: err.message, variant: 'destructive' });
+    }
+  };
+
   // calendarView değiştiğinde localStorage'a kaydet
   const handleViewChange = (view) => {
     setCalendarView(view);
@@ -908,6 +987,8 @@ const AppointmentsPage = () => {
                     dragOverSpaceId={dragOverSpaceId}
                     onDragOver={(spaceId) => setDragOverSpaceId(spaceId)}
                     onDragLeave={() => setDragOverSpaceId(null)}
+                    onWalkIn={handleWalkIn}
+                    onWalkOut={handleWalkOut}
                   />
                 </div>
               </div>
