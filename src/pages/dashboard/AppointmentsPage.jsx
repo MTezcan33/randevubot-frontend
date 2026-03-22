@@ -288,6 +288,7 @@ const AppointmentsPage = () => {
   const [dragData, setDragData] = useState(null); // { appointmentId, serviceId, currentExpertId, blockKey }
   const [dragOverExpertId, setDragOverExpertId] = useState(null); // Üzerine gelinen uzman
   const [cancelReason, setCancelReason] = useState(''); // İptal sebebi
+  const [cancelNote, setCancelNote] = useState(''); // İptal açıklaması (Diğer seçildiğinde)
   const [showCancelDialog, setShowCancelDialog] = useState(false); // İptal dialog
   const [expertServicesMap, setExpertServicesMap] = useState(new Map()); // Map<expertId, Set<serviceId>>
   // company.timezone "(GMT+03:00) Istanbul" formatında olabilir — IANA'ya çevir
@@ -513,15 +514,17 @@ const AppointmentsPage = () => {
   // Randevu İPTAL — silme yerine status='iptal' + audit log
   const handleCancelAppointment = async () => {
     if (!selectedAppointment || !cancelReason) return;
+    if (cancelReason === 'diger' && !cancelNote.trim()) return; // Diğer seçiliyse açıklama zorunlu
     try {
       const now = new Date().toISOString();
-      const currentUser = staff.find(s => s.id === selectedExpert?.id) || { id: null, name: user?.email || 'Admin' };
+      const currentUser = staff.find(s => s.id === (selectedExpert?.id || staff[0]?.id)) || { id: null, name: user?.email || 'Admin' };
+      const fullReason = cancelReason === 'diger' ? `diger: ${cancelNote.trim()}` : cancelReason;
 
       const { error } = await supabase.from('appointments').update({
         status: 'iptal',
         cancelled_at: now,
         cancelled_by: currentUser.id,
-        cancel_reason: cancelReason,
+        cancel_reason: fullReason,
       }).eq('id', selectedAppointment.id);
       if (error) throw error;
 
@@ -539,7 +542,7 @@ const AppointmentsPage = () => {
           customer: customers.find(c => c.id === selectedAppointment.customer_id)?.name,
           date: selectedAppointment.date,
           time: selectedAppointment.time,
-          reason: cancelReason,
+          reason: fullReason,
           totalAmount: selectedAppointment.total_amount,
           paymentStatus: selectedAppointment.payment_status,
         },
@@ -550,6 +553,7 @@ const AppointmentsPage = () => {
       setShowCancelDialog(false);
       setSelectedAppointment(null);
       setCancelReason('');
+      setCancelNote('');
     } catch (error) {
       toast({ title: t('error'), description: error.message, variant: "destructive" });
     }
@@ -1123,7 +1127,7 @@ const AppointmentsPage = () => {
               {/* İptal Et butonu — iptal sebebi zorunlu dialog */}
               <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="mr-auto" onClick={() => { setCancelReason(''); setShowCancelDialog(true); }}>
+                  <Button variant="destructive" className="mr-auto" onClick={() => { setCancelReason(''); setCancelNote(''); setShowCancelDialog(true); }}>
                     <Ban className="w-4 h-4 mr-2" /> {t('cancelAppointment') || 'İptal Et'}
                   </Button>
                 </AlertDialogTrigger>
@@ -1145,6 +1149,16 @@ const AppointmentsPage = () => {
                     <option value="uzman_musait_degil">{t('cancelReason.expertUnavailable') || 'Uzman müsait değil'}</option>
                     <option value="diger">{t('cancelReason.other') || 'Diğer'}</option>
                   </select>
+                  {cancelReason === 'diger' && (
+                    <textarea
+                      value={cancelNote}
+                      onChange={(e) => setCancelNote(e.target.value)}
+                      placeholder={t('cancelNotePlaceholder') || 'İptal sebebini açıklayın...'}
+                      className="w-full px-4 py-2.5 rounded-xl border bg-white text-sm resize-none focus:ring-2 focus:ring-red-300 focus:border-red-400 transition-all"
+                      rows={3}
+                      maxLength={500}
+                    />
+                  )}
                   {selectedAppointment?.payment_status === 'paid' && (
                     <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
                       <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
@@ -1157,8 +1171,8 @@ const AppointmentsPage = () => {
                     <AlertDialogCancel onClick={() => setShowCancelDialog(false)}>{t('close') || 'Vazgeç'}</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleCancelAppointment}
-                      disabled={!cancelReason}
-                      className={!cancelReason ? 'opacity-50 cursor-not-allowed' : ''}
+                      disabled={!cancelReason || (cancelReason === 'diger' && !cancelNote.trim())}
+                      className={(!cancelReason || (cancelReason === 'diger' && !cancelNote.trim())) ? 'opacity-50 cursor-not-allowed' : ''}
                     >
                       {t('confirmCancel') || 'İptal Et'}
                     </AlertDialogAction>
