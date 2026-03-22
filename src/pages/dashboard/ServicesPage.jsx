@@ -379,12 +379,12 @@ const ServicesPage = () => {
   const [pkgLoading, setPkgLoading] = useState(false);
   const [showPkgModal, setShowPkgModal] = useState(false);
   const [editingPkg, setEditingPkg] = useState(null);
-  const [pkgForm, setPkgForm] = useState({ name: '', description: '', total_sessions: 1, price: '', validity_days: 365, services: [] });
+  const [pkgForm, setPkgForm] = useState({ name: '', description: '', total_sessions: 1, price: '', validity_days: 365, services: [], terms: '' });
 
   // Hediye kartı state'leri
   const [giftCards, setGiftCards] = useState([]);
   const [showGiftModal, setShowGiftModal] = useState(false);
-  const [giftForm, setGiftForm] = useState({ amount: '', recipient_name: '', purchased_by: '', expiry_date: '' });
+  const [giftForm, setGiftForm] = useState({ amount: '', recipient_name: '', recipient_phone: '', purchased_by: '', purchased_by_phone: '', expiry_date: '', terms: '' });
 
   // PDF önizleme state'leri
   const [pdfPreview, setPdfPreview] = useState(null); // { type: 'package'|'giftcard', data: {...} }
@@ -575,6 +575,21 @@ const ServicesPage = () => {
     return code.substring(0, 4) + '-' + code.substring(4);
   };
 
+  // ═══ Müşteri otomatik kayıt (alıcı veya satın alan) ═══
+  const autoRegisterCustomer = async (name, phone) => {
+    if (!name || !phone) return;
+    try {
+      // Telefon ile mevcut müşteri kontrol
+      const { data: existing } = await supabase
+        .from('customers').select('id').eq('company_id', company.id).eq('phone', phone).single();
+      if (existing) return; // Zaten kayıtlı
+      await supabase.from('customers').insert([{
+        company_id: company.id, name: name.toUpperCase(), phone,
+        tags: ['hediye-karti'], notes: 'Hediye kartı işleminden otomatik kayıt',
+      }]);
+    } catch { /* Sessizce geç — duplicate vs. */ }
+  };
+
   const handleCreateGiftCard = async () => {
     if (!giftForm.amount) return;
     try {
@@ -586,9 +601,14 @@ const ServicesPage = () => {
         recipient_name: giftForm.recipient_name || null,
         expiry_date: giftForm.expiry_date || null,
       }]);
+
+      // Alıcı ve satın alanı müşteri olarak kaydet
+      await autoRegisterCustomer(giftForm.recipient_name, giftForm.recipient_phone);
+      await autoRegisterCustomer(giftForm.purchased_by, giftForm.purchased_by_phone);
+
       toast({ title: t('success'), description: `Hediye kartı oluşturuldu: ${code}` });
       setShowGiftModal(false);
-      setGiftForm({ amount: '', recipient_name: '', purchased_by: '', expiry_date: '' });
+      setGiftForm({ amount: '', recipient_name: '', recipient_phone: '', purchased_by: '', purchased_by_phone: '', expiry_date: '', terms: '' });
       fetchGiftCards();
     } catch (err) {
       toast({ title: t('error'), description: err.message, variant: 'destructive' });
@@ -651,44 +671,93 @@ const ServicesPage = () => {
         doc.text(trText(pkg.description), pw / 2, startY + 24, { align: 'center' });
       }
 
+      // Paket detay kutusu
       const boxY = startY + 35;
       doc.setFillColor(245, 245, 245);
-      doc.roundedRect(30, boxY, pw - 60, 50, 3, 3, 'F');
+      doc.roundedRect(30, boxY, pw - 60, 65, 3, 3, 'F');
 
       doc.setFontSize(13);
       doc.setTextColor(50, 50, 50);
       doc.text('Seans Sayisi:', 45, boxY + 15);
       doc.setTextColor(5, 150, 105);
-      doc.text(`${pkg.total_sessions} seans`, 115, boxY + 15);
+      doc.text(`${pkg.total_sessions} seans`, 120, boxY + 15);
 
       doc.setTextColor(50, 50, 50);
       doc.text('Paket Fiyati:', 45, boxY + 28);
       doc.setTextColor(5, 150, 105);
       doc.setFontSize(16);
-      doc.text(`${parseFloat(pkg.price).toLocaleString('tr-TR')} TL`, 115, boxY + 28);
+      doc.text(`${parseFloat(pkg.price).toLocaleString('tr-TR')} TL`, 120, boxY + 28);
 
       doc.setFontSize(13);
       doc.setTextColor(50, 50, 50);
-      doc.text('Gecerlilik:', 45, boxY + 41);
+      doc.text('Gecerlilik Suresi:', 45, boxY + 41);
       doc.setTextColor(100, 100, 100);
-      doc.text(`${pkg.validity_days} gun`, 115, boxY + 41);
+      doc.text(`${pkg.validity_days} gun`, 120, boxY + 41);
+
+      // Geçerlilik tarihi hesapla
+      const purchaseDate = new Date();
+      const expiryDate = new Date(purchaseDate);
+      expiryDate.setDate(expiryDate.getDate() + parseInt(pkg.validity_days || 365));
+      doc.setTextColor(50, 50, 50);
+      doc.text('Son Kullanma:', 45, boxY + 54);
+      doc.setTextColor(180, 50, 50);
+      doc.text(expiryDate.toLocaleDateString('tr-TR'), 120, boxY + 54);
+
+      let currentY = boxY + 75;
+
+      // Alıcı bilgileri (PDF önizlemeden gelen not'tan parse edilebilir veya preview data'dan)
+      if (pdfPreview?.data?.recipient_name || pdfPreview?.data?.purchased_by) {
+        doc.setFillColor(240, 248, 245);
+        doc.roundedRect(30, currentY, pw - 60, 30, 3, 3, 'F');
+        doc.setFontSize(11);
+        if (pdfPreview.data.recipient_name) {
+          doc.setTextColor(50, 50, 50);
+          doc.text('Alici:', 45, currentY + 12);
+          doc.setTextColor(30, 30, 30);
+          doc.text(trText(pdfPreview.data.recipient_name), 120, currentY + 12);
+        }
+        if (pdfPreview.data.purchased_by) {
+          doc.setTextColor(50, 50, 50);
+          doc.text('Satin Alan:', 45, currentY + 24);
+          doc.setTextColor(30, 30, 30);
+          doc.text(trText(pdfPreview.data.purchased_by), 120, currentY + 24);
+        }
+        currentY += 38;
+      }
+
+      // Koşullar
+      const terms = pkg.terms || pdfPreview?.data?.terms;
+      if (terms) {
+        doc.setFontSize(9);
+        doc.setTextColor(120, 120, 120);
+        doc.text('Kullanim Kosullari:', 30, currentY);
+        doc.setFontSize(9);
+        doc.setTextColor(80, 80, 80);
+        const termLines = doc.splitTextToSize(trText(terms), pw - 60);
+        doc.text(termLines, 30, currentY + 7);
+        currentY += 7 + (termLines.length * 5);
+      }
 
       // Not alanı
       if (note.trim()) {
-        const noteY = boxY + 60;
+        currentY += 5;
         doc.setFontSize(10);
         doc.setTextColor(80, 80, 80);
-        doc.text('Not:', 30, noteY);
+        doc.text('Not:', 30, currentY);
         doc.setFontSize(10);
         doc.setTextColor(60, 60, 60);
         const noteLines = doc.splitTextToSize(trText(note), pw - 60);
-        doc.text(noteLines, 30, noteY + 7);
+        doc.text(noteLines, 30, currentY + 7);
       }
 
+      // Alt bilgi
       doc.setFontSize(9);
       doc.setTextColor(150, 150, 150);
-      doc.text(trText('Bu belge bilgilendirme amaclidir. Detaylar icin isletme ile iletisime gecin.'), pw / 2, 270, { align: 'center' });
-      doc.text(`Tarih: ${new Date().toLocaleDateString('tr-TR')}`, pw / 2, 278, { align: 'center' });
+      doc.text(trText('Bu belge bilgilendirme amaclidir. Detaylar icin isletme ile iletisime gecin.'), pw / 2, 265, { align: 'center' });
+      doc.text(`Duzenleme Tarihi: ${new Date().toLocaleDateString('tr-TR')}`, pw / 2, 272, { align: 'center' });
+      if (company?.whatsapp_number) {
+        doc.text(`Tel: ${company.whatsapp_number}`, pw / 2, 279, { align: 'center' });
+      }
 
       doc.save(`paket-${trText(pkg.name).replace(/\s+/g, '-').toLowerCase()}.pdf`);
       toast({ title: t('success'), description: 'PDF oluşturuldu' });
@@ -702,55 +771,98 @@ const ServicesPage = () => {
   const generateGiftCardPdf = async (gc, note = '') => {
     try {
       const { default: jsPDF } = await import('jspdf');
-      const doc = new jsPDF({ orientation: 'landscape', format: [150, 100] });
-      const w = 150, h = 100;
+      // A4 portrait — daha fazla alan
+      const doc = new jsPDF();
+      const pw = doc.internal.pageSize.getWidth();
       const logoData = await loadLogoImage();
 
+      // Üst mor gradient alanı
       doc.setFillColor(88, 28, 135);
-      doc.rect(0, 0, w, h, 'F');
+      doc.rect(0, 0, pw, 80, 'F');
       doc.setFillColor(124, 58, 237);
-      doc.roundedRect(5, 5, w - 10, h - 10, 4, 4, 'F');
+      doc.roundedRect(10, 10, pw - 20, 60, 5, 5, 'F');
 
-      if (logoData) doc.addImage(logoData, 'PNG', 10, 10, 18, 18);
-
-      doc.setFontSize(12);
-      doc.setTextColor(255, 255, 255);
-      doc.text(trText(company?.name || 'RandevuBot'), logoData ? 32 : 10, 22);
-
-      doc.setFontSize(8);
-      doc.setTextColor(200, 180, 255);
-      doc.text('HEDIYE KARTI', w - 15, 15, { align: 'right' });
-
-      doc.setFontSize(28);
-      doc.setTextColor(255, 255, 255);
-      doc.text(`${parseFloat(gc.original_amount).toFixed(0)} TL`, w / 2, 48, { align: 'center' });
+      if (logoData) doc.addImage(logoData, 'PNG', 20, 18, 22, 22);
 
       doc.setFontSize(14);
-      doc.setTextColor(220, 200, 255);
-      doc.text(gc.code, w / 2, 60, { align: 'center' });
+      doc.setTextColor(255, 255, 255);
+      doc.text(trText(company?.name || 'RandevuBot'), logoData ? 48 : 20, 32);
 
+      doc.setFontSize(10);
+      doc.setTextColor(200, 180, 255);
+      doc.text('HEDIYE KARTI', pw - 20, 22, { align: 'right' });
+
+      // Tutar
+      doc.setFontSize(36);
+      doc.setTextColor(255, 255, 255);
+      doc.text(`${parseFloat(gc.original_amount).toFixed(0)} TL`, pw / 2, 55, { align: 'center' });
+
+      // Kod
+      doc.setFontSize(16);
+      doc.setTextColor(220, 200, 255);
+      doc.text(gc.code, pw / 2, 67, { align: 'center' });
+
+      // Detay kutusu
+      let currentY = 95;
+      doc.setFillColor(248, 245, 255);
+      doc.roundedRect(25, 88, pw - 50, gc.recipient_name && gc.purchased_by ? 55 : 35, 3, 3, 'F');
+
+      doc.setFontSize(11);
       if (gc.recipient_name) {
-        doc.setFontSize(8);
-        doc.setTextColor(180, 160, 220);
-        doc.text(`Alici: ${trText(gc.recipient_name)}`, 12, 73);
+        doc.setTextColor(80, 80, 80);
+        doc.text('Alici:', 40, currentY);
+        doc.setTextColor(30, 30, 30);
+        doc.text(trText(gc.recipient_name), 100, currentY);
+        currentY += 12;
+      }
+      if (gc.purchased_by) {
+        doc.setTextColor(80, 80, 80);
+        doc.text('Satin Alan:', 40, currentY);
+        doc.setTextColor(30, 30, 30);
+        doc.text(trText(gc.purchased_by), 100, currentY);
+        currentY += 12;
+      }
+      if (gc.expiry_date) {
+        doc.setTextColor(80, 80, 80);
+        doc.text('Son Kullanma:', 40, currentY);
+        doc.setTextColor(180, 50, 50);
+        doc.text(gc.expiry_date, 100, currentY);
+        currentY += 12;
       }
 
-      if (gc.expiry_date) {
-        doc.setFontSize(7);
-        doc.setTextColor(180, 160, 220);
-        doc.text(`Son Kullanma: ${gc.expiry_date}`, w - 12, 73, { align: 'right' });
+      currentY += 10;
+
+      // Koşullar
+      const terms = gc.terms || pdfPreview?.data?.terms;
+      if (terms) {
+        doc.setFontSize(9);
+        doc.setTextColor(120, 120, 120);
+        doc.text('Kullanim Kosullari:', 25, currentY);
+        doc.setTextColor(80, 80, 80);
+        const termLines = doc.splitTextToSize(trText(terms), pw - 50);
+        doc.text(termLines, 25, currentY + 7);
+        currentY += 7 + (termLines.length * 5);
       }
 
       // Not
       if (note.trim()) {
-        doc.setFontSize(7);
-        doc.setTextColor(220, 210, 255);
-        doc.text(trText(note).substring(0, 60), w / 2, 80, { align: 'center' });
+        currentY += 5;
+        doc.setFontSize(10);
+        doc.setTextColor(80, 80, 80);
+        doc.text('Not:', 25, currentY);
+        doc.setTextColor(60, 60, 60);
+        const noteLines = doc.splitTextToSize(trText(note), pw - 50);
+        doc.text(noteLines, 25, currentY + 7);
       }
 
-      doc.setFontSize(6);
-      doc.setTextColor(150, 130, 200);
-      doc.text(trText('Bu kart gosterildigi isletmede gecerlidir.'), w / 2, 90, { align: 'center' });
+      // Alt bilgi
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(trText('Bu kart gosterildigi isletmede gecerlidir. Nakit iadesi yapilmaz.'), pw / 2, 268, { align: 'center' });
+      doc.text(`Duzenleme Tarihi: ${new Date().toLocaleDateString('tr-TR')}`, pw / 2, 275, { align: 'center' });
+      if (company?.whatsapp_number) {
+        doc.text(`Tel: ${company.whatsapp_number}`, pw / 2, 282, { align: 'center' });
+      }
 
       doc.save(`hediye-karti-${gc.code}.pdf`);
       toast({ title: t('success'), description: 'Hediye karti PDF olusturuldu' });
@@ -1302,6 +1414,10 @@ const ServicesPage = () => {
                       <input type="number" min="1" value={pkgForm.validity_days} onChange={e => setPkgForm({ ...pkgForm, validity_days: e.target.value })} className="w-full px-3 py-2 rounded-xl border text-sm" />
                     </div>
                   </div>
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">Koşullar / Kullanım Şartları (opsiyonel)</label>
+                    <textarea placeholder="Örn: Kullanmadan en az 24 saat önce rezervasyon yapılmalıdır..." value={pkgForm.terms} onChange={e => setPkgForm({ ...pkgForm, terms: e.target.value })} rows={2} className="w-full px-4 py-2.5 rounded-xl border text-sm resize-none" />
+                  </div>
                 </div>
                 <div className="flex justify-end gap-2 mt-5">
                   <Button variant="outline" onClick={() => setShowPkgModal(false)}>{t('cancel')}</Button>
@@ -1321,11 +1437,21 @@ const ServicesPage = () => {
                     <label className="text-xs text-slate-500 mb-1 block">Tutar (₺)</label>
                     <input type="number" min="1" value={giftForm.amount} onChange={e => setGiftForm({ ...giftForm, amount: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border text-sm" />
                   </div>
-                  <input placeholder="Alıcı adı (opsiyonel)" value={giftForm.recipient_name} onChange={e => setGiftForm({ ...giftForm, recipient_name: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border text-sm" />
-                  <input placeholder="Satın alan (opsiyonel)" value={giftForm.purchased_by} onChange={e => setGiftForm({ ...giftForm, purchased_by: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border text-sm" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input placeholder="Alıcı adı" value={giftForm.recipient_name} onChange={e => setGiftForm({ ...giftForm, recipient_name: e.target.value.toUpperCase() })} className="w-full px-4 py-2.5 rounded-xl border text-sm" />
+                    <input placeholder="Alıcı telefon" value={giftForm.recipient_phone} onChange={e => setGiftForm({ ...giftForm, recipient_phone: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border text-sm" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input placeholder="Satın alan adı" value={giftForm.purchased_by} onChange={e => setGiftForm({ ...giftForm, purchased_by: e.target.value.toUpperCase() })} className="w-full px-4 py-2.5 rounded-xl border text-sm" />
+                    <input placeholder="Satın alan telefon" value={giftForm.purchased_by_phone} onChange={e => setGiftForm({ ...giftForm, purchased_by_phone: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border text-sm" />
+                  </div>
                   <div>
                     <label className="text-xs text-slate-500 mb-1 block">Son Kullanma Tarihi (opsiyonel)</label>
                     <input type="date" value={giftForm.expiry_date} onChange={e => setGiftForm({ ...giftForm, expiry_date: e.target.value })} className="w-full px-3 py-2 rounded-xl border text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">Koşullar (opsiyonel)</label>
+                    <textarea placeholder="Örn: İade ve devir yapılamaz..." value={giftForm.terms} onChange={e => setGiftForm({ ...giftForm, terms: e.target.value })} rows={2} className="w-full px-4 py-2.5 rounded-xl border text-sm resize-none" />
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 mt-5">
@@ -1374,14 +1500,45 @@ const ServicesPage = () => {
                 </div>
               )}
 
+              {/* Alıcı bilgileri — PDF'e dahil edilecek */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-slate-600 block">Alıcı Bilgileri (PDF'de görünür)</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    placeholder="Alıcı adı soyadı"
+                    value={pdfPreview?.data?.recipient_name || ''}
+                    onChange={e => setPdfPreview(prev => ({ ...prev, data: { ...prev.data, recipient_name: e.target.value.toUpperCase() } }))}
+                    className="px-3 py-2 rounded-lg border text-sm"
+                  />
+                  <input
+                    placeholder="Satın alan adı"
+                    value={pdfPreview?.data?.purchased_by || ''}
+                    onChange={e => setPdfPreview(prev => ({ ...prev, data: { ...prev.data, purchased_by: e.target.value.toUpperCase() } }))}
+                    className="px-3 py-2 rounded-lg border text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Koşullar */}
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1 block">Kullanım Koşulları (PDF'de görünür)</label>
+                <textarea
+                  value={pdfPreview?.data?.terms || ''}
+                  onChange={e => setPdfPreview(prev => ({ ...prev, data: { ...prev.data, terms: e.target.value } }))}
+                  placeholder="Örn: Kullanmadan en az 24 saat önce rezervasyon yapılmalıdır. İade yapılmaz."
+                  rows={2}
+                  className="w-full px-4 py-2.5 rounded-xl border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                />
+              </div>
+
               {/* Not alanı */}
               <div>
-                <label className="text-xs font-medium text-slate-600 mb-1 block">Not ekle (opsiyonel)</label>
+                <label className="text-xs font-medium text-slate-600 mb-1 block">Özel Not (opsiyonel)</label>
                 <textarea
                   value={pdfNote}
                   onChange={e => setPdfNote(e.target.value)}
-                  placeholder="PDF'e eklenecek özel not yazın..."
-                  rows={3}
+                  placeholder="PDF'e eklenecek ek not yazın..."
+                  rows={2}
                   className="w-full px-4 py-2.5 rounded-xl border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-200"
                 />
               </div>
