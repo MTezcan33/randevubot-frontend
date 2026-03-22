@@ -825,7 +825,7 @@ const AppointmentsPage = () => {
               </div>
 
               {/* Uzman Sütunları */}
-              <div className="flex-grow grid relative" style={{ gridTemplateColumns: `repeat(${Math.max(1, experts.length)}, minmax(120px, 1fr))` }}>
+              <div className="flex-grow grid relative" style={{ gridTemplateColumns: `repeat(${Math.max(1, experts.length)}, 160px)` }}>
                 <TimeIndicator companyTimezone={companyTimezone} />
 
                 {experts.length > 0 ? experts.map(expert => {
@@ -939,7 +939,7 @@ const AppointmentsPage = () => {
                           return (
                             <div
                               key={block.blockKey}
-                              className={`absolute w-full px-0.5 z-10 ${
+                              className={`absolute left-0 w-[95%] px-0.5 z-10 ${
                                 isDragging
                                   ? 'opacity-30 scale-95 transition-all duration-200'
                                   : isAnyDragging
