@@ -59,51 +59,52 @@ const AppointmentCard = ({ appointment, t, expertColor, overrideStartMinutes, ov
       ? appointment.appointment_services.map(as => as.company_services?.description).filter(Boolean).join(', ')
       : appointment.company_services?.description || t('unknownService'));
 
-  // Renk tonlarını hesapla — koyu border + açık zemin
-  // Hex rengi darken/lighten etmek için yardımcı fonksiyon
-  const darkenColor = (hex, factor = 0.35) => {
-    if (!hex || hex.length < 7) return hex || '#0ea5e9';
-    const r = Math.round(parseInt(hex.slice(1, 3), 16) * (1 - factor));
-    const g = Math.round(parseInt(hex.slice(3, 5), 16) * (1 - factor));
-    const b = Math.round(parseInt(hex.slice(5, 7), 16) * (1 - factor));
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  // Tam renkli kart — referans tasarıma uygun
+  const baseColor = expertColor || '#0ea5e9';
+
+  // Rengin açık/koyu olduğunu belirle — yazı rengini ayarlamak için
+  const isLightColor = (hex) => {
+    if (!hex || hex.length < 7) return false;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 > 160;
   };
 
-  const baseColor = expertColor || '#0ea5e9';
-  const borderColor = darkenColor(baseColor, 0.3); // %30 koyu border
-  const bgColor = `${baseColor}25`; // %15 opak zemin
-  const headerBgColor = `${baseColor}35`; // %21 opak üst şerit
+  const textColor = isLightColor(baseColor) ? '#1e293b' : '#ffffff';
+  const subTextColor = isLightColor(baseColor) ? '#475569' : 'rgba(255,255,255,0.8)';
+
+  // Ödeme durumu ikonu
+  const paymentDot = appointment.payment_status === 'paid' ? '●' :
+    appointment.payment_status === 'partial' ? '◐' :
+    appointment.payment_status === 'free' ? '○' : null;
 
   return (
     <div
-      className={`rounded-lg text-[10px] shadow-sm ${disableHover ? '' : 'hover:shadow-lg'} cursor-grab active:cursor-grabbing transition-shadow duration-200 text-slate-800 overflow-hidden h-full`}
+      className={`rounded-xl text-[10px] ${disableHover ? '' : 'hover:brightness-110 hover:shadow-lg'} cursor-grab active:cursor-grabbing transition-all duration-200 overflow-hidden h-full flex flex-col`}
       style={{
-        backgroundColor: bgColor,
-        borderLeft: `4px solid ${borderColor}`,
-        border: `1px solid ${baseColor}50`,
-        borderLeftWidth: '4px',
-        borderLeftColor: borderColor,
-        boxShadow: `0 1px 3px ${baseColor}20`,
+        backgroundColor: baseColor,
+        boxShadow: `0 2px 6px ${baseColor}40`,
       }}
     >
-      {/* Üst şerit — saat bilgisi */}
-      <div
-        className="flex items-center justify-between px-2 py-0.5"
-        style={{ backgroundColor: headerBgColor }}
-      >
-        <p className="font-bold text-[10px] leading-tight text-slate-700">{`${displayTime} - ${displayEndTime}`}</p>
-        {appointment.payment_status && appointment.payment_status !== 'unpaid' && (
-          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-            appointment.payment_status === 'paid' ? 'bg-emerald-400' :
-            appointment.payment_status === 'partial' ? 'bg-amber-400' :
-            appointment.payment_status === 'free' ? 'bg-stone-400' : ''
-          }`} title={appointment.payment_status === 'paid' ? t('paid') : appointment.payment_status === 'partial' ? t('partiallyPaid') : ''} />
-        )}
+      {/* Saat + müşteri — üst kısım */}
+      <div className="px-2.5 pt-1.5 pb-0.5 flex items-center justify-between">
+        <span className="font-bold text-[10px]" style={{ color: textColor }}>{displayTime}</span>
+        <div className="flex items-center gap-1">
+          {paymentDot && (
+            <span className="text-[8px]" style={{ color: subTextColor }} title={
+              appointment.payment_status === 'paid' ? t('paid') :
+              appointment.payment_status === 'partial' ? t('partiallyPaid') : ''
+            }>{paymentDot}</span>
+          )}
+        </div>
       </div>
-      {/* İçerik */}
-      <div className="px-2 py-1">
-        <p className="font-bold text-[11px] truncate leading-tight">{appointment.customers?.name?.toUpperCase() || t('unknownCustomer')}</p>
-        <p className="text-[9px] truncate text-slate-500 leading-tight mt-0.5">{serviceNames}</p>
+      {/* Müşteri adı */}
+      <div className="px-2.5 pb-1 flex-1">
+        <p className="font-bold text-[11px] truncate leading-tight" style={{ color: textColor }}>
+          {appointment.customers?.name?.toUpperCase() || t('unknownCustomer')}
+        </p>
+        <p className="text-[9px] truncate leading-tight mt-0.5" style={{ color: subTextColor }}>{serviceNames}</p>
       </div>
     </div>
   );
