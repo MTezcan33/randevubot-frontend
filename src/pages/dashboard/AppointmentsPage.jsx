@@ -59,9 +59,20 @@ const AppointmentCard = ({ appointment, t, expertColor, overrideStartMinutes, ov
       ? appointment.appointment_services.map(as => as.company_services?.description).filter(Boolean).join(', ')
       : appointment.company_services?.description || t('unknownService'));
 
-  // Renk tonlarını hesapla
-  const bgColor = expertColor ? `${expertColor}18` : '#e0f2fe';
-  const borderColor = expertColor || '#0ea5e9';
+  // Renk tonlarını hesapla — koyu border + açık zemin
+  // Hex rengi darken/lighten etmek için yardımcı fonksiyon
+  const darkenColor = (hex, factor = 0.35) => {
+    if (!hex || hex.length < 7) return hex || '#0ea5e9';
+    const r = Math.round(parseInt(hex.slice(1, 3), 16) * (1 - factor));
+    const g = Math.round(parseInt(hex.slice(3, 5), 16) * (1 - factor));
+    const b = Math.round(parseInt(hex.slice(5, 7), 16) * (1 - factor));
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  };
+
+  const baseColor = expertColor || '#0ea5e9';
+  const borderColor = darkenColor(baseColor, 0.3); // %30 koyu border
+  const bgColor = `${baseColor}25`; // %15 opak zemin
+  const headerBgColor = `${baseColor}35`; // %21 opak üst şerit
 
   return (
     <div
@@ -69,13 +80,16 @@ const AppointmentCard = ({ appointment, t, expertColor, overrideStartMinutes, ov
       style={{
         backgroundColor: bgColor,
         borderLeft: `4px solid ${borderColor}`,
-        boxShadow: `0 1px 3px ${borderColor}20`,
+        border: `1px solid ${baseColor}50`,
+        borderLeftWidth: '4px',
+        borderLeftColor: borderColor,
+        boxShadow: `0 1px 3px ${baseColor}20`,
       }}
     >
       {/* Üst şerit — saat bilgisi */}
       <div
         className="flex items-center justify-between px-2 py-0.5"
-        style={{ backgroundColor: `${borderColor}15` }}
+        style={{ backgroundColor: headerBgColor }}
       >
         <p className="font-bold text-[10px] leading-tight text-slate-700">{`${displayTime} - ${displayEndTime}`}</p>
         {appointment.payment_status && appointment.payment_status !== 'unpaid' && (
