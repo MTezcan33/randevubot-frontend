@@ -584,3 +584,171 @@ export async function autoAssignResources(companyId, date, startTime, duration, 
     equipment_ids: selectedEquipmentIds,
   };
 }
+
+// ─── Oda-Öncelikli Randevu Akışı ─────────────────────────────────────────────
+
+/**
+ * Bir hizmet için müsait odaları getirir
+ * Hizmetin kaynak gereksinimlerini kontrol eder, yoksa tüm aktif odaları döndürür
+ * Her oda için müsaitlik durumu hesaplanır
+ *
+ * @param {string} companyId - Şirket ID'si
+ * @param {string} serviceId - Hizmet ID'si
+ * @param {string} date - Tarih (YYYY-MM-DD)
+ * @param {string} startTime - Başlangıç zamanı ("HH:MM")
+ * @param {number} duration - Süre (dakika)
+ * @returns {Promise<Array<{space: object, available: boolean, currentOccupancy: number, reason: string|null}>>}
+ */
+export async function getAvailableRoomsForService(companyId, serviceId, date, startTime, duration) {
+  const startMin = timeToMinutes(startTime);
+  const endMin = startMin + duration;
+
+  // Hizmetin kaynak gereksinimlerini al
+  const requirements = await getServiceRequirements(serviceId);
+
+  // O günkü mevcut randevuları getir
+  const existingAppointments = await getExistingAppointments(companyId, date);
+
+  // Kontrol edilecek odaları belirle
+  let candidateSpaces = [];
+
+  if (requirements.spaces.length > 0) {
+    // Hizmet belirli odaları gerektiriyor
+    candidateSpaces = requirements.spaces.filter(s => s.is_active !== false);
+  } else {
+    // Hizmet özel oda gerektirmiyor — tüm aktif odaları getir
+    const { data: allSpaces } = await supabase
+      .from('spaces')
+      .select('id, name, capacity, booking_mode, buffer_minutes, color, zone, sort_order')
+      .eq('company_id', companyId)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
+    candidateSpaces = allSpaces || [];
+  }
+
+  // Her oda için müsaitlik kontrolü
+  const results = [];
+  for (const space of candidateSpaces) {
+    const check = checkSpaceAvailability(existingAppointments, space.id, startMin, endMin, space);
+
+    // Mevcut doluluk hesapla (shared alanlar için)
+    let currentOccupancy = 0;
+    if (space.booking_mode === 'shared') {
+      currentOccupancy = existingAppointments.filter(apt => {
+        if (apt.space_id !== space.id) return false;
+        const aptStart = timeToMinutes(apt.time);
+        const aptEnd = aptStart + (apt.total_duration || 0);
+        return timesOverlap(startMin, endMin, aptStart, aptEnd);
+      }).length;
+    }
+
+    results.push({
+      space,
+      available: check.available,
+      currentOccupancy,
+      reason: check.conflict?.message || null,
+    });
+  }
+
+  // Müsait odaları önce göster, sonra doluları
+  return results.sort((a, b) => {
+    if (a.available && !b.available) return -1;
+    if (!a.available && b.available) return 1;
+    return (a.space.sort_order || 0) - (b.space.sort_order || 0);
+  });
+}
+
+/**
+ * Belirli bir odada, belirli zaman aralığında müsait uzmanları getirir
+ * Uzmanın o odaya atanmış olması ve hizmeti yapabilmesi gerekir
+ *
+ * @param {string} companyId - Şirket ID'si
+ * @param {string} spaceId - Oda/Alan ID'si
+ * @param {string} date - Tarih (YYYY-MM-DD)
+ * @param {string} startTime - Başlangıç zamanı ("HH:MM")
+ * @param {number} duration - Süre (dakika)
+ * @param {string} serviceId - Hizmet ID'si
+ * @returns {Promise<Array<{expert: object, available: boolean, isPreferred: boolean, reason: string|null}>>}
+ */
+export async function getAvailableExpertsForRoom(companyId, spaceId, date, startTime, duration, serviceId) {
+  const startMin = timeToMinutes(startTime);
+  const endMin = startMin + duration;
+
+  // 1. Bu odaya atanmış uzmanları getir
+  const { data: expertSpaces } = await supabase
+    .from('expert_spaces')
+    .select('expert_id, is_preferred')
+    .eq('space_id', spaceId);
+
+  const expertSpaceMap = {};
+  (expertSpaces || []).forEach(es => {
+    expertSpaceMap[es.expert_id] = es.is_preferred;
+  });
+
+  // 2. Bu hizmeti yapabilen uzmanları getir
+  const { data: expertServices } = await supabase
+    .from('expert_services')
+    .select('expert_id')
+    .eq('service_id', serviceId);
+
+  const serviceExpertIds = new Set((expertServices || []).map(es => es.expert_id));
+
+  // 3. Şirketteki tüm uzmanları getir
+  const { data: allExperts } = await supabase
+    .from('company_users')
+    .select('id, name, color, role, phone')
+    .eq('company_id', companyId)
+    .eq('role', 'Uzman')
+    .order('created_at', { ascending: true });
+
+  // 4. O günkü randevuları getir
+  const existingAppointments = await getExistingAppointments(companyId, date);
+
+  // 5. Her uzman için müsaitlik + yetki kontrolü
+  const results = [];
+  for (const expert of (allExperts || [])) {
+    // Bu odaya atanmış mı?
+    const isAssignedToRoom = expertSpaceMap.hasOwnProperty(expert.id);
+    const isPreferred = expertSpaceMap[expert.id] === true;
+
+    // Bu hizmeti yapabiliyor mu?
+    const canDoService = serviceExpertIds.has(expert.id);
+
+    // Müsait mi?
+    const availCheck = checkExpertAvailability(existingAppointments, expert.id, startMin, endMin);
+
+    let reason = null;
+    let available = true;
+
+    if (!canDoService) {
+      available = false;
+      reason = 'Bu hizmeti yapma yetkisi yok';
+    } else if (!isAssignedToRoom) {
+      available = false;
+      reason = 'Bu odaya atanmamış';
+    } else if (!availCheck.available) {
+      available = false;
+      reason = availCheck.conflict?.message || 'Müsait değil';
+    }
+
+    results.push({
+      expert,
+      available,
+      isPreferred,
+      isAssignedToRoom,
+      canDoService,
+      reason,
+    });
+  }
+
+  // Sıralama: müsait + tercihli > müsait + atanmış > müsait + diğer > müsait değil
+  return results.sort((a, b) => {
+    if (a.available && !b.available) return -1;
+    if (!a.available && b.available) return 1;
+    if (a.isPreferred && !b.isPreferred) return -1;
+    if (!a.isPreferred && b.isPreferred) return 1;
+    if (a.isAssignedToRoom && !b.isAssignedToRoom) return -1;
+    if (!a.isAssignedToRoom && b.isAssignedToRoom) return 1;
+    return 0;
+  });
+}

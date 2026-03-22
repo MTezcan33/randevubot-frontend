@@ -25,8 +25,10 @@ import {
   DoorOpen, Wrench, User, ChevronDown, ChevronRight, Sparkles, GripVertical, ArrowUp, ArrowDown,
 } from 'lucide-react';
 import { createAdminNotification, sendAppointmentConfirmation } from '@/services/notificationService';
-import { autoAssignResources } from '@/services/availabilityService';
+import { autoAssignResources, getAvailableRoomsForService, getAvailableExpertsForRoom } from '@/services/availabilityService';
 import { setAppointmentResources } from '@/services/resourceService';
+import RoomPicker from '@/components/appointment/RoomPicker';
+import ExpertPickerForRoom from '@/components/appointment/ExpertPickerForRoom';
 
 // Türkçe gün isimleri — company_working_hours tablosuyla eşleşmeli
 const DAY_NAMES_TR = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
@@ -65,6 +67,14 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
   const [resourceConflicts, setResourceConflicts] = useState([]);
   const [allSpaces, setAllSpaces] = useState([]);
   const [hasResources, setHasResources] = useState(false);
+
+  // Oda-öncelikli akış state'leri
+  const [availableRooms, setAvailableRooms] = useState([]);
+  const [roomExperts, setRoomExperts] = useState([]);
+  const [loadingRooms, setLoadingRooms] = useState(false);
+  const [loadingExperts, setLoadingExperts] = useState(false);
+  const [selectedRoomId, setSelectedRoomId] = useState(null);
+  const [selectedRoomExpertId, setSelectedRoomExpertId] = useState(null);
 
   // Kategori açık/kapalı durumları
   const [collapsedCategories, setCollapsedCategories] = useState(new Set());
@@ -432,6 +442,85 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
 
     assignResources();
   }, [serviceSelections, appointmentDate, appointmentTime, totalDuration, hasResources, company, conflictWarnings, allSpaces, allServices]);
+
+  // ── Oda-Öncelikli Akış: Hizmet + tarih/saat seçilince müsait odaları getir ──
+  useEffect(() => {
+    if (!company || serviceSelections.length === 0 || !appointmentTime || !appointmentDate) {
+      setAvailableRooms([]);
+      setSelectedRoomId(null);
+      setSelectedRoomExpertId(null);
+      return;
+    }
+
+    const fetchRooms = async () => {
+      setLoadingRooms(true);
+      try {
+        const firstServiceId = serviceSelections[0]?.serviceId;
+        if (!firstServiceId) return;
+        const rooms = await getAvailableRoomsForService(
+          company.id, firstServiceId, appointmentDate, appointmentTime, totalDuration || 60
+        );
+        setAvailableRooms(rooms);
+      } catch (err) {
+        console.error('Oda yükleme hatası:', err);
+        setAvailableRooms([]);
+      } finally {
+        setLoadingRooms(false);
+      }
+    };
+
+    fetchRooms();
+  }, [company, serviceSelections, appointmentDate, appointmentTime, totalDuration]);
+
+  // ── Oda seçilince müsait uzmanları getir ──
+  useEffect(() => {
+    if (!company || !selectedRoomId || serviceSelections.length === 0 || !appointmentTime || !appointmentDate) {
+      setRoomExperts([]);
+      setSelectedRoomExpertId(null);
+      return;
+    }
+
+    const fetchExperts = async () => {
+      setLoadingExperts(true);
+      try {
+        const firstServiceId = serviceSelections[0]?.serviceId;
+        const experts = await getAvailableExpertsForRoom(
+          company.id, selectedRoomId, appointmentDate, appointmentTime, totalDuration || 60, firstServiceId
+        );
+        setRoomExperts(experts);
+        // Otomatik olarak ilk müsait uzmanı seç
+        const firstAvailable = experts.find(e => e.available);
+        if (firstAvailable) setSelectedRoomExpertId(firstAvailable.expert.id);
+      } catch (err) {
+        console.error('Uzman yükleme hatası:', err);
+        setRoomExperts([]);
+      } finally {
+        setLoadingExperts(false);
+      }
+    };
+
+    fetchExperts();
+  }, [company, selectedRoomId, serviceSelections, appointmentDate, appointmentTime, totalDuration]);
+
+  // Oda seçildiğinde space atama + uzman atama
+  const handleRoomSelect = (roomId) => {
+    setSelectedRoomId(roomId);
+    const room = availableRooms.find(r => r.space.id === roomId);
+    if (room) {
+      setAssignedSpace({ id: room.space.id, name: room.space.name, color: room.space.color });
+    }
+    setSelectedRoomExpertId(null); // Uzman seçimi sıfırla
+  };
+
+  const handleRoomExpertSelect = (expertId) => {
+    setSelectedRoomExpertId(expertId);
+    // İlk hizmet için bu uzmanı ata
+    if (serviceSelections.length > 0) {
+      setServiceSelections(prev =>
+        prev.map((sel, idx) => idx === 0 ? { ...sel, expertId } : sel)
+      );
+    }
+  };
 
   // ── Hizmet Seçim/Kaldırma ──
   const toggleService = useCallback((serviceId) => {
@@ -1013,49 +1102,64 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
             </div>
           )}
 
-          {/* ── Bölüm 5: Kaynak Atama ── */}
-          {hasResources && conflictWarnings.length === 0 && allSpaces.length > 0 && serviceSelections.length > 0 && (
+          {/* ── Bölüm 5: Oda Seçimi (Oda-Öncelikli Akış) ── */}
+          {serviceSelections.length > 0 && appointmentTime && (availableRooms.length > 0 || loadingRooms) && (
             <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <DoorOpen className="w-4 h-4 text-purple-600 flex-shrink-0" />
-                <span className="text-sm font-medium text-purple-800">{t('spaceRequired')}</span>
+                <span className="text-sm font-medium text-purple-800">{t('selectRoom') || 'Oda Seçin'}</span>
                 {assignedSpace && (
                   <span className="text-xs bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded-full ml-auto">
-                    {t('autoAssigned')}
+                    {assignedSpace.name}
                   </span>
                 )}
               </div>
-              <Select
-                value={assignedSpace?.id || 'none'}
-                onValueChange={(val) => {
-                  if (val === 'none') setAssignedSpace(null);
-                  else {
-                    const space = allSpaces.find(s => s.id === val);
-                    setAssignedSpace(space ? { id: space.id, name: space.name, color: space.color } : null);
-                  }
-                }}
-              >
-                <SelectTrigger className="bg-white border-purple-200 text-sm h-10">
-                  <SelectValue placeholder={t('selectSpace')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— {t('noSpace') || 'Alan seçme'} —</SelectItem>
-                  {allSpaces.map(s => (
-                    <SelectItem key={s.id} value={s.id}>
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color || '#6366F1' }} />
-                        {s.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+              {/* Oda seçim kartları */}
+              <RoomPicker
+                rooms={availableRooms}
+                selectedRoomId={selectedRoomId}
+                onSelect={handleRoomSelect}
+                loading={loadingRooms}
+              />
+
+              {/* Oda seçildiyse — uzman seçimi */}
+              {selectedRoomId && (
+                <div className="mt-3 pt-3 border-t border-purple-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <User className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                    <span className="text-sm font-medium text-purple-800">{t('selectExpert') || 'Uzman Seçin'}</span>
+                    {selectedRoomExpertId && (
+                      <span className="text-xs bg-emerald-200 text-emerald-700 px-1.5 py-0.5 rounded-full ml-auto">
+                        ✓
+                      </span>
+                    )}
+                  </div>
+                  <ExpertPickerForRoom
+                    experts={roomExperts}
+                    selectedExpertId={selectedRoomExpertId}
+                    onSelect={handleRoomExpertSelect}
+                    loading={loadingExperts}
+                  />
+                </div>
+              )}
+
               {assignedEquipment.length > 0 && (
-                <div className="flex items-center gap-1.5 text-xs text-purple-600">
+                <div className="flex items-center gap-1.5 text-xs text-purple-600 mt-2">
                   <Wrench className="w-3.5 h-3.5" />
                   <span>{assignedEquipment.length} {t('equipment').toLowerCase()}</span>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ── Eski Kaynak Atama (spaces tanımlı değilse fallback) ── */}
+          {hasResources && conflictWarnings.length === 0 && allSpaces.length > 0 && serviceSelections.length > 0 && availableRooms.length === 0 && !loadingRooms && (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <DoorOpen className="w-3.5 h-3.5" />
+                <span>{assignedSpace ? `${t('space')}: ${assignedSpace.name}` : t('autoAssigned')}</span>
+              </div>
             </div>
           )}
         </div>
