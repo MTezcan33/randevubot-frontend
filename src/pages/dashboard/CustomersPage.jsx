@@ -923,12 +923,16 @@ const CustomersPage = () => {
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('customers')
         .select('*')
         .eq('company_id', company.id)
         .order('created_at', { ascending: false });
 
+      // is_active kolonu varsa sadece aktif müşterileri getir (yoksa hepsini)
+      query = query.or('is_active.eq.true,is_active.is.null');
+
+      const { data, error } = await query;
       if (error) throw error;
       setCustomers(data || []);
       setFilteredCustomers(data || []);
@@ -981,9 +985,30 @@ const CustomersPage = () => {
   const confirmDelete = async () => {
     if (!customerToDeleteId) return;
     try {
-      const { error } = await supabase.from('customers').delete().eq('id', customerToDeleteId);
-      if (error) throw error;
-      toast({ title: t('success'), description: t('customerDeleted') });
+      // Önce bu müşterinin randevusu var mı kontrol et
+      const { data: relatedApps } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('customer_id', customerToDeleteId)
+        .limit(1);
+
+      if (relatedApps && relatedApps.length > 0) {
+        // Randevusu var — soft delete (pasif yap)
+        const { error } = await supabase
+          .from('customers')
+          .update({ is_active: false })
+          .eq('id', customerToDeleteId);
+        if (error) throw error;
+        toast({
+          title: t('success'),
+          description: t('customerDeactivated') || 'Müşteri pasif yapıldı. Randevu geçmişi korunuyor.',
+        });
+      } else {
+        // Randevusu yok — gerçek silme
+        const { error } = await supabase.from('customers').delete().eq('id', customerToDeleteId);
+        if (error) throw error;
+        toast({ title: t('success'), description: t('customerDeleted') });
+      }
       fetchCustomers();
       if (selectedCustomer?.id === customerToDeleteId) {
         setIsDrawerOpen(false);
