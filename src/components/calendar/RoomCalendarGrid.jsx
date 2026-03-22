@@ -179,6 +179,10 @@ const RoomCalendarGrid = ({
     <div className="flex">
       {/* Saat Sutunu */}
       <div className="w-14 flex-shrink-0 bg-gray-50 border-r sticky left-0 z-10">
+        {/* Zone satırı (birden fazla zone varsa) */}
+        {Object.keys(groupedSpaces).length > 1 && (
+          <div className="h-5 border-b bg-slate-100" />
+        )}
         <div className="h-8 border-b bg-white" />
         {timeSlots.map((time, index) => (
           <div
@@ -197,6 +201,37 @@ const RoomCalendarGrid = ({
       <div className="flex-grow grid relative" style={{
         gridTemplateColumns: `repeat(${orderedSpaces.length}, 160px)`
       }}>
+        {/* Zone başlık satırı (birden fazla zone varsa) */}
+        {Object.keys(groupedSpaces).length > 1 && orderedSpaces.map((space, idx) => {
+          const isFirstInZone = idx === 0 || orderedSpaces[idx - 1]._zone !== space._zone;
+          const zoneSpaceCount = groupedSpaces[space._zone]?.length || 1;
+
+          if (isFirstInZone) {
+            // Zone renkleri
+            const zoneColors = {
+              'Masaj Odaları': '#7c3aed', 'Masaj': '#7c3aed',
+              'Islak Alan': '#0ea5e9', 'Spa': '#0ea5e9', 'Havuz': '#06b6d4',
+              'Hamam': '#f59e0b', 'Sauna': '#ef4444',
+              'VIP': '#d97706', 'Genel': '#6b7280',
+            };
+            const bgColor = zoneColors[space._zone] || '#6b7280';
+
+            return (
+              <div
+                key={`zone-${space._zone}-${idx}`}
+                className="h-5 flex items-center justify-center text-[9px] font-bold text-white tracking-wider"
+                style={{
+                  gridColumn: `span ${zoneSpaceCount}`,
+                  backgroundColor: bgColor,
+                }}
+              >
+                {space._zone.toUpperCase()}
+              </div>
+            );
+          }
+          return null; // Span ile kapsandı
+        })}
+
         {orderedSpaces.map(space => {
           const isShared = space.booking_mode === 'shared';
           const spaceApps = appointmentsBySpace[space.id] || [];
