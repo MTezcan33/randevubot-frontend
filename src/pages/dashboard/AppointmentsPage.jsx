@@ -30,7 +30,7 @@ import { Reorder } from 'framer-motion';
 import PaymentCollectionModal from '@/components/PaymentCollectionModal';
 import CreateAppointmentModal from '@/components/CreateAppointmentModal';
 
-const ROW_HEIGHT = 20; // px - her 10 dakika için
+const ROW_HEIGHT = 13; // px - her 10 dakika için (4 satır/saat)
 const PIXELS_PER_MINUTE = ROW_HEIGHT / 10;
 
 const AppointmentCard = ({ appointment, t, expertColor, overrideStartMinutes, overrideDuration, overrideServiceNames, disableHover }) => {
@@ -87,24 +87,19 @@ const AppointmentCard = ({ appointment, t, expertColor, overrideStartMinutes, ov
         boxShadow: `0 2px 6px ${baseColor}40`,
       }}
     >
-      {/* Saat + müşteri — üst kısım */}
-      <div className="px-2.5 pt-1.5 pb-0.5 flex items-center justify-between">
-        <span className="font-bold text-[10px]" style={{ color: textColor }}>{displayTime}</span>
-        <div className="flex items-center gap-1">
-          {paymentDot && (
-            <span className="text-[8px]" style={{ color: subTextColor }} title={
-              appointment.payment_status === 'paid' ? t('paid') :
-              appointment.payment_status === 'partial' ? t('partiallyPaid') : ''
-            }>{paymentDot}</span>
-          )}
-        </div>
+      {/* Üst: saat aralığı + hizmet */}
+      <div className="px-2 pt-1 flex items-center gap-1">
+        <span className="font-bold text-[9px] whitespace-nowrap" style={{ color: textColor }}>{`${displayTime} - ${displayEndTime}`}</span>
+        <span className="text-[9px] truncate" style={{ color: subTextColor }}>{serviceNames}</span>
+        {paymentDot && (
+          <span className="text-[8px] flex-shrink-0 ml-auto" style={{ color: subTextColor }}>{paymentDot}</span>
+        )}
       </div>
-      {/* Müşteri adı */}
-      <div className="px-2.5 pb-1 flex-1">
-        <p className="font-bold text-[11px] truncate leading-tight" style={{ color: textColor }}>
+      {/* Alt: müşteri adı */}
+      <div className="px-2 pb-1">
+        <p className="font-semibold text-[10px] truncate leading-tight" style={{ color: textColor }}>
           {appointment.customers?.name?.toUpperCase() || t('unknownCustomer')}
         </p>
-        <p className="text-[9px] truncate leading-tight mt-0.5" style={{ color: subTextColor }}>{serviceNames}</p>
       </div>
     </div>
   );
