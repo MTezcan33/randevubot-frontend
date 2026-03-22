@@ -574,6 +574,164 @@ const ServicesPage = () => {
     }
   };
 
+  // ═══ PDF Oluşturma Fonksiyonları ═══
+  const generatePackagePdf = async (pkg) => {
+    try {
+      const { default: jsPDF } = await import('jspdf');
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      // Logo eklemeye çalış
+      if (company?.logo_url) {
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = company.logo_url;
+          });
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+          const imgData = canvas.toDataURL('image/png');
+          doc.addImage(imgData, 'PNG', pageWidth / 2 - 15, 10, 30, 30);
+        } catch { /* logo yüklenemezse devam et */ }
+      }
+
+      // Şirket adı
+      doc.setFontSize(18);
+      doc.setTextColor(5, 150, 105); // emerald
+      doc.text(company?.name || 'RandevuBot', pageWidth / 2, company?.logo_url ? 48 : 25, { align: 'center' });
+
+      // Başlık çizgisi
+      const startY = company?.logo_url ? 55 : 32;
+      doc.setDrawColor(5, 150, 105);
+      doc.setLineWidth(0.5);
+      doc.line(20, startY, pageWidth - 20, startY);
+
+      // Paket adı
+      doc.setFontSize(22);
+      doc.setTextColor(30, 30, 30);
+      doc.text(pkg.name, pageWidth / 2, startY + 15, { align: 'center' });
+
+      // Açıklama
+      if (pkg.description) {
+        doc.setFontSize(11);
+        doc.setTextColor(100, 100, 100);
+        doc.text(pkg.description, pageWidth / 2, startY + 24, { align: 'center' });
+      }
+
+      // Detay kutusu
+      const boxY = startY + 35;
+      doc.setFillColor(245, 245, 245);
+      doc.roundedRect(30, boxY, pageWidth - 60, 50, 3, 3, 'F');
+
+      doc.setFontSize(13);
+      doc.setTextColor(50, 50, 50);
+      doc.text('Seans Sayisi:', 45, boxY + 15);
+      doc.setTextColor(5, 150, 105);
+      doc.text(`${pkg.total_sessions} seans`, 110, boxY + 15);
+
+      doc.setTextColor(50, 50, 50);
+      doc.text('Paket Fiyati:', 45, boxY + 28);
+      doc.setTextColor(5, 150, 105);
+      doc.setFontSize(16);
+      doc.text(`${parseFloat(pkg.price).toLocaleString('tr-TR')} TL`, 110, boxY + 28);
+
+      doc.setFontSize(13);
+      doc.setTextColor(50, 50, 50);
+      doc.text('Gecerlilik:', 45, boxY + 41);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`${pkg.validity_days} gun`, 110, boxY + 41);
+
+      // Alt bilgi
+      doc.setFontSize(9);
+      doc.setTextColor(150, 150, 150);
+      doc.text('Bu belge bilgilendirme amaclidir. Detaylar icin isletme ile iletisime gecin.', pageWidth / 2, 270, { align: 'center' });
+      doc.text(`Olusturulma: ${new Date().toLocaleDateString('tr-TR')}`, pageWidth / 2, 278, { align: 'center' });
+
+      doc.save(`paket-${pkg.name.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+      toast({ title: t('success'), description: 'PDF oluşturuldu' });
+    } catch (err) {
+      console.error('PDF hatası:', err);
+      toast({ title: t('error'), description: 'PDF oluşturulamadı', variant: 'destructive' });
+    }
+  };
+
+  const generateGiftCardPdf = async (gc) => {
+    try {
+      const { default: jsPDF } = await import('jspdf');
+      const doc = new jsPDF({ orientation: 'landscape', format: [150, 90] }); // Kart boyutu
+      const w = 150, h = 90;
+
+      // Arka plan gradient efekti
+      doc.setFillColor(88, 28, 135); // purple-900
+      doc.rect(0, 0, w, h, 'F');
+      doc.setFillColor(124, 58, 237); // purple-600
+      doc.roundedRect(5, 5, w - 10, h - 10, 4, 4, 'F');
+
+      // Logo
+      if (company?.logo_url) {
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = company.logo_url; });
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width; canvas.height = img.height;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+          doc.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, 18, 18);
+        } catch { /* logo yüklenemezse devam */ }
+      }
+
+      // Şirket adı
+      doc.setFontSize(12);
+      doc.setTextColor(255, 255, 255);
+      doc.text(company?.name || 'RandevuBot', company?.logo_url ? 32 : 10, 22);
+
+      // "HEDİYE KARTI" başlık
+      doc.setFontSize(8);
+      doc.setTextColor(200, 180, 255);
+      doc.text('HEDIYE KARTI', w - 15, 15, { align: 'right' });
+
+      // Tutar
+      doc.setFontSize(28);
+      doc.setTextColor(255, 255, 255);
+      doc.text(`${parseFloat(gc.original_amount).toFixed(0)} TL`, w / 2, 48, { align: 'center' });
+
+      // Kod
+      doc.setFontSize(14);
+      doc.setTextColor(220, 200, 255);
+      doc.text(gc.code, w / 2, 60, { align: 'center' });
+
+      // Alıcı bilgisi
+      if (gc.recipient_name) {
+        doc.setFontSize(8);
+        doc.setTextColor(180, 160, 220);
+        doc.text(`Alici: ${gc.recipient_name}`, 12, 73);
+      }
+
+      // Son kullanma
+      if (gc.expiry_date) {
+        doc.setFontSize(7);
+        doc.setTextColor(180, 160, 220);
+        doc.text(`Son Kullanma: ${gc.expiry_date}`, w - 12, 73, { align: 'right' });
+      }
+
+      // Alt bilgi
+      doc.setFontSize(6);
+      doc.setTextColor(150, 130, 200);
+      doc.text('Bu kart gosterildigi isletmede gecerlidir.', w / 2, 82, { align: 'center' });
+
+      doc.save(`hediye-karti-${gc.code}.pdf`);
+      toast({ title: t('success'), description: 'Hediye kartı PDF oluşturuldu' });
+    } catch (err) {
+      console.error('PDF hatası:', err);
+      toast({ title: t('error'), description: 'PDF oluşturulamadı', variant: 'destructive' });
+    }
+  };
+
   // Yeni hizmet için modal aç
   const openModalForCreate = () => {
     setEditingService(null);
@@ -1013,15 +1171,16 @@ const ServicesPage = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {packages.map(pkg => (
-                  <div key={pkg.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow">
+                  <div key={pkg.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow cursor-pointer" onClick={() => generatePackagePdf(pkg)}>
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className="font-semibold text-slate-800">{pkg.name}</h3>
                         {pkg.description && <p className="text-xs text-slate-500 mt-0.5">{pkg.description}</p>}
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1" onClick={e => e.stopPropagation()}>
                         <button onClick={() => { setEditingPkg(pkg); setPkgForm({ name: pkg.name, description: pkg.description || '', total_sessions: pkg.total_sessions, price: pkg.price, validity_days: pkg.validity_days, services: pkg.services || [] }); setShowPkgModal(true); }} className="text-slate-400 hover:text-emerald-600"><Edit className="w-4 h-4" /></button>
                         <button onClick={() => handleDeletePackage(pkg.id)} className="text-slate-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                        <button onClick={() => generatePackagePdf(pkg)} className="text-slate-400 hover:text-blue-600" title="PDF İndir"><FileText className="w-4 h-4" /></button>
                       </div>
                     </div>
                     <div className="flex items-baseline gap-2 mb-3">
@@ -1074,6 +1233,11 @@ const ServicesPage = () => {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-slate-500">{gc.expiry_date || '—'}</td>
+                        <td className="px-4 py-3">
+                          <button onClick={() => generateGiftCardPdf(gc)} className="text-slate-400 hover:text-purple-600" title="PDF İndir">
+                            <FileText className="w-4 h-4" />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
