@@ -77,5 +77,10 @@
   },
   "cancelPaidWarning": "This appointment is paid! Payment should be refunded if cancelled.",
   "confirmCancel": "Cancel It",
-  "appointmentCancelled": "Appointment cancelled"
+  "appointmentCancelled": "Appointment cancelled",
+  "expertView": "Expert",
+  "roomView": "Room",
+  "general": "General",
+  "noSpacesYet": "No spaces defined yet",
+  "addFirstSpace": "Add spaces from the Resources page"
 }

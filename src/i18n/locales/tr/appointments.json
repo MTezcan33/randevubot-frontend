@@ -77,5 +77,10 @@
   },
   "cancelPaidWarning": "Bu randevu ödenmiş! İptal edilirse ödeme iade edilmeli.",
   "confirmCancel": "İptal Et",
-  "appointmentCancelled": "Randevu iptal edildi"
+  "appointmentCancelled": "Randevu iptal edildi",
+  "expertView": "Uzman",
+  "roomView": "Oda",
+  "general": "Genel",
+  "noSpacesYet": "Henüz alan tanımlanmamış",
+  "addFirstSpace": "Kaynaklar sayfasından alan ekleyin"
 }

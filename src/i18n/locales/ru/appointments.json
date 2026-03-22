@@ -77,5 +77,10 @@
   },
   "cancelPaidWarning": "Эта запись оплачена! При отмене необходимо вернуть оплату.",
   "confirmCancel": "Отменить",
-  "appointmentCancelled": "Запись отменена"
+  "appointmentCancelled": "Запись отменена",
+  "expertView": "Специалист",
+  "roomView": "Комната",
+  "general": "Общее",
+  "noSpacesYet": "Помещения ещё не определены",
+  "addFirstSpace": "Добавьте помещения на странице Ресурсы"
 }

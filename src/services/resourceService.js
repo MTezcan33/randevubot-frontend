@@ -345,3 +345,51 @@ export const checkResourceAvailability = async ({
   if (error) throw error;
   return data; // { available: bool, conflicts: [...] }
 };
+
+// ============================================================
+// RANDEVU-KAYNAK ILISKISI (TARIH BAZLI)
+// ============================================================
+
+/**
+ * Belirli bir tarihteki tum appointment_resources kayitlarini getir
+ * Room Calendar gorunumu icin kullanilir
+ */
+export const getAppointmentResourcesByDate = async (companyId, date) => {
+  const { data, error } = await supabase
+    .from('appointment_resources')
+    .select(`
+      id,
+      appointment_id,
+      resource_type,
+      resource_id
+    `)
+    .in('appointment_id',
+      supabase
+        .from('appointments')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('date', date)
+        .neq('status', 'iptal')
+    );
+
+  // Supabase nested IN sorgusu desteklemedigi icin alternatif yol
+  // Once randevulari al, sonra kaynaklari al
+  const { data: appIds, error: appError } = await supabase
+    .from('appointments')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('date', date)
+    .neq('status', 'iptal');
+
+  if (appError) throw appError;
+  if (!appIds || appIds.length === 0) return [];
+
+  const ids = appIds.map(a => a.id);
+  const { data: resources, error: resError } = await supabase
+    .from('appointment_resources')
+    .select('id, appointment_id, resource_type, resource_id')
+    .in('appointment_id', ids);
+
+  if (resError) throw resError;
+  return resources || [];
+};

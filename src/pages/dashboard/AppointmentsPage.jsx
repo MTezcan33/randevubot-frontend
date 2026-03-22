@@ -8,6 +8,9 @@ import { Plus, ChevronLeft, ChevronRight, Trash2, GripVertical, Save, X, ArrowRi
 import { createIncomeFromAppointment } from '../../services/accountingService';
 import { logAction, AUDIT_ACTIONS } from '../../services/auditService';
 import { useTranslation } from 'react-i18next';
+import { getSpaces, getAppointmentResourcesByDate } from '../../services/resourceService';
+import CalendarViewToggle from '@/components/calendar/CalendarViewToggle';
+import RoomCalendarGrid from '@/components/calendar/RoomCalendarGrid';
 import {
   Dialog,
   DialogContent,
@@ -310,6 +313,10 @@ const AppointmentsPage = () => {
   const [cancelNote, setCancelNote] = useState(''); // İptal açıklaması (Diğer seçildiğinde)
   const [showCancelDialog, setShowCancelDialog] = useState(false); // İptal dialog
   const [expertServicesMap, setExpertServicesMap] = useState(new Map()); // Map<expertId, Set<serviceId>>
+  // ── Oda Görünümü State'leri ──
+  const [calendarView, setCalendarView] = useState(() => localStorage.getItem('calendarView') || 'expert');
+  const [spaces, setSpaces] = useState([]);
+  const [appointmentResources, setAppointmentResources] = useState([]);
   // company.timezone "(GMT+03:00) Istanbul" formatında olabilir — IANA'ya çevir
   const companyTimezone = (() => {
     const tz = company?.timezone || 'UTC';
@@ -358,8 +365,29 @@ const AppointmentsPage = () => {
   const fetchData = async () => {
     if (!company) return;
     setLoading(true);
-    await Promise.all([fetchAppointments(), fetchServices(), fetchCustomers(), fetchExpertServices()]);
+    await Promise.all([fetchAppointments(), fetchServices(), fetchCustomers(), fetchExpertServices(), fetchSpaces()]);
     setLoading(false);
+  };
+
+  // Oda görünümü için alanları ve kaynak atamalarını yükle
+  const fetchSpaces = async () => {
+    if (!company) return;
+    try {
+      const spacesData = await getSpaces(company.id);
+      setSpaces(spacesData || []);
+      // Tarih bazlı appointment_resources
+      const dateString = currentDate.toISOString().split('T')[0];
+      const resources = await getAppointmentResourcesByDate(company.id, dateString);
+      setAppointmentResources(resources || []);
+    } catch (err) {
+      console.error('Spaces fetch error:', err);
+    }
+  };
+
+  // calendarView değiştiğinde localStorage'a kaydet
+  const handleViewChange = (view) => {
+    setCalendarView(view);
+    localStorage.setItem('calendarView', view);
   };
 
   // Uzman-hizmet ilişkilerini yükle (drag-drop doğrulaması için)
@@ -790,6 +818,9 @@ const AppointmentsPage = () => {
             <Plus className="w-4 h-4 mr-2" /> {t('createAppointment')}
           </Button>
 
+          {/* Takvim Görünüm Toggle */}
+          <CalendarViewToggle view={calendarView} onChange={handleViewChange} />
+
           <div className="bg-white rounded-lg shadow-sm p-2 border">
             <h3 className="text-[10px] font-semibold mb-1 text-gray-600">{t('selectedDate')}</h3>
             <p className="text-sm font-bold text-emerald-700 leading-tight">
@@ -809,6 +840,23 @@ const AppointmentsPage = () => {
         {/* Sağ Panel - Randevu Takvimi */}
         <div className="flex-grow bg-white rounded-lg shadow-sm overflow-hidden border">
           <div className="h-full overflow-auto">
+
+            {/* ═══ ODA GÖRÜNÜMÜ ═══ */}
+            {calendarView === 'room' && (
+              <RoomCalendarGrid
+                spaces={spaces}
+                appointments={appointments}
+                appointmentResources={appointmentResources}
+                timeSlots={timeSlots}
+                experts={experts}
+                onAppointmentClick={(app) => openReorderPanel(app)}
+                ROW_HEIGHT={ROW_HEIGHT}
+                PIXELS_PER_MINUTE={PIXELS_PER_MINUTE}
+              />
+            )}
+
+            {/* ═══ UZMAN GÖRÜNÜMÜ (mevcut) ═══ */}
+            {calendarView === 'expert' && (
             <div className="flex">
               {/* Saat Sütunu */}
               <div className="w-14 flex-shrink-0 bg-gray-50 border-r sticky left-0 z-10">
@@ -996,6 +1044,9 @@ const AppointmentsPage = () => {
                 })}
               </div>
             </div>
+            )}
+            {/* ═══ UZMAN GÖRÜNÜMÜ SONU ═══ */}
+
           </div>
         </div>
       </div>
