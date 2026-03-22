@@ -825,10 +825,30 @@ const AppointmentsPage = () => {
               </div>
 
               {/* Uzman Sütunları */}
-              <div className="flex-grow grid relative" style={{ gridTemplateColumns: `repeat(${Math.max(1, experts.length)}, 160px)` }}>
+              <div className="flex-grow grid relative" style={{ gridTemplateColumns: `repeat(${Math.max(experts.length, company?.expert_limit || 6)}, 160px)` }}>
                 <TimeIndicator companyTimezone={companyTimezone} />
 
-                {experts.length > 0 ? experts.map(expert => {
+                {/* Uzman sütunları + boş sütunlar (limit kadar) */}
+                {Array.from({ length: Math.max(experts.length, company?.expert_limit || 6) }).map((_, colIdx) => {
+                  const expert = experts[colIdx];
+                  if (!expert) {
+                    // Boş sütun — uzman yok
+                    return (
+                      <div key={`empty-${colIdx}`} className="border-l relative">
+                        <div className="h-8 sticky top-0 z-30 border-b bg-white/95 flex items-center justify-center">
+                          <span className="text-[10px] text-slate-300">—</span>
+                        </div>
+                        <div className="relative" style={{ height: `${19 * 6 * ROW_HEIGHT}px` }}>
+                          {timeSlots.map((_, i) => (
+                            <div key={i} className="border-b border-gray-100" style={{ height: `${ROW_HEIGHT * 6}px` }} />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Mevcut uzman sütunu
+                  return (() => {
                   const isDragTarget = dragOverExpertId === expert.id;
                   const isValidDrop = dragData && dragData.currentExpertId !== expert.id;
 
@@ -972,11 +992,8 @@ const AppointmentsPage = () => {
                     </div>
                   </div>
                   );
-                }) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-slate-500 p-4 text-center">
-                    {t('noExpertToAdd')}
-                  </div>
-                )}
+                  })();
+                })}
               </div>
             </div>
           </div>
