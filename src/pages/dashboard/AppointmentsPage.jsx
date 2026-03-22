@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -143,8 +143,17 @@ const TimeIndicator = ({ companyTimezone }) => {
     timeZone: companyTimezone
   });
 
+  const indicatorRef = useRef(null);
+
+  // Sayfa yüklendiğinde çizgiyi ekranın ortasına scroll et
+  useEffect(() => {
+    if (indicatorRef.current) {
+      indicatorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []); // Sadece ilk yüklemede
+
   return (
-    <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{ top: `${topPosition}px` }}>
+    <div ref={indicatorRef} className="absolute left-0 right-0 z-20 pointer-events-none" style={{ top: `${topPosition}px` }}>
       <div className="flex items-center">
         <div className="w-14 bg-emerald-600 flex items-center justify-center -ml-0.5">
           <span className="text-white text-[9px] font-semibold">{currentTimeString}</span>
