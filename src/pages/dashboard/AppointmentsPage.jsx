@@ -817,7 +817,7 @@ const AppointmentsPage = () => {
                   <div
                     key={time}
                     style={{ height: `${ROW_HEIGHT}px` }}
-                    className="text-right pr-1 text-[10px] text-slate-500 border-t flex items-start pt-0.5"
+                    className={`text-right pr-1 text-[10px] text-slate-500 flex items-start pt-0.5 ${index % 6 === 0 ? 'border-t border-slate-200' : ''}`}
                   >
                     {index % 6 === 0 ? time : ''}
                   </div>
@@ -887,13 +887,13 @@ const AppointmentsPage = () => {
                       )}
                     </div>
 
-                    {/* Zaman Grid'i */}
+                    {/* Zaman Grid'i — sadece saat başı çizgileri */}
                     <div className="relative" style={{ height: `${timeSlots.length * ROW_HEIGHT}px` }}>
                       {timeSlots.map((time, index) => (
                         <div
                           key={index}
                           style={{ height: `${ROW_HEIGHT}px` }}
-                          className={`border-t ${index % 6 === 0 ? 'border-slate-300' : 'border-slate-100'}`}
+                          className={index % 6 === 0 ? 'border-t border-slate-200' : ''}
                         />
                       ))}
 
