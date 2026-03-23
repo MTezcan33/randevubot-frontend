@@ -1090,7 +1090,8 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
             </div>
           )}
 
-          {resourceConflicts.length > 0 && (
+          {/* Kaynak çakışması — sadece oda manuel seçilmemişse göster */}
+          {resourceConflicts.length > 0 && !selectedRoomId && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-1">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />

@@ -82,5 +82,17 @@
   "roomView": "Room",
   "general": "General",
   "noSpacesYet": "No spaces defined yet",
-  "addFirstSpace": "Add spaces from the Resources page"
+  "addFirstSpace": "Add spaces from the Resources page",
+  "selectRoom": "Select Room",
+  "loadingRooms": "Loading rooms...",
+  "noRoomsAvailable": "No suitable room found for this service",
+  "selectExpert": "Select Expert",
+  "loadingExperts": "Loading experts...",
+  "noExpertsForRoom": "No suitable expert found for this room",
+  "expertAlreadyAssigned": "This expert is already assigned to this room",
+  "showExperts": "Show experts",
+  "searchExpert": "Search expert...",
+  "bookingModePrivate": "Private",
+  "bookingModeShared": "Shared",
+  "bookingModeGroupPrivate": "Group Private"
 }

@@ -82,5 +82,17 @@
   "roomView": "Oda",
   "general": "Genel",
   "noSpacesYet": "Henüz alan tanımlanmamış",
-  "addFirstSpace": "Kaynaklar sayfasından alan ekleyin"
+  "addFirstSpace": "Kaynaklar sayfasından alan ekleyin",
+  "selectRoom": "Oda Seçin",
+  "loadingRooms": "Odalar yükleniyor...",
+  "noRoomsAvailable": "Bu hizmet için uygun oda bulunamadı",
+  "selectExpert": "Uzman Seçin",
+  "loadingExperts": "Uzmanlar yükleniyor...",
+  "noExpertsForRoom": "Bu oda için uygun uzman bulunamadı",
+  "expertAlreadyAssigned": "Bu uzman zaten bu odaya atanmış",
+  "showExperts": "Uzmanları göster",
+  "searchExpert": "Uzman ara...",
+  "bookingModePrivate": "Özel",
+  "bookingModeShared": "Paylaşımlı",
+  "bookingModeGroupPrivate": "Grup Özel"
 }
