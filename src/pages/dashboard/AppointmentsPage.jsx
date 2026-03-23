@@ -379,12 +379,18 @@ const AppointmentsPage = () => {
     try {
       const spacesData = await getSpaces(company.id);
       setSpaces(spacesData || []);
-      // Tarih bazlı appointment_resources
+    } catch (err) {
+      console.error('Spaces fetch error:', err);
+      setSpaces([]);
+    }
+    // appointment_resources ayrı try-catch — tablo yoksa sayfayı kırmasın
+    try {
       const dateString = currentDate.toISOString().split('T')[0];
       const resources = await getAppointmentResourcesByDate(company.id, dateString);
       setAppointmentResources(resources || []);
     } catch (err) {
-      console.error('Spaces fetch error:', err);
+      // Tablo henüz oluşturulmamış olabilir — sessizce geç
+      setAppointmentResources([]);
     }
   };
 

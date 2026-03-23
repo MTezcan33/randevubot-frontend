@@ -8,14 +8,19 @@ import { supabase } from '../lib/supabase';
  * Şirkete ait tüm alanları getir
  */
 export const getSpaces = async (companyId) => {
-  const { data, error } = await supabase
-    .from('spaces')
-    .select('*')
-    .eq('company_id', companyId)
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true });
-  if (error) throw error;
-  return data || [];
+  try {
+    const { data, error } = await supabase
+      .from('spaces')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.warn('spaces tablosu henüz mevcut değil:', err.message);
+    return [];
+  }
 };
 
 /**
@@ -355,6 +360,8 @@ export const checkResourceAvailability = async ({
  * Room Calendar gorunumu icin kullanilir
  */
 export const getAppointmentResourcesByDate = async (companyId, date) => {
+  // Tablo henüz oluşturulmamışsa boş dizi döndür
+  try {
   const { data, error } = await supabase
     .from('appointment_resources')
     .select(`
@@ -392,4 +399,8 @@ export const getAppointmentResourcesByDate = async (companyId, date) => {
 
   if (resError) throw resError;
   return resources || [];
+  } catch (err) {
+    console.warn('appointment_resources tablosu henüz mevcut değil:', err.message);
+    return [];
+  }
 };
