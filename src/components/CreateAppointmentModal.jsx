@@ -804,6 +804,68 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
     );
   };
 
+  // ── Hizmet Kart Render (Oda stili) ──
+  const renderServiceCard = (service) => {
+    const sel = serviceSelections.find(s => s.serviceId === service.id);
+    const isSelected = !!sel;
+    const needsExpert = service.requires_expert !== false;
+
+    return (
+      <button
+        key={service.id}
+        type="button"
+        onClick={() => toggleService(service.id)}
+        className={`relative p-3 rounded-xl border-2 text-left transition-all ${
+          isSelected
+            ? 'border-emerald-500 bg-emerald-50 shadow-md'
+            : 'border-slate-200 bg-white hover:border-emerald-300 hover:shadow-sm'
+        }`}
+      >
+        {/* Seçildi işareti */}
+        {isSelected && (
+          <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+            <Check className="w-3 h-3 text-white" />
+          </div>
+        )}
+
+        {/* Hizmet adı */}
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className={`text-sm font-semibold truncate ${isSelected ? 'text-emerald-800' : 'text-slate-800'}`}>
+            {service.description}
+          </span>
+        </div>
+
+        {/* Süre + Fiyat + Self-servis badge */}
+        <div className="flex items-center gap-2 text-[11px]">
+          {!needsExpert && (
+            <span className="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">
+              {t('selfServiceBadge')}
+            </span>
+          )}
+          <span className="text-slate-400">{service.duration} dk</span>
+          {service.price != null && (
+            <span className={`font-bold ${isSelected ? 'text-emerald-700' : 'text-slate-600'}`}>
+              {Number(service.price).toLocaleString('tr-TR')} TL
+            </span>
+          )}
+        </div>
+
+        {/* Seçilmiş hizmet — uzman chip göster */}
+        {isSelected && needsExpert && sel?.expertId && (() => {
+          const expert = experts?.find(e => e.id === sel.expertId);
+          return expert ? (
+            <div className="mt-1.5">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-white"
+                style={{ backgroundColor: expert.color || '#059669' }}>
+                {expert.name}
+              </span>
+            </div>
+          ) : null;
+        })()}
+      </button>
+    );
+  };
+
   // ── Kategori Grubu Render ──
   const renderCategoryGroup = (categoryName, services, groupKey) => {
     const isCollapsed = collapsedCategories.has(groupKey);
@@ -827,8 +889,8 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
           )}
         </button>
         {!isCollapsed && (
-          <div className="space-y-1">
-            {services.map(svc => renderServiceRow(svc))}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {services.map(svc => renderServiceCard(svc))}
           </div>
         )}
       </div>
@@ -956,6 +1018,59 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
                 </div>
               )}
             </div>
+
+            {/* Uzman Ataması — Seçili hizmetler için */}
+            {serviceSelections.filter(sel => {
+              const svc = allServices.find(s => s.id === sel.serviceId);
+              return svc?.requires_expert !== false;
+            }).length > 0 && (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5" />
+                  {t('selectExpert') || 'Uzman Seçin'}
+                </span>
+                {serviceSelections.map(sel => {
+                  const svc = allServices.find(s => s.id === sel.serviceId);
+                  if (!svc || svc.requires_expert === false) return null;
+                  const svcExperts = expertServiceMap.get(svc.id) || new Set();
+
+                  return (
+                    <div key={sel.serviceId} className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-slate-600 font-medium min-w-[100px]">{svc.description}:</span>
+                      {[...svcExperts].map(expId => {
+                        const expert = experts?.find(e => e.id === expId);
+                        if (!expert) return null;
+                        const avail = expertAvailability.get(expId);
+                        const isAvailable = avail?.available !== false;
+                        const isChosen = sel.expertId === expId;
+
+                        return (
+                          <button
+                            key={expId}
+                            type="button"
+                            onClick={() => setExpertForService(svc.id, isChosen ? null : expId)}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all
+                              ${isChosen
+                                ? 'text-white shadow-sm'
+                                : isAvailable
+                                  ? 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                                  : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
+                              }`}
+                            style={isChosen ? { backgroundColor: expert.color || '#059669' } : {}}
+                          >
+                            <div className="w-2 h-2 rounded-full flex-shrink-0"
+                              style={isChosen ? { backgroundColor: 'rgba(255,255,255,0.5)' } : { backgroundColor: expert.color || '#059669' }} />
+                            {expert.name}
+                            {isChosen && <Check className="w-3 h-3" />}
+                            {!isAvailable && !isChosen && <AlertTriangle className="w-3 h-3 text-amber-500" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Seçili Hizmetler — Sürükle-Bırak Sıralama */}
             {serviceSelections.length > 1 && (
