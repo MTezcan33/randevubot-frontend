@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMonthlyOccupancy } from '@/hooks/useMonthlyOccupancy';
@@ -21,6 +21,7 @@ export default function MonthlyCalendar() {
   const { t, i18n } = useTranslation();
   const { company, staff, workingHours } = useAuth();
   const lang = i18n.language?.substring(0, 2) || 'tr';
+  const detailRef = useRef(null);
 
   const [viewMonth, setViewMonth] = useState(() => new Date());
   const [selectedDay, setSelectedDay] = useState(null);
@@ -39,6 +40,14 @@ export default function MonthlyCalendar() {
 
   const prevMonth = () => { setViewMonth(p => new Date(p.getFullYear(), p.getMonth() - 1, 1)); setSelectedDay(null); };
   const nextMonth = () => { setViewMonth(p => new Date(p.getFullYear(), p.getMonth() + 1, 1)); setSelectedDay(null); };
+
+  // Gun secildiginde otomatik scroll
+  const handleDayClick = useCallback((dateStr) => {
+    setSelectedDay(dateStr);
+    setTimeout(() => {
+      detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }, []);
 
   const calendarDays = useMemo(() => {
     const firstDay = new Date(year, month, 1);
@@ -79,7 +88,7 @@ export default function MonthlyCalendar() {
   const weekdays = WEEKDAYS[lang] || WEEKDAYS.tr;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ maxWidth: 960, margin: '0 auto' }}>
 
       {/* ═══ HEADER ═══ */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
@@ -87,28 +96,14 @@ export default function MonthlyCalendar() {
           <span style={{ fontSize: 20, fontWeight: 600, color: '#1a1a1a', letterSpacing: '-0.3px' }}>
             {t('appointments')}
           </span>
-          {/* Ay navigasyonu */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button onClick={prevMonth} style={{
-              width: 32, height: 32, borderRadius: '50%', border: '1px solid #e8e8e3',
-              background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', color: '#666',
-            }}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
+            <NavBtn onClick={prevMonth} dir="left" />
             <span style={{ fontSize: 17, fontWeight: 600, color: '#1a1a1a', minWidth: 130, textAlign: 'center', letterSpacing: '-0.2px' }}>
               {monthName} {year}
             </span>
-            <button onClick={nextMonth} style={{
-              width: 32, height: 32, borderRadius: '50%', border: '1px solid #e8e8e3',
-              background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', color: '#666',
-            }}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
+            <NavBtn onClick={nextMonth} dir="right" />
           </div>
         </div>
-        {/* Stat boxes — 3 kutu */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <StatBox value={monthStats.m} label={t('massageOccupancy').toLowerCase()} />
           <StatBox value={monthStats.f} label={t('facilityOccupancy').toLowerCase()} />
@@ -117,7 +112,7 @@ export default function MonthlyCalendar() {
       </div>
 
       {/* ═══ WEEKDAY HEADERS ═══ */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 6, marginBottom: 6 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 6, marginBottom: 6, padding: '0 1px' }}>
         {weekdays.map((d, i) => (
           <div key={i} style={{ fontSize: 12, fontWeight: 500, color: '#999', textAlign: 'center', padding: '8px 0' }}>
             {d}
@@ -129,7 +124,7 @@ export default function MonthlyCalendar() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 6 }}>
         {calendarDays.map(day => {
           if (day.type === 'empty') {
-            return <div key={day.key} style={{ aspectRatio: '1/1', background: 'transparent', border: '1px solid transparent', borderRadius: 12 }} />;
+            return <div key={day.key} style={{ aspectRatio: '1/1' }} />;
           }
           return (
             <MonthlyDayCard
@@ -141,7 +136,7 @@ export default function MonthlyCalendar() {
               isSelected={day.isSelected}
               isClosed={day.isClosed}
               isPast={day.isPast}
-              onClick={() => { if (!day.isClosed) setSelectedDay(day.date); }}
+              onClick={() => { if (!day.isClosed) handleDayClick(day.date); }}
             />
           );
         })}
@@ -157,16 +152,18 @@ export default function MonthlyCalendar() {
         <LegendBar color="#E24B4A" label={t('occupancyFull').toLowerCase()} />
       </div>
 
-      {/* ═══ DETAIL PANEL — takvimin altında açılır ═══ */}
+      {/* ═══ DETAIL PANEL ═══ */}
       {selectedDay && (
-        <DayDetailPanel
-          date={selectedDay}
-          onClose={() => setSelectedDay(null)}
-          company={company}
-          experts={experts}
-          spaces={spaces}
-          workingHours={workingHours}
-        />
+        <div ref={detailRef}>
+          <DayDetailPanel
+            date={selectedDay}
+            onClose={() => setSelectedDay(null)}
+            company={company}
+            experts={experts}
+            spaces={spaces}
+            workingHours={workingHours}
+          />
+        </div>
       )}
     </div>
   );
@@ -178,6 +175,20 @@ function StatBox({ value, label }) {
       <div style={{ fontSize: 18, fontWeight: 600, color: '#1a1a1a', fontFamily: "'SF Mono','Menlo',monospace", letterSpacing: '-0.5px' }}>{value}</div>
       <div style={{ fontSize: 10, color: '#999', fontWeight: 500, marginTop: 1, letterSpacing: '0.2px' }}>{label}</div>
     </div>
+  );
+}
+
+function NavBtn({ onClick, dir }) {
+  return (
+    <button onClick={onClick} style={{
+      width: 32, height: 32, borderRadius: '50%', border: '1px solid #e8e8e3',
+      background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center',
+      justifyContent: 'center', color: '#666',
+    }}>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d={dir === 'left' ? 'M10 12L6 8l4-4' : 'M6 4l4 4-4 4'} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </button>
   );
 }
 
