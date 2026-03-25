@@ -34,10 +34,9 @@ export async function fetchMonthlyAppointments(companyId, year, month) {
 
 /**
  * Gun bazli doluluk yuzdeleri hesaplar
- * @returns {Object} { "YYYY-MM-DD": { massagePercent, facilityPercent, totalCount, massageCount, facilityCount } }
+ * massageMax/facilityMax = gun bazli kapasite (uzman sayisi / alan kapasitesi)
  */
 export function computeDailyOccupancy(appointments, workingHours, experts, spaces) {
-  // Gun bazli gruplama
   const byDay = {};
 
   appointments.forEach(apt => {
@@ -57,48 +56,46 @@ export function computeDailyOccupancy(appointments, workingHours, experts, space
     byDay[day].total++;
   });
 
-  // Her gun icin yuzde hesapla
   const result = {};
   const activeExperts = experts.filter(e => e.role === 'Uzman');
   const activeSpaces = spaces.filter(s => s.is_active);
 
-  Object.entries(byDay).forEach(([dateStr, data]) => {
-    const dayDate = new Date(dateStr);
-    const dayOfWeek = dayDate.getDay(); // 0=Paz, 1=Pzt, ...
+  // Her gun icin masaj max = o gun calisan uzman sayisi * ortalama slot sayisi
+  // Basitlestirmis kapasite: uzman basina 8 randevu / gun (varsayilan)
+  const massageMaxPerExpert = 8;
+  const facilityMaxPerSpace = 6;
 
-    // Uzman kapasitesi: her uzmanin o gunku calisma dakikasi toplami
-    let totalExpertMinutes = 0;
+  Object.entries(byDay).forEach(([dateStr, data]) => {
+    const dayDate = new Date(dateStr + 'T00:00:00');
+    const dayOfWeek = dayDate.getDay();
+
+    // O gun calisan uzman sayisi
+    let workingExpertCount = 0;
     activeExperts.forEach(expert => {
       const wh = workingHours.find(
         h => h.expert_id === expert.id && h.day === dayOfWeek && h.is_open
       );
-      if (wh && wh.start_time && wh.end_time) {
-        totalExpertMinutes += timeToMinutes(wh.end_time) - timeToMinutes(wh.start_time);
-      }
+      if (wh) workingExpertCount++;
     });
 
-    // Alan kapasitesi: her alanin calisma saati * kapasitesi
-    let totalSpaceMinutes = 0;
-    activeSpaces.forEach(space => {
-      // Basit hesaplama: 08:00-21:00 = 780dk * kapasite
-      const dailyMinutes = 780;
-      totalSpaceMinutes += dailyMinutes * (space.capacity || 1);
-    });
+    const massageMax = workingExpertCount * massageMaxPerExpert;
+    const facilityMax = activeSpaces.length * facilityMaxPerSpace;
 
-    // Kullanilan dakikalar
-    const usedMassageMinutes = data.massage.reduce((sum, a) => sum + a.duration, 0);
-    const usedFacilityMinutes = data.facility.reduce((sum, a) => sum + a.duration, 0);
+    const massageCount = data.massage.length;
+    const facilityCount = data.facility.length;
 
     result[dateStr] = {
-      massagePercent: totalExpertMinutes > 0
-        ? Math.min(100, Math.round((usedMassageMinutes / totalExpertMinutes) * 100))
+      massagePercent: massageMax > 0
+        ? Math.min(100, Math.round((massageCount / massageMax) * 100))
         : 0,
-      facilityPercent: totalSpaceMinutes > 0
-        ? Math.min(100, Math.round((usedFacilityMinutes / totalSpaceMinutes) * 100))
+      facilityPercent: facilityMax > 0
+        ? Math.min(100, Math.round((facilityCount / facilityMax) * 100))
         : 0,
       totalCount: data.total,
-      massageCount: data.massage.length,
-      facilityCount: data.facility.length,
+      massageCount,
+      facilityCount,
+      massageMax,
+      facilityMax,
     };
   });
 
