@@ -10,31 +10,33 @@ export default function DayDetailRoomList({
   const [unitData, setUnitData] = useState([]);
   const [loadingUnits, setLoadingUnits] = useState(false);
 
-  const availableRooms = (spaces || []).filter(s => s.is_active);
+  const isSelfService = service?.requires_expert === false;
 
-  // Birimler yukle
+  // Self-servis → shared spaces, Uzman hizmeti → private spaces
+  const availableRooms = (spaces || []).filter(s => {
+    if (!s.is_active) return false;
+    if (isSelfService) return s.booking_mode === 'shared';
+    return s.booking_mode === 'private';
+  });
+
+  // Birimler yukle (sadece uzman hizmetleri icin)
   useEffect(() => {
-    if (!selectedRoom?.id || !company?.id) { setUnitData([]); return; }
+    if (isSelfService || !selectedRoom?.id || !company?.id) { setUnitData([]); return; }
     setLoadingUnits(true);
     getUnitAvailability(company.id, selectedRoom.id, date)
       .then(setUnitData).catch(() => setUnitData([]))
       .finally(() => setLoadingUnits(false));
-  }, [selectedRoom?.id, company?.id, date]);
+  }, [selectedRoom?.id, company?.id, date, isSelfService]);
 
   if (!availableRooms.length) return null;
 
-  // DB'de birim yoksa odanin capacity'sine gore yatak/alan uret
   const generateDefaultUnits = (room) => {
     const cap = room.capacity || 1;
-    const units = [];
-    for (let i = 1; i <= cap; i++) {
-      units.push({
-        id: `auto-${room.id}-${i}`,
-        name: cap === 1 ? 'Yatak 1' : `Yatak ${i}`,
-        busy: false,
-      });
-    }
-    return units;
+    return Array.from({ length: cap }, (_, i) => ({
+      id: `auto-${room.id}-${i + 1}`,
+      name: cap === 1 ? 'Yatak 1' : `Yatak ${i + 1}`,
+      busy: false,
+    }));
   };
 
   return (
@@ -47,44 +49,44 @@ export default function DayDetailRoomList({
             <div
               onClick={() => onSelectRoom(isRS ? null : room)}
               style={{
-                background: isRS ? '#EEEDFE' : '#fff',
-                border: `1px solid ${isRS ? '#534AB7' : '#e8e8e3'}`,
+                background: isRS ? (isSelfService ? '#E1F5EE' : '#EEEDFE') : '#fff',
+                border: `1px solid ${isRS ? (isSelfService ? '#1D9E75' : '#534AB7') : '#e8e8e3'}`,
                 borderRadius: 10, padding: '10px 12px', marginBottom: 8, cursor: 'pointer',
                 transition: 'all 0.12s',
               }}
               onMouseEnter={e => { if (!isRS) e.currentTarget.style.borderColor = '#d5d5d0'; }}
               onMouseLeave={e => { if (!isRS) e.currentTarget.style.borderColor = '#e8e8e3'; }}
             >
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a' }}>{room.name}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a' }}>{room.name}</span>
+                {/* Self servis icin kapasite goster */}
+                {isSelfService && (
+                  <span style={{ fontSize: 11, color: '#666', fontWeight: 500 }}>
+                    Kapasite: {room.capacity}
+                  </span>
+                )}
+              </div>
               {room.description && (
-                <div style={{ fontSize: 11, color: '#666', lineHeight: 1.4, margin: '3px 0 6px' }}>{room.description}</div>
+                <div style={{ fontSize: 11, color: '#666', lineHeight: 1.4, marginTop: 3 }}>{room.description}</div>
               )}
 
-              {/* Yatak / birim secimi */}
-              {isRS && (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}
+              {/* UZMAN HİZMETİ: Yatak secimi */}
+              {isRS && !isSelfService && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}
                   onClick={e => e.stopPropagation()}
                 >
                   {loadingUnits ? (
                     <span style={{ fontSize: 11, color: '#999' }}>...</span>
                   ) : (() => {
-                    // DB'den birim varsa onlari, yoksa capacity'den uret
                     const units = unitData.length > 0
                       ? unitData.map(u => ({ id: u.id, name: u.name, busy: u.appointmentCount > 0 }))
                       : generateDefaultUnits(room);
-
-                    return units.map(unit => {
-                      const isUS = selectedUnit?.id === unit.id;
-                      return (
-                        <BedButton
-                          key={unit.id}
-                          name={unit.name}
-                          busy={unit.busy}
-                          selected={isUS}
-                          onClick={() => !unit.busy && onSelectUnit(isUS ? null : { id: unit.id, name: unit.name })}
-                        />
-                      );
-                    });
+                    return units.map(unit => (
+                      <BedButton key={unit.id} name={unit.name} busy={unit.busy}
+                        selected={selectedUnit?.id === unit.id}
+                        onClick={() => !unit.busy && onSelectUnit(selectedUnit?.id === unit.id ? null : { id: unit.id, name: unit.name })}
+                      />
+                    ));
                   })()}
                 </div>
               )}
@@ -98,24 +100,18 @@ export default function DayDetailRoomList({
 
 function BedButton({ name, busy, selected, onClick }) {
   return (
-    <div
-      onClick={busy ? undefined : onClick}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8,
-        border: `1px solid ${selected ? '#534AB7' : '#e8e8e3'}`,
-        background: selected ? '#EEEDFE' : '#fff',
-        cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.4 : 1,
-        transition: 'all 0.12s', fontSize: 12, fontFamily: 'inherit',
-      }}
-    >
+    <div onClick={busy ? undefined : onClick} style={{
+      display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8,
+      border: `1px solid ${selected ? '#534AB7' : '#e8e8e3'}`,
+      background: selected ? '#EEEDFE' : '#fff',
+      cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.4 : 1,
+      transition: 'all 0.12s', fontSize: 12, fontFamily: 'inherit',
+    }}>
       <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{name}</span>
       <span style={{
         fontSize: 10, padding: '2px 8px', borderRadius: 8, fontWeight: 600,
-        background: busy ? '#F09595' : '#C0DD97',
-        color: busy ? '#791F1F' : '#27500A',
-      }}>
-        {busy ? 'dolu' : 'müsait'}
-      </span>
+        background: busy ? '#F09595' : '#C0DD97', color: busy ? '#791F1F' : '#27500A',
+      }}>{busy ? 'dolu' : 'müsait'}</span>
     </div>
   );
 }
