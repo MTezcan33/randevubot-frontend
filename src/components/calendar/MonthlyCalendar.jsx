@@ -8,13 +8,13 @@ import MonthlyDayCard from './MonthlyDayCard';
 import DayDetailPanel from './DayDetailPanel';
 
 const WEEKDAY_HEADERS = {
-  tr: ['pzt', 'sal', 'car', 'per', 'cum', 'cmt', 'paz'],
-  en: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
-  ru: ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'],
+  tr: ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'],
+  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  ru: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
 };
 
 const MONTH_NAMES = {
-  tr: ['Ocak', 'Subat', 'Mart', 'Nisan', 'Mayis', 'Haziran', 'Temmuz', 'Agustos', 'Eylul', 'Ekim', 'Kasim', 'Aralik'],
+  tr: ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'],
   en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
   ru: ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'],
 };
@@ -42,21 +42,15 @@ export default function MonthlyCalendar() {
     }
   }, [company?.id]);
 
-  const { occupancyMap, loading } = useMonthlyOccupancy(
+  const { occupancyMap } = useMonthlyOccupancy(
     company?.id, viewMonth, workingHours, experts, spaces
   );
 
-  const goToPrevMonth = () => {
-    setViewMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-    setSelectedDay(null);
-  };
-  const goToNextMonth = () => {
-    setViewMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-    setSelectedDay(null);
-  };
+  const goToPrevMonth = () => { setViewMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)); setSelectedDay(null); };
+  const goToNextMonth = () => { setViewMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)); setSelectedDay(null); };
 
-  // Takvim grid
-  const calendarDays = useMemo(() => {
+  // Takvim grid hesaplama
+  const { calendarDays, weekCount } = useMemo(() => {
     const firstDay = new Date(year, month, 1);
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     let startOffset = firstDay.getDay() - 1;
@@ -81,79 +75,92 @@ export default function MonthlyCalendar() {
         occupancy: occupancyMap[dateStr] || null,
       });
     }
-    return days;
+    // Haftanin kalanini doldur
+    const remainder = days.length % 7;
+    if (remainder > 0) {
+      for (let i = 0; i < 7 - remainder; i++) {
+        days.push({ type: 'empty', key: `empty-end-${i}` });
+      }
+    }
+    return { calendarDays: days, weekCount: Math.ceil(days.length / 7) };
   }, [year, month, selectedDay, occupancyMap]);
 
-  // Ay toplam istatistikler
+  // Ay istatistikleri
   const monthStats = useMemo(() => {
-    let totalMassage = 0, totalFacility = 0, totalCount = 0;
+    let totalMassage = 0, totalFacility = 0;
     let totalMassageMax = 0, totalFacilityMax = 0;
     Object.values(occupancyMap).forEach(occ => {
       totalMassage += occ.massageCount || 0;
       totalFacility += occ.facilityCount || 0;
-      totalCount += occ.totalCount || 0;
       totalMassageMax += occ.massageMax || 0;
       totalFacilityMax += occ.facilityMax || 0;
     });
     const overallPercent = (totalMassageMax + totalFacilityMax) > 0
       ? Math.round(((totalMassage + totalFacility) / (totalMassageMax + totalFacilityMax)) * 100)
       : 0;
-    return { totalMassage, totalFacility, totalCount, overallPercent };
+    return { totalMassage, totalFacility, overallPercent };
   }, [occupancyMap]);
 
   const monthName = (MONTH_NAMES[lang] || MONTH_NAMES.tr)[month];
   const weekHeaders = WEEKDAY_HEADERS[lang] || WEEKDAY_HEADERS.tr;
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-3">
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold text-slate-800">{t('appointments')}</h2>
-          <div className="flex items-center gap-2">
-            <button onClick={goToPrevMonth} className="w-7 h-7 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50">
-              <ChevronLeft className="w-4 h-4 text-slate-600" />
+    <div className="flex flex-col h-full overflow-hidden">
+
+      {/* ── HEADER: "Randevular" baslik + ay nav + istatistikler ── */}
+      <div className="flex items-center justify-between mb-3 shrink-0">
+        <div className="flex items-center gap-4">
+          <h2 className="text-base font-bold text-slate-800">{t('appointments')}</h2>
+          {/* Ay navigasyonu */}
+          <div className="flex items-center gap-1.5">
+            <button onClick={goToPrevMonth}
+              className="w-6 h-6 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors">
+              <ChevronLeft className="w-3.5 h-3.5 text-slate-500" />
             </button>
-            <span className="text-sm font-semibold text-slate-700 min-w-[130px] text-center">
+            <span className="text-sm font-semibold text-slate-700 min-w-[120px] text-center">
               {monthName} {year}
             </span>
-            <button onClick={goToNextMonth} className="w-7 h-7 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50">
-              <ChevronRight className="w-4 h-4 text-slate-600" />
+            <button onClick={goToNextMonth}
+              className="w-6 h-6 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors">
+              <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
             </button>
           </div>
         </div>
 
-        {/* Istatistik kutulari — screenshot formatinda */}
+        {/* Istatistik kutulari */}
         <div className="flex items-center gap-2">
-          <div className="border border-slate-200 rounded-lg px-3 py-1.5 text-center">
-            <div className="text-sm font-bold text-slate-800">{monthStats.totalMassage}</div>
-            <div className="text-[10px] text-slate-500">{t('massageOccupancy').toLowerCase()}</div>
+          <div className="border border-slate-200 rounded-lg px-3 py-1 text-center min-w-[60px]">
+            <div className="text-sm font-bold text-slate-800 leading-tight">{monthStats.totalMassage}</div>
+            <div className="text-[9px] text-slate-400">{t('massageOccupancy').toLowerCase()}</div>
           </div>
-          <div className="border border-slate-200 rounded-lg px-3 py-1.5 text-center">
-            <div className="text-sm font-bold text-slate-800">{monthStats.totalFacility}</div>
-            <div className="text-[10px] text-slate-500">{t('facilityOccupancy').toLowerCase()}</div>
+          <div className="border border-slate-200 rounded-lg px-3 py-1 text-center min-w-[60px]">
+            <div className="text-sm font-bold text-slate-800 leading-tight">{monthStats.totalFacility}</div>
+            <div className="text-[9px] text-slate-400">{t('facilityOccupancy').toLowerCase()}</div>
           </div>
-          <div className="border border-slate-200 rounded-lg px-3 py-1.5 text-center">
-            <div className="text-sm font-bold text-slate-800">%{monthStats.overallPercent}</div>
-            <div className="text-[10px] text-slate-500">doluluk</div>
+          <div className="border border-slate-200 rounded-lg px-3 py-1 text-center min-w-[60px]">
+            <div className="text-sm font-bold text-slate-800 leading-tight">%{monthStats.overallPercent}</div>
+            <div className="text-[9px] text-slate-400">doluluk</div>
           </div>
         </div>
       </div>
 
-      {/* Hafta gunu basliklari */}
-      <div className="grid grid-cols-7 gap-1.5 mb-1">
+      {/* ── HAFTA GUNU BASLIKLARI ── */}
+      <div className="grid grid-cols-7 gap-px mb-px shrink-0">
         {weekHeaders.map((day, i) => (
-          <div key={i} className="text-center text-[11px] font-medium text-slate-400 py-0.5">
+          <div key={i} className="text-center text-[11px] font-semibold text-slate-400 py-1 uppercase">
             {day}
           </div>
         ))}
       </div>
 
-      {/* Takvim grid — tum ay sayfaya sigmali */}
-      <div className="grid grid-cols-7 gap-1.5 flex-1">
+      {/* ── TAKVIM GRID — tüm ay sayfaya sığsın ── */}
+      <div
+        className="grid grid-cols-7 gap-px flex-1 min-h-0"
+        style={{ gridTemplateRows: `repeat(${weekCount}, 1fr)` }}
+      >
         {calendarDays.map(day => {
           if (day.type === 'empty') {
-            return <div key={day.key} className="aspect-square" />;
+            return <div key={day.key} />;
           }
           return (
             <MonthlyDayCard
@@ -174,32 +181,32 @@ export default function MonthlyCalendar() {
         })}
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center justify-center gap-4 mt-2 pt-2 border-t border-slate-100">
+      {/* ── LEGEND ── */}
+      <div className="flex items-center justify-center gap-4 pt-1.5 shrink-0">
         <div className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-purple-500" />
-          <span className="text-[10px] text-slate-500">{t('massageOccupancy').toLowerCase()}</span>
+          <span className="text-[9px] text-slate-400">{t('massageOccupancy').toLowerCase()}</span>
         </div>
         <div className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="text-[10px] text-slate-500">{t('facilityOccupancy').toLowerCase()}</span>
+          <span className="text-[9px] text-slate-400">{t('facilityOccupancy').toLowerCase()}</span>
         </div>
-        <span className="text-[10px] text-slate-300">|</span>
+        <span className="text-[9px] text-slate-300">|</span>
         <div className="flex items-center gap-1">
-          <span className="w-3 h-1.5 rounded-sm bg-green-300" />
-          <span className="text-[10px] text-slate-500">{t('occupancyLow').toLowerCase()}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="w-3 h-1.5 rounded-sm bg-amber-400" />
-          <span className="text-[10px] text-slate-500">{t('occupancyBusy').toLowerCase()}</span>
+          <span className="w-3 h-1 rounded-sm bg-green-300" />
+          <span className="text-[9px] text-slate-400">{t('occupancyLow').toLowerCase()}</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="w-3 h-1.5 rounded-sm bg-red-400" />
-          <span className="text-[10px] text-slate-500">{t('occupancyFull').toLowerCase()}</span>
+          <span className="w-3 h-1 rounded-sm bg-amber-400" />
+          <span className="text-[9px] text-slate-400">{t('occupancyBusy').toLowerCase()}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="w-3 h-1 rounded-sm bg-red-400" />
+          <span className="text-[9px] text-slate-400">{t('occupancyFull').toLowerCase()}</span>
         </div>
       </div>
 
-      {/* Gun detay paneli */}
+      {/* ── GÜN DETAY PANELİ ── */}
       {selectedDay && (
         <DayDetailPanel
           date={selectedDay}
