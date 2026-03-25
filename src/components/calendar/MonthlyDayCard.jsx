@@ -42,9 +42,9 @@ export default function MonthlyDayCard({
   if (isClosed) {
     return (
       <div style={{
-        background: '#fafaf8', border: '1px solid transparent', borderRadius: 12,
-        padding: '10px 10px 8px', aspectRatio: '1/1', display: 'flex',
-        flexDirection: 'column', opacity: 0.6, cursor: 'default',
+        background: '#fafaf8', border: '1px solid transparent', borderRadius: 10,
+        padding: '6px 8px 5px', display: 'flex',
+        flexDirection: 'column', opacity: 0.6, cursor: 'default', minHeight: 0, overflow: 'hidden',
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: 'auto' }}>
           <span style={{ fontSize: 16, fontWeight: 600, color: '#1a1a1a' }}>{dayOfMonth}</span>
@@ -60,18 +60,19 @@ export default function MonthlyDayCard({
   const cardStyle = {
     background: isSelected ? '#E1F5EE' : '#fff',
     border: isToday ? '2px solid #378ADD' : isSelected ? '2px solid #1D9E75' : '1px solid #e8e8e3',
-    borderRadius: 12,
-    padding: '10px 10px 8px',
+    borderRadius: 10,
+    padding: '6px 8px 5px',
     cursor: 'pointer',
     transition: 'all 0.18s ease',
-    aspectRatio: '1/1',
     display: 'flex',
     flexDirection: 'column',
+    minHeight: 0,
+    overflow: 'hidden',
     opacity: isPast ? 0.4 : 1,
   };
 
   const OccSection = ({ dotColor, label, percent, count, max }) => (
-    <div style={{ marginTop: 5 }}>
+    <div style={{ marginTop: 3 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
         <div style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
         <span style={{ fontSize: 10, fontWeight: 500, color: isSelected ? '#0F6E56' : '#999' }}>{label}</span>
@@ -107,11 +108,11 @@ export default function MonthlyDayCard({
       onMouseEnter={e => { if (!isToday && !isSelected) { e.currentTarget.style.borderColor = '#d5d5d0'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'; }}}
       onMouseLeave={e => { if (!isToday && !isSelected) { e.currentTarget.style.borderColor = '#e8e8e3'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}}
     >
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: 'auto' }}>
-        <span style={{ fontSize: 16, fontWeight: 600, color: isSelected ? '#085041' : '#1a1a1a', lineHeight: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 'auto' }}>
+        <span style={{ fontSize: 14, fontWeight: 600, color: isSelected ? '#085041' : '#1a1a1a', lineHeight: 1 }}>
           {dayOfMonth}
         </span>
-        <span style={{ fontSize: 12, fontWeight: 500, color: isSelected ? '#0F6E56' : '#666' }}>
+        <span style={{ fontSize: 10, fontWeight: 500, color: isSelected ? '#0F6E56' : '#666' }}>
           {dayName}
         </span>
       </div>
