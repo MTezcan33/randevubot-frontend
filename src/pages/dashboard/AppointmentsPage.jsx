@@ -970,7 +970,7 @@ const AppointmentsPage = () => {
         {/* ═══ AYLIK GÖRÜNÜM ═══ */}
         {calendarView === 'monthly' && (
           <div className="flex-grow min-h-0 overflow-auto" style={{ padding: '0 4px' }}>
-            <MonthlyCalendar onSwitchView={() => handleViewChange('expert')} />
+            <MonthlyCalendar />
           </div>
         )}
 

@@ -1,35 +1,37 @@
 import React from 'react';
+import { DoorOpen, Users, CalendarDays } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const CalendarViewToggle = ({ view, onChange }) => {
   const { t } = useTranslation();
 
   const buttons = [
-    { value: 'monthly', label: t('monthlyView') || 'Aylık' },
-    { value: 'expert', label: t('expertView') || 'Günlük' },
+    { value: 'monthly', icon: CalendarDays, label: t('monthlyView') || 'Aylık' },
+    { value: 'expert', icon: Users, label: t('expertView') || 'Uzman' },
+    { value: 'room', icon: DoorOpen, label: t('roomView') || 'Oda' },
   ];
 
   return (
-    <div style={{
-      display: 'flex', gap: 2, background: '#f5f5f0', border: '1px solid #e8e8e3',
-      borderRadius: 8, padding: 3,
-    }}>
-      {buttons.map(btn => (
-        <button
-          key={btn.value}
-          onClick={() => onChange(btn.value)}
-          style={{
-            padding: '5px 14px', fontSize: 12, fontWeight: 500, borderRadius: 6,
-            border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            transition: 'all 0.15s',
-            background: view === btn.value ? '#fff' : 'transparent',
-            color: view === btn.value ? '#1a1a1a' : '#666',
-            boxShadow: view === btn.value ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-          }}
-        >
-          {btn.label}
-        </button>
-      ))}
+    <div className="flex items-center bg-slate-100 rounded-lg p-0.5 gap-0.5">
+      {buttons.map(btn => {
+        const Icon = btn.icon;
+        const isActive = view === btn.value;
+        return (
+          <button
+            key={btn.value}
+            onClick={() => onChange(btn.value)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+              isActive
+                ? 'bg-white text-emerald-700 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+            title={btn.label}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{btn.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 };

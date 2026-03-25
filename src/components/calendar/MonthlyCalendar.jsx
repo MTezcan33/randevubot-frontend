@@ -17,7 +17,7 @@ const WEEKDAYS = {
   ru: ['пн','вт','ср','чт','пт','сб','вс'],
 };
 
-export default function MonthlyCalendar({ onSwitchView }) {
+export default function MonthlyCalendar() {
   const { t, i18n } = useTranslation();
   const { company, staff, workingHours } = useAuth();
   const lang = i18n.language?.substring(0, 2) || 'tr';
@@ -66,9 +66,13 @@ export default function MonthlyCalendar({ onSwitchView }) {
   }, [year, month, selectedDay, occupancyMap]);
 
   const monthStats = useMemo(() => {
-    let m = 0, f = 0;
-    Object.values(occupancyMap).forEach(o => { m += o.massageCount || 0; f += o.facilityCount || 0; });
-    return { m, f };
+    let m = 0, f = 0, mMax = 0, fMax = 0;
+    Object.values(occupancyMap).forEach(o => {
+      m += o.massageCount || 0; f += o.facilityCount || 0;
+      mMax += o.massageMax || 0; fMax += o.facilityMax || 0;
+    });
+    const pct = (mMax + fMax) > 0 ? Math.round(((m + f) / (mMax + fMax)) * 100) : 0;
+    return { m, f, pct };
   }, [occupancyMap]);
 
   const monthName = (MONTHS[lang] || MONTHS.tr)[month];
@@ -83,15 +87,6 @@ export default function MonthlyCalendar({ onSwitchView }) {
           <span style={{ fontSize: 20, fontWeight: 600, color: '#1a1a1a', letterSpacing: '-0.3px' }}>
             {t('appointments')}
           </span>
-          {/* View toggle */}
-          <div style={{ display: 'flex', gap: 2, background: '#f5f5f0', border: '1px solid #e8e8e3', borderRadius: 8, padding: 3 }}>
-            <button style={{ padding: '5px 14px', fontSize: 12, fontWeight: 500, borderRadius: 6, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: '#fff', color: '#1a1a1a', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-              {t('monthlyView') || 'Aylık'}
-            </button>
-            <button onClick={onSwitchView} style={{ padding: '5px 14px', fontSize: 12, fontWeight: 500, borderRadius: 6, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'transparent', color: '#666' }}>
-              Günlük
-            </button>
-          </div>
           {/* Ay navigasyonu */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <button onClick={prevMonth} style={{
@@ -113,16 +108,11 @@ export default function MonthlyCalendar({ onSwitchView }) {
             </button>
           </div>
         </div>
-        {/* Stat boxes */}
+        {/* Stat boxes — 3 kutu */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: 10, padding: '8px 16px', textAlign: 'center', minWidth: 70 }}>
-            <div style={{ fontSize: 18, fontWeight: 600, fontFamily: "'SF Mono','Menlo',monospace", letterSpacing: '-0.5px' }}>{monthStats.m}</div>
-            <div style={{ fontSize: 10, color: '#999', fontWeight: 500, marginTop: 1 }}>{t('massageOccupancy').toLowerCase()}</div>
-          </div>
-          <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: 10, padding: '8px 16px', textAlign: 'center', minWidth: 70 }}>
-            <div style={{ fontSize: 18, fontWeight: 600, fontFamily: "'SF Mono','Menlo',monospace", letterSpacing: '-0.5px' }}>{monthStats.f}</div>
-            <div style={{ fontSize: 10, color: '#999', fontWeight: 500, marginTop: 1 }}>{t('facilityOccupancy').toLowerCase()}</div>
-          </div>
+          <StatBox value={monthStats.m} label={t('massageOccupancy').toLowerCase()} />
+          <StatBox value={monthStats.f} label={t('facilityOccupancy').toLowerCase()} />
+          <StatBox value={`%${monthStats.pct}`} label="doluluk" />
         </div>
       </div>
 
@@ -178,6 +168,15 @@ export default function MonthlyCalendar({ onSwitchView }) {
           workingHours={workingHours}
         />
       )}
+    </div>
+  );
+}
+
+function StatBox({ value, label }) {
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: 10, padding: '8px 16px', textAlign: 'center', minWidth: 70 }}>
+      <div style={{ fontSize: 18, fontWeight: 600, color: '#1a1a1a', fontFamily: "'SF Mono','Menlo',monospace", letterSpacing: '-0.5px' }}>{value}</div>
+      <div style={{ fontSize: 10, color: '#999', fontWeight: 500, marginTop: 1, letterSpacing: '0.2px' }}>{label}</div>
     </div>
   );
 }
