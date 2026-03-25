@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { getSpaces, getAppointmentResourcesByDate } from '../../services/resourceService';
 import CalendarViewToggle from '@/components/calendar/CalendarViewToggle';
 import RoomCalendarGrid from '@/components/calendar/RoomCalendarGrid';
+import MonthlyCalendar from '@/components/calendar/MonthlyCalendar';
 import StaffSidebar from '@/components/appointment/StaffSidebar';
 import {
   Dialog,
@@ -933,7 +934,8 @@ const AppointmentsPage = () => {
       </Helmet>
 
       <div className="flex gap-3 h-[calc(100vh-6rem)]">
-        {/* Sol Panel - Mini Takvim ve Randevu Oluştur */}
+        {/* Sol Panel - Mini Takvim ve Randevu Oluştur (aylık görünümde gizle) */}
+        {calendarView !== 'monthly' && (
         <div className="w-52 flex-shrink-0 space-y-3">
           <MiniCalendar currentDate={currentDate} onDateChange={setCurrentDate} />
 
@@ -963,8 +965,29 @@ const AppointmentsPage = () => {
             </p>
           </div>
         </div>
+        )}
 
-        {/* Sağ Panel - Randevu Takvimi */}
+        {/* ═══ AYLIK GÖRÜNÜM ═══ */}
+        {calendarView === 'monthly' && (
+          <div className="flex-grow flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <CalendarViewToggle view={calendarView} onChange={handleViewChange} />
+              <Button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-gradient-to-r from-emerald-800 to-teal-700 hover:opacity-90 text-white border-0"
+                size="sm"
+              >
+                <Plus className="w-4 h-4 mr-1" /> {t('createAppointment')}
+              </Button>
+            </div>
+            <div className="flex-1 bg-white rounded-lg shadow-sm border p-4 overflow-auto">
+              <MonthlyCalendar />
+            </div>
+          </div>
+        )}
+
+        {/* Sağ Panel - Randevu Takvimi (günlük görünümler) */}
+        {calendarView !== 'monthly' && (
         <div className="flex-grow bg-white rounded-lg shadow-sm overflow-hidden border">
           <div className="h-full overflow-auto">
 
@@ -1194,6 +1217,7 @@ const AppointmentsPage = () => {
 
           </div>
         </div>
+        )}
       </div>
 
       {/* Randevu Detay Modal */}
