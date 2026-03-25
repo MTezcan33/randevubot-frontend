@@ -194,7 +194,7 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
   const showFacilityPanel = isSelfService && selectedRoom;
 
   return (
-    <div style={{ marginTop: 20, border: '1px solid #e8e8e3', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
+    <div style={{ border: '1px solid #e8e8e3', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
 
       {/* ═══ HEADER ═══ */}
       <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e8e8e3' }}>

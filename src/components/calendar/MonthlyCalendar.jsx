@@ -122,11 +122,27 @@ export default function MonthlyCalendar() {
         <Lbar color="#97C459" label="müsait" /><Lbar color="#EF9F27" label="yoğun" /><Lbar color="#E24B4A" label="dolu" />
       </div>
 
-      {/* ═══ DETAIL PANEL ═══ */}
+      {/* ═══ DETAIL MODAL ═══ */}
       {selectedDay && (
-        <div ref={detailRef}>
-          <DayDetailPanel date={selectedDay} onClose={() => setSelectedDay(null)}
-            company={company} experts={experts} spaces={spaces} workingHours={workingHours} />
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 50,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {/* Backdrop */}
+          <div onClick={() => setSelectedDay(null)} style={{
+            position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(2px)',
+          }} />
+          {/* Modal content */}
+          <div style={{
+            position: 'relative', width: '90vw', maxWidth: 1000,
+            maxHeight: '85vh', overflow: 'auto',
+            borderRadius: 14, background: '#fff',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+          }}>
+            <DayDetailPanel date={selectedDay} onClose={() => setSelectedDay(null)}
+              company={company} experts={experts} spaces={spaces} workingHours={workingHours} />
+          </div>
         </div>
       )}
     </div>
