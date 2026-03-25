@@ -194,7 +194,7 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
   const showFacilityPanel = isSelfService && selectedRoom;
 
   return (
-    <div style={{ border: '1px solid #e8e8e3', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
+    <div style={{ border: '1px solid #e8e8e3', borderRadius: 12, overflow: 'hidden', background: '#fff', display: 'flex', flexDirection: 'column', height: '100%' }}>
 
       {/* ═══ HEADER ═══ */}
       <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e8e8e3' }}>
@@ -230,9 +230,9 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
       </div>
 
       {/* ═══ BODY ═══ */}
-      <div style={{ display: 'flex' }}>
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         {/* Sol panel */}
-        <div style={{ width: 280, minWidth: 280, borderRight: '1px solid #e8e8e3', maxHeight: 520, overflowY: 'auto' }}>
+        <div style={{ width: 280, minWidth: 280, borderRight: '1px solid #e8e8e3', overflowY: 'auto' }}>
           <DayDetailServiceList
             company={company} date={date}
             selectedService={selectedService} onSelectService={handleSelectService}

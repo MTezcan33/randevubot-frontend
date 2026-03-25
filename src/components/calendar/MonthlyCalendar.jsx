@@ -68,6 +68,17 @@ export default function MonthlyCalendar() {
   const monthName = (MONTHS[lang] || MONTHS.tr)[month];
   const weekdays = WEEKDAYS[lang] || WEEKDAYS.tr;
 
+  // ═══ SEKME: Gün seçiliyse DayDetailPanel tam sayfa göster ═══
+  if (selectedDay) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        <DayDetailPanel date={selectedDay} onClose={() => setSelectedDay(null)}
+          company={company} experts={experts} spaces={spaces} workingHours={workingHours} />
+      </div>
+    );
+  }
+
+  // ═══ SEKME: Aylık takvim ═══
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
@@ -122,29 +133,7 @@ export default function MonthlyCalendar() {
         <Lbar color="#97C459" label="müsait" /><Lbar color="#EF9F27" label="yoğun" /><Lbar color="#E24B4A" label="dolu" />
       </div>
 
-      {/* ═══ DETAIL MODAL ═══ */}
-      {selectedDay && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 50,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          {/* Backdrop */}
-          <div onClick={() => setSelectedDay(null)} style={{
-            position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)',
-            backdropFilter: 'blur(2px)',
-          }} />
-          {/* Modal content */}
-          <div style={{
-            position: 'relative', width: '90vw', maxWidth: 1000,
-            maxHeight: '85vh', overflow: 'auto',
-            borderRadius: 14, background: '#fff',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-          }}>
-            <DayDetailPanel date={selectedDay} onClose={() => setSelectedDay(null)}
-              company={company} experts={experts} spaces={spaces} workingHours={workingHours} />
-          </div>
-        </div>
-      )}
+      {/* DayDetailPanel artik ayri sekme olarak renderlanir — asagida */}
     </div>
   );
 }
