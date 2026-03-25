@@ -88,7 +88,7 @@ export default function MonthlyCalendar() {
   const weekdays = WEEKDAYS[lang] || WEEKDAYS.tr;
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto' }}>
+    <div style={{ maxWidth: 768, margin: '0 auto' }}>
 
       {/* ═══ HEADER ═══ */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
