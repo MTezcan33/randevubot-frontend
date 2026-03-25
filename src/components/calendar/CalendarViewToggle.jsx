@@ -12,18 +12,20 @@ const CalendarViewToggle = ({ view, onChange }) => {
   ];
 
   return (
-    <div className="flex items-center bg-slate-100 rounded-lg p-0.5 gap-0.5">
-      {buttons.map(btn => {
+    <div className="inline-flex items-center border border-slate-200 rounded-lg overflow-hidden">
+      {buttons.map((btn, i) => {
         const Icon = btn.icon;
         const isActive = view === btn.value;
         return (
           <button
             key={btn.value}
             onClick={() => onChange(btn.value)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all ${
+              i > 0 ? 'border-l border-slate-200' : ''
+            } ${
               isActive
-                ? 'bg-white text-emerald-700 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
+                ? 'bg-emerald-50 text-emerald-700'
+                : 'bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50'
             }`}
             title={btn.label}
           >

@@ -45,7 +45,7 @@ export default function MonthlyDayCard({
   // Kapali gun
   if (isClosed) {
     return (
-      <div className="flex flex-col border-r border-b border-slate-100 bg-slate-50/50 p-1.5 min-h-0 overflow-hidden select-none">
+      <div className="flex flex-col rounded-lg border border-slate-200/50 bg-slate-50/50 p-1.5 min-h-0 overflow-hidden select-none">
         <div className="flex items-baseline gap-1">
           <span className="text-[13px] text-slate-300">{dayOfMonth}</span>
           <span className="text-[10px] text-slate-300">{dayName}</span>
@@ -96,11 +96,11 @@ export default function MonthlyDayCard({
     <div
       onClick={onClick}
       className={cn(
-        'flex flex-col border-r border-b p-1.5 cursor-pointer select-none transition-all min-h-0 overflow-hidden',
-        isToday && !isSelected && 'border-2 border-blue-400 rounded-lg',
-        isSelected && 'border-2 border-emerald-500 rounded-lg bg-emerald-50/20',
-        isPast && !isSelected && !isToday && 'border-slate-100',
-        !isToday && !isSelected && !isPast && 'border-slate-100 hover:bg-slate-50/50'
+        'flex flex-col p-1.5 cursor-pointer select-none transition-all min-h-0 overflow-hidden rounded-lg border',
+        isToday && !isSelected && 'border-blue-400 bg-blue-50/20',
+        isSelected && 'border-emerald-500 bg-emerald-50/20 shadow-sm',
+        isPast && !isSelected && !isToday && 'border-slate-200/70',
+        !isToday && !isSelected && !isPast && 'border-slate-200/70 hover:border-slate-300 hover:bg-slate-50/50'
       )}
     >
       {/* Gun numarasi + gun adi */}

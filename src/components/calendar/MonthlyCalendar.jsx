@@ -144,78 +144,83 @@ export default function MonthlyCalendar() {
         </div>
       </div>
 
-      {/* ── HAFTA GUNU BASLIKLARI ── */}
-      <div className="grid grid-cols-7 gap-px mb-px shrink-0">
-        {weekHeaders.map((day, i) => (
-          <div key={i} className="text-center text-[11px] font-semibold text-slate-400 py-1 uppercase">
-            {day}
+      {/* Gün seçilmemişse → Takvim Grid, seçilmişse → DayDetail tam sayfa */}
+      {!selectedDay ? (
+        <>
+          {/* ── HAFTA GUNU BASLIKLARI ── */}
+          <div className="grid grid-cols-7 gap-1 mb-0.5 shrink-0">
+            {weekHeaders.map((day, i) => (
+              <div key={i} className="text-center text-[11px] font-semibold text-slate-400 py-1 uppercase">
+                {day}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* ── TAKVIM GRID — tüm ay sayfaya sığsın ── */}
-      <div
-        className="grid grid-cols-7 gap-px flex-1 min-h-0"
-        style={{ gridTemplateRows: `repeat(${weekCount}, 1fr)` }}
-      >
-        {calendarDays.map(day => {
-          if (day.type === 'empty') {
-            return <div key={day.key} />;
-          }
-          return (
-            <MonthlyDayCard
-              key={day.key}
-              date={day.date}
-              dayOfMonth={day.dayOfMonth}
-              dayOfWeek={day.dayOfWeek}
-              occupancy={day.occupancy}
-              isToday={day.isToday}
-              isSelected={day.isSelected}
-              isClosed={day.isClosed}
-              isPast={day.isPast}
-              onClick={() => {
-                if (!day.isClosed) setSelectedDay(day.isSelected ? null : day.date);
-              }}
-            />
-          );
-        })}
-      </div>
+          {/* ── TAKVIM GRID ── */}
+          <div
+            className="grid grid-cols-7 gap-1 flex-1 min-h-0"
+            style={{ gridTemplateRows: `repeat(${weekCount}, 1fr)` }}
+          >
+            {calendarDays.map(day => {
+              if (day.type === 'empty') {
+                return <div key={day.key} />;
+              }
+              return (
+                <MonthlyDayCard
+                  key={day.key}
+                  date={day.date}
+                  dayOfMonth={day.dayOfMonth}
+                  dayOfWeek={day.dayOfWeek}
+                  occupancy={day.occupancy}
+                  isToday={day.isToday}
+                  isSelected={day.isSelected}
+                  isClosed={day.isClosed}
+                  isPast={day.isPast}
+                  onClick={() => {
+                    if (!day.isClosed) setSelectedDay(day.date);
+                  }}
+                />
+              );
+            })}
+          </div>
 
-      {/* ── LEGEND ── */}
-      <div className="flex items-center justify-center gap-4 pt-1.5 shrink-0">
-        <div className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-purple-500" />
-          <span className="text-[9px] text-slate-400">{t('massageOccupancy').toLowerCase()}</span>
+          {/* ── LEGEND ── */}
+          <div className="flex items-center justify-center gap-4 pt-1.5 shrink-0">
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-purple-500" />
+              <span className="text-[9px] text-slate-400">{t('massageOccupancy').toLowerCase()}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-[9px] text-slate-400">{t('facilityOccupancy').toLowerCase()}</span>
+            </div>
+            <span className="text-[9px] text-slate-300">|</span>
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-1 rounded-sm bg-green-300" />
+              <span className="text-[9px] text-slate-400">{t('occupancyLow').toLowerCase()}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-1 rounded-sm bg-amber-400" />
+              <span className="text-[9px] text-slate-400">{t('occupancyBusy').toLowerCase()}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-1 rounded-sm bg-red-400" />
+              <span className="text-[9px] text-slate-400">{t('occupancyFull').toLowerCase()}</span>
+            </div>
+          </div>
+        </>
+      ) : (
+        /* ── GÜN DETAY PANELİ — takvim yerine tam sayfa ── */
+        <div className="flex-1 min-h-0">
+          <DayDetailPanel
+            date={selectedDay}
+            onClose={() => setSelectedDay(null)}
+            company={company}
+            experts={experts}
+            spaces={spaces}
+            workingHours={workingHours}
+          />
         </div>
-        <div className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="text-[9px] text-slate-400">{t('facilityOccupancy').toLowerCase()}</span>
-        </div>
-        <span className="text-[9px] text-slate-300">|</span>
-        <div className="flex items-center gap-1">
-          <span className="w-3 h-1 rounded-sm bg-green-300" />
-          <span className="text-[9px] text-slate-400">{t('occupancyLow').toLowerCase()}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="w-3 h-1 rounded-sm bg-amber-400" />
-          <span className="text-[9px] text-slate-400">{t('occupancyBusy').toLowerCase()}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="w-3 h-1 rounded-sm bg-red-400" />
-          <span className="text-[9px] text-slate-400">{t('occupancyFull').toLowerCase()}</span>
-        </div>
-      </div>
-
-      {/* ── GÜN DETAY PANELİ ── */}
-      {selectedDay && (
-        <DayDetailPanel
-          date={selectedDay}
-          onClose={() => setSelectedDay(null)}
-          company={company}
-          experts={experts}
-          spaces={spaces}
-          workingHours={workingHours}
-        />
       )}
     </div>
   );

@@ -257,7 +257,7 @@ export default function DayDetailPanel({
         animate={{ opacity: 1, height: 'auto' }}
         exit={{ opacity: 0, height: 0 }}
         transition={{ duration: 0.25 }}
-        className="mt-4 border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm"
+        className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col h-full"
       >
         {/* Header — screenshot formatinda */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white">
@@ -304,7 +304,7 @@ export default function DayDetailPanel({
         </div>
 
         {/* Sol + Sag panel */}
-        <div className="flex" style={{ height: 500 }}>
+        <div className="flex flex-1 min-h-0">
           {/* Sol panel */}
           <div className="w-[280px] min-w-[280px] border-r border-slate-200 overflow-hidden flex flex-col">
             <DayDetailServiceList
