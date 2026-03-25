@@ -1,221 +1,160 @@
 import React, { useMemo, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { cn } from '@/lib/utils';
 import { timeToMinutes, formatMinutes } from '@/services/availabilityService';
 
 const SLOT_MINUTES = 15;
-const SLOT_HEIGHT = 28;
+const ROW_H = 20;
 const DAY_START_HOUR = 8;
 const DAY_END_HOUR = 21;
-const TOTAL_SLOTS = ((DAY_END_HOUR - DAY_START_HOUR) * 60) / SLOT_MINUTES;
+const TOTAL_SLOTS = ((DAY_END_HOUR - DAY_START_HOUR) * 60) / SLOT_MINUTES; // 52
 
-function slotToTime(slotIndex) {
-  const totalMinutes = DAY_START_HOUR * 60 + slotIndex * SLOT_MINUTES;
-  return formatMinutes(totalMinutes);
-}
-
-function timeToSlot(timeStr) {
-  const mins = timeToMinutes(timeStr);
-  return Math.floor((mins - DAY_START_HOUR * 60) / SLOT_MINUTES);
-}
-
-function durationToSlots(durationMinutes) {
-  return Math.ceil(durationMinutes / SLOT_MINUTES);
-}
+function slotToTime(i) { return formatMinutes(DAY_START_HOUR * 60 + i * SLOT_MINUTES); }
+function timeToSlot(t) { return Math.floor((timeToMinutes(t) - DAY_START_HOUR * 60) / SLOT_MINUTES); }
+function durationToSlots(d) { return Math.ceil(d / SLOT_MINUTES); }
 
 export default function DayDetailTimeGrid({
-  date,
-  experts,
-  appointments,
-  service,
-  room,
-  unit,
-  newAppointment,
-  onSlotClick,
-  onDragStart,
-  dragState,
-  cellRefs,
+  date, experts, appointments, service,
+  newAppointment, onSlotClick, onDragStart, dragState, cellRefs,
 }) {
   const { t } = useTranslation();
-  const gridRef = useRef(null);
   const slotsNeeded = service ? durationToSlots(service.duration) : 0;
 
-  // Mevcut randevulari slot bazli haritala
+  // Booked slots
   const bookedSlots = useMemo(() => {
     const map = {};
     if (!experts?.length || !appointments?.length) return map;
     appointments.forEach(apt => {
       if (!apt.time || apt.status === 'iptal') return;
-      const colIndex = experts.findIndex(e => e.id === apt.expert_id);
-      if (colIndex === -1) return;
+      const ci = experts.findIndex(e => e.id === apt.expert_id);
+      if (ci === -1) return;
       const startSlot = timeToSlot(apt.time);
-      const duration = apt.total_duration || apt.company_services?.duration || 60;
-      const slots = durationToSlots(duration);
+      const dur = apt.total_duration || apt.company_services?.duration || 60;
+      const slots = durationToSlots(dur);
       for (let k = 0; k < slots; k++) {
         const s = startSlot + k;
-        if (s >= 0 && s < TOTAL_SLOTS) {
-          map[`${colIndex}-${s}`] = { appointment: apt, isFirst: k === 0, totalSlots: slots };
-        }
+        if (s >= 0 && s < TOTAL_SLOTS)
+          map[`${ci}-${s}`] = { apt, isFirst: k === 0, totalSlots: slots, ci };
       }
     });
     return map;
   }, [experts, appointments]);
 
-  const canFit = useCallback((colIndex, startSlot, slotsCount) => {
-    for (let k = 0; k < slotsCount; k++) {
-      const s = startSlot + k;
-      if (s >= TOTAL_SLOTS) return false;
-      if (bookedSlots[`${colIndex}-${s}`]) return false;
-    }
+  const canFit = useCallback((ci, si, n) => {
+    for (let k = 0; k < n; k++) { if (si + k >= TOTAL_SLOTS || bookedSlots[`${ci}-${si + k}`]) return false; }
     return true;
   }, [bookedSlots]);
 
-  const timeLabels = useMemo(() => {
-    const labels = [];
-    for (let h = DAY_START_HOUR; h <= DAY_END_HOUR; h++) {
-      labels.push({
-        hour: h,
-        label: `${String(h).padStart(2, '0')}:00`,
-        slotIndex: (h - DAY_START_HOUR) * (60 / SLOT_MINUTES),
-      });
-    }
-    return labels;
-  }, []);
-
-  if (!experts || experts.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full text-xs text-slate-400">
-        {t('noExpertsAvailable')}
-      </div>
-    );
+  if (!experts?.length) {
+    return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240, color: '#999', fontSize: 14 }}>{t('noExpertsAvailable')}</div>;
   }
 
+  const cols = experts.length;
+  const gtc = `48px repeat(${cols}, minmax(0, 1fr))`;
+
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Uzman baslik satirlari */}
-      <div className="flex border-b border-slate-200 bg-white sticky top-0 z-10">
-        <div className="w-14 shrink-0 border-r border-slate-200" />
-        {experts.map((expert) => (
-          <div
-            key={expert.id}
-            className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-2 py-2.5 border-r border-slate-100"
-          >
-            <span className="text-[12px] font-semibold text-slate-700 truncate"
-              style={{ color: expert.color || '#334155' }}
-            >
-              {expert.name}
-            </span>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+      {/* Header — uzman isimleri */}
+      <div style={{ display: 'grid', gridTemplateColumns: gtc, borderBottom: '1px solid #d5d5d0' }}>
+        <div style={{ padding: '8px 4px', fontSize: 10, color: '#999', fontWeight: 500 }} />
+        {experts.map(exp => (
+          <div key={exp.id} style={{ padding: '8px 4px', fontSize: 12, fontWeight: 600, textAlign: 'center', color: exp.color || '#666' }}>
+            {exp.name}
           </div>
         ))}
       </div>
 
-      {/* Grid govde */}
-      <div ref={gridRef} className="flex-1 overflow-y-auto relative">
-        <div className="flex" style={{ minHeight: TOTAL_SLOTS * SLOT_HEIGHT }}>
-          {/* Saat etiketi sutunu */}
-          <div className="w-14 shrink-0 border-r border-slate-200 relative bg-slate-50/50">
-            {timeLabels.map(tl => (
-              <div
-                key={tl.hour}
-                className="absolute left-0 right-0 flex items-start justify-end pr-2"
-                style={{ top: tl.slotIndex * SLOT_HEIGHT - 7 }}
-              >
-                <span className="text-[11px] text-slate-400 font-medium tabular-nums">
-                  {tl.label}
-                </span>
+      {/* Grid body */}
+      <div style={{ maxHeight: 460, overflowY: 'auto' }}>
+        {Array.from({ length: TOTAL_SLOTS }, (_, si) => {
+          const isHour = si % 4 === 0;
+          return (
+            <div key={si} style={{ display: 'grid', gridTemplateColumns: gtc }}>
+              {/* Saat etiketi */}
+              <div style={{
+                minHeight: ROW_H, borderBottom: `1px solid ${isHour ? '#e8e8e3' : '#f0f0eb'}`,
+                borderRight: '1px solid #f0f0eb', display: 'flex', alignItems: 'flex-start',
+                justifyContent: 'flex-end', padding: '2px 8px 0 0',
+                fontSize: 11, color: '#999', fontFamily: "'SF Mono','Menlo',monospace", fontWeight: 500,
+              }}>
+                {isHour ? slotToTime(si) : ''}
               </div>
-            ))}
-          </div>
 
-          {/* Uzman sutunlari */}
-          {experts.map((expert, colIndex) => (
-            <div key={expert.id} className="flex-1 min-w-[120px] relative border-r border-slate-100">
-              {Array.from({ length: TOTAL_SLOTS }, (_, slotIndex) => {
-                const isHourBoundary = slotIndex % (60 / SLOT_MINUTES) === 0;
-                const isHalfHour = slotIndex % (30 / SLOT_MINUTES) === 0 && !isHourBoundary;
-                const booked = bookedSlots[`${colIndex}-${slotIndex}`];
-                const isNewAppt = newAppointment
-                  && newAppointment.colIndex === colIndex
-                  && slotIndex >= newAppointment.startSlot
-                  && slotIndex < newAppointment.startSlot + slotsNeeded;
-                const isNewFirst = isNewAppt && slotIndex === newAppointment.startSlot;
+              {/* Uzman sutunlari */}
+              {experts.map((exp, ci) => {
+                const bk = bookedSlots[`${ci}-${si}`];
+                const isNewSlot = newAppointment && newAppointment.colIndex === ci
+                  && si >= newAppointment.startSlot && si < newAppointment.startSlot + slotsNeeded;
+                const isNewFirst = isNewSlot && si === newAppointment.startSlot;
+                const isFree = !bk && !isNewSlot;
 
-                const dragHighlight = dragState?.targetCol === colIndex
-                  && slotIndex >= dragState.targetSlot
-                  && slotIndex < dragState.targetSlot + slotsNeeded;
-                const dragValid = dragHighlight && dragState.isValid;
-                const dragInvalid = dragHighlight && !dragState.isValid;
+                // Drag highlight
+                const dh = dragState?.targetCol === ci && si >= dragState.targetSlot && si < dragState.targetSlot + slotsNeeded;
+                const dropOk = dh && dragState.isValid;
+                const dropNo = dh && !dragState.isValid;
 
                 return (
                   <div
-                    key={slotIndex}
-                    data-col={colIndex}
-                    data-slot={slotIndex}
-                    ref={el => { if (cellRefs?.current) cellRefs.current[`${colIndex}-${slotIndex}`] = el; }}
+                    key={ci}
+                    data-col={ci}
+                    data-slot={si}
+                    ref={el => { if (cellRefs?.current) cellRefs.current[`${ci}-${si}`] = el; }}
                     onClick={() => {
-                      if (!booked && !isNewAppt && service && canFit(colIndex, slotIndex, slotsNeeded)) {
-                        onSlotClick(colIndex, slotIndex, expert);
+                      if (isFree && service && canFit(ci, si, slotsNeeded)) {
+                        onSlotClick(ci, si, exp);
                       }
                     }}
-                    className={cn(
-                      'relative',
-                      isHourBoundary ? 'border-t border-slate-200' : isHalfHour ? 'border-t border-dashed border-slate-100' : 'border-t border-slate-50',
-                      !booked && !isNewAppt && service && 'cursor-pointer hover:bg-purple-50/40',
-                      dragValid && 'bg-emerald-100/60',
-                      dragInvalid && 'bg-red-100/60'
-                    )}
-                    style={{ height: SLOT_HEIGHT }}
+                    style={{
+                      minHeight: ROW_H, position: 'relative',
+                      borderBottom: `1px solid ${isHour ? '#e8e8e3' : '#f0f0eb'}`,
+                      borderRight: ci < cols - 1 ? '1px solid #f0f0eb' : 'none',
+                      cursor: isFree && service ? 'pointer' : 'default',
+                      transition: 'background 0.08s',
+                      background: dropOk ? 'rgba(29,158,117,0.13)' : dropNo ? 'rgba(226,75,74,0.1)' : undefined,
+                    }}
+                    onMouseEnter={e => { if (isFree && service) e.currentTarget.style.background = '#EEEDFE'; }}
+                    onMouseLeave={e => { if (isFree && service && !dropOk && !dropNo) e.currentTarget.style.background = ''; }}
                   >
-                    {/* Mevcut randevu bloku — renkli, uzman adi + hizmet adi */}
-                    {booked?.isFirst && (
-                      <div
-                        className="absolute left-1 right-1 rounded-md z-[2] px-2 py-1 overflow-hidden pointer-events-none"
-                        style={{
-                          top: 1,
-                          height: booked.totalSlots * SLOT_HEIGHT - 2,
-                          backgroundColor: expert.color ? `${expert.color}25` : '#94a3b820',
-                          borderLeft: `3px solid ${expert.color || '#94a3b8'}`,
-                        }}
-                      >
-                        <span className="text-[10px] font-semibold block truncate"
-                          style={{ color: expert.color || '#475569' }}>
-                          {expert.name?.split(' ')[0]} {expert.name?.split(' ')[1]?.[0]}.
-                        </span>
-                        <span className="text-[9px] text-slate-500 block truncate">
-                          {booked.appointment.company_services?.description || ''}
-                        </span>
+                    {/* Mevcut randevu bloku */}
+                    {bk?.isFirst && (
+                      <div style={{
+                        position: 'absolute', left: 2, right: 2, top: 1,
+                        height: bk.totalSlots * ROW_H - 2, borderRadius: 6,
+                        padding: '4px 6px', overflow: 'hidden', zIndex: 2, pointerEvents: 'none',
+                        background: '#f0f0eb', borderLeft: '3px solid #ccc',
+                      }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: '#1a1a1a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {exp.name}
+                        </div>
+                        <div style={{ fontSize: 9, color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {bk.apt.company_services?.description || ''}
+                        </div>
                       </div>
                     )}
 
-                    {/* Yeni randevu bloku — mor, suruklenebilir */}
+                    {/* Yeni randevu bloku (mor, suruklenebilir) */}
                     {isNewFirst && (
                       <div
-                        className="absolute left-1 right-1 rounded-md z-[5] px-2 py-1 cursor-grab active:cursor-grabbing shadow-md"
+                        onMouseDown={e => onDragStart?.(e)}
                         style={{
-                          top: 1,
-                          height: slotsNeeded * SLOT_HEIGHT - 2,
-                          backgroundColor: '#7c3aed',
+                          position: 'absolute', left: 2, right: 2, top: 1,
+                          height: slotsNeeded * ROW_H - 2, borderRadius: 6,
+                          background: '#534AB7', zIndex: 5, padding: '5px 8px',
+                          cursor: 'grab',
                         }}
-                        onMouseDown={(e) => onDragStart?.(e)}
                       >
-                        <span className="text-[10px] font-semibold text-white block truncate">
-                          {service?.description}
-                        </span>
-                        <span className="text-[9px] text-white/80 block truncate">
-                          {newAppointment.expert?.name?.split(' ')[0]} {newAppointment.expert?.name?.split(' ')[1]?.[0]}.
-                          {' · '}{slotToTime(newAppointment.startSlot)}-{slotToTime(newAppointment.startSlot + slotsNeeded)}
-                        </span>
-                        <span className="text-[8px] text-white/60 block mt-0.5">
-                          ← {t('dragToMove').toLowerCase()}
-                        </span>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: '#fff' }}>{service?.description}</div>
+                        <div style={{ fontSize: 9, color: '#CECBF6', marginTop: 1 }}>
+                          {newAppointment.expert?.name} · {newAppointment.startTime}-{newAppointment.endTime}
+                        </div>
+                        <div style={{ fontSize: 8, color: '#AFA9EC', marginTop: 2 }}>⁂ sürükle taşı</div>
                       </div>
                     )}
                   </div>
                 );
               })}
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
     </div>
   );

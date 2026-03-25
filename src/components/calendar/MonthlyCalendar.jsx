@@ -1,25 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMonthlyOccupancy } from '@/hooks/useMonthlyOccupancy';
 import { getSpaces } from '@/services/resourceService';
 import MonthlyDayCard from './MonthlyDayCard';
 import DayDetailPanel from './DayDetailPanel';
 
-const WEEKDAY_HEADERS = {
-  tr: ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'],
-  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-  ru: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+const MONTHS = {
+  tr: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
+  en: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+  ru: ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
+};
+const WEEKDAYS = {
+  tr: ['pzt','sal','çar','per','cum','cmt','paz'],
+  en: ['mon','tue','wed','thu','fri','sat','sun'],
+  ru: ['пн','вт','ср','чт','пт','сб','вс'],
 };
 
-const MONTH_NAMES = {
-  tr: ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'],
-  en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-  ru: ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'],
-};
-
-export default function MonthlyCalendar() {
+export default function MonthlyCalendar({ onSwitchView }) {
   const { t, i18n } = useTranslation();
   const { company, staff, workingHours } = useAuth();
   const lang = i18n.language?.substring(0, 2) || 'tr';
@@ -31,197 +29,173 @@ export default function MonthlyCalendar() {
   const year = viewMonth.getFullYear();
   const month = viewMonth.getMonth();
 
-  const experts = useMemo(
-    () => (staff || []).filter(s => s.role === 'Uzman'),
-    [staff]
-  );
+  const experts = useMemo(() => (staff || []).filter(s => s.role === 'Uzman'), [staff]);
 
   useEffect(() => {
-    if (company?.id) {
-      getSpaces(company.id).then(data => setSpaces(data || []));
-    }
+    if (company?.id) getSpaces(company.id).then(d => setSpaces(d || []));
   }, [company?.id]);
 
-  const { occupancyMap } = useMonthlyOccupancy(
-    company?.id, viewMonth, workingHours, experts, spaces
-  );
+  const { occupancyMap } = useMonthlyOccupancy(company?.id, viewMonth, workingHours, experts, spaces);
 
-  const goToPrevMonth = () => { setViewMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)); setSelectedDay(null); };
-  const goToNextMonth = () => { setViewMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)); setSelectedDay(null); };
+  const prevMonth = () => { setViewMonth(p => new Date(p.getFullYear(), p.getMonth() - 1, 1)); setSelectedDay(null); };
+  const nextMonth = () => { setViewMonth(p => new Date(p.getFullYear(), p.getMonth() + 1, 1)); setSelectedDay(null); };
 
-  // Takvim grid hesaplama
-  const { calendarDays, weekCount } = useMemo(() => {
+  const calendarDays = useMemo(() => {
     const firstDay = new Date(year, month, 1);
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    let startOffset = firstDay.getDay() - 1;
-    if (startOffset < 0) startOffset = 6;
-
+    let offset = firstDay.getDay() - 1;
+    if (offset < 0) offset = 6;
     const today = new Date();
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
     const days = [];
-    for (let i = 0; i < startOffset; i++) {
-      days.push({ type: 'empty', key: `empty-${i}` });
-    }
+    for (let i = 0; i < offset; i++) days.push({ type: 'empty', key: `e${i}` });
     for (let d = 1; d <= daysInMonth; d++) {
-      const dateObj = new Date(year, month, d);
-      const dayOfWeek = dateObj.getDay();
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const isPast = dateObj < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const obj = new Date(year, month, d);
+      const dow = obj.getDay();
+      const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
       days.push({
-        type: 'day', key: dateStr, date: dateStr, dayOfMonth: d, dayOfWeek,
-        isToday: dateStr === todayStr, isSelected: dateStr === selectedDay,
-        isClosed: dayOfWeek === 0, isPast,
-        occupancy: occupancyMap[dateStr] || null,
+        type: 'day', key: ds, date: ds, dayOfMonth: d, dayOfWeek: dow,
+        isToday: ds === todayStr, isSelected: ds === selectedDay,
+        isClosed: dow === 0,
+        isPast: obj < new Date(today.getFullYear(), today.getMonth(), today.getDate()),
+        occupancy: occupancyMap[ds] || null,
       });
     }
-    // Haftanin kalanini doldur
-    const remainder = days.length % 7;
-    if (remainder > 0) {
-      for (let i = 0; i < 7 - remainder; i++) {
-        days.push({ type: 'empty', key: `empty-end-${i}` });
-      }
-    }
-    return { calendarDays: days, weekCount: Math.ceil(days.length / 7) };
+    return days;
   }, [year, month, selectedDay, occupancyMap]);
 
-  // Ay istatistikleri
   const monthStats = useMemo(() => {
-    let totalMassage = 0, totalFacility = 0;
-    let totalMassageMax = 0, totalFacilityMax = 0;
-    Object.values(occupancyMap).forEach(occ => {
-      totalMassage += occ.massageCount || 0;
-      totalFacility += occ.facilityCount || 0;
-      totalMassageMax += occ.massageMax || 0;
-      totalFacilityMax += occ.facilityMax || 0;
-    });
-    const overallPercent = (totalMassageMax + totalFacilityMax) > 0
-      ? Math.round(((totalMassage + totalFacility) / (totalMassageMax + totalFacilityMax)) * 100)
-      : 0;
-    return { totalMassage, totalFacility, overallPercent };
+    let m = 0, f = 0;
+    Object.values(occupancyMap).forEach(o => { m += o.massageCount || 0; f += o.facilityCount || 0; });
+    return { m, f };
   }, [occupancyMap]);
 
-  const monthName = (MONTH_NAMES[lang] || MONTH_NAMES.tr)[month];
-  const weekHeaders = WEEKDAY_HEADERS[lang] || WEEKDAY_HEADERS.tr;
+  const monthName = (MONTHS[lang] || MONTHS.tr)[month];
+  const weekdays = WEEKDAYS[lang] || WEEKDAYS.tr;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
-      {/* ── HEADER: "Randevular" baslik + ay nav + istatistikler ── */}
-      <div className="flex items-center justify-between mb-3 shrink-0">
-        <div className="flex items-center gap-4">
-          <h2 className="text-base font-bold text-slate-800">{t('appointments')}</h2>
-          {/* Ay navigasyonu */}
-          <div className="flex items-center gap-1.5">
-            <button onClick={goToPrevMonth}
-              className="w-6 h-6 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors">
-              <ChevronLeft className="w-3.5 h-3.5 text-slate-500" />
+      {/* ═══ HEADER ═══ */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <span style={{ fontSize: 20, fontWeight: 600, color: '#1a1a1a', letterSpacing: '-0.3px' }}>
+            {t('appointments')}
+          </span>
+          {/* View toggle */}
+          <div style={{ display: 'flex', gap: 2, background: '#f5f5f0', border: '1px solid #e8e8e3', borderRadius: 8, padding: 3 }}>
+            <button style={{ padding: '5px 14px', fontSize: 12, fontWeight: 500, borderRadius: 6, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: '#fff', color: '#1a1a1a', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              {t('monthlyView') || 'Aylık'}
             </button>
-            <span className="text-sm font-semibold text-slate-700 min-w-[120px] text-center">
+            <button onClick={onSwitchView} style={{ padding: '5px 14px', fontSize: 12, fontWeight: 500, borderRadius: 6, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'transparent', color: '#666' }}>
+              Günlük
+            </button>
+          </div>
+          {/* Ay navigasyonu */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <button onClick={prevMonth} style={{
+              width: 32, height: 32, borderRadius: '50%', border: '1px solid #e8e8e3',
+              background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', color: '#666',
+            }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+            <span style={{ fontSize: 17, fontWeight: 600, color: '#1a1a1a', minWidth: 130, textAlign: 'center', letterSpacing: '-0.2px' }}>
               {monthName} {year}
             </span>
-            <button onClick={goToNextMonth}
-              className="w-6 h-6 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors">
-              <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
+            <button onClick={nextMonth} style={{
+              width: 32, height: 32, borderRadius: '50%', border: '1px solid #e8e8e3',
+              background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', color: '#666',
+            }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
           </div>
         </div>
-
-        {/* Istatistik kutulari */}
-        <div className="flex items-center gap-2">
-          <div className="border border-slate-200 rounded-lg px-3 py-1 text-center min-w-[60px]">
-            <div className="text-sm font-bold text-slate-800 leading-tight">{monthStats.totalMassage}</div>
-            <div className="text-[9px] text-slate-400">{t('massageOccupancy').toLowerCase()}</div>
+        {/* Stat boxes */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: 10, padding: '8px 16px', textAlign: 'center', minWidth: 70 }}>
+            <div style={{ fontSize: 18, fontWeight: 600, fontFamily: "'SF Mono','Menlo',monospace", letterSpacing: '-0.5px' }}>{monthStats.m}</div>
+            <div style={{ fontSize: 10, color: '#999', fontWeight: 500, marginTop: 1 }}>{t('massageOccupancy').toLowerCase()}</div>
           </div>
-          <div className="border border-slate-200 rounded-lg px-3 py-1 text-center min-w-[60px]">
-            <div className="text-sm font-bold text-slate-800 leading-tight">{monthStats.totalFacility}</div>
-            <div className="text-[9px] text-slate-400">{t('facilityOccupancy').toLowerCase()}</div>
-          </div>
-          <div className="border border-slate-200 rounded-lg px-3 py-1 text-center min-w-[60px]">
-            <div className="text-sm font-bold text-slate-800 leading-tight">%{monthStats.overallPercent}</div>
-            <div className="text-[9px] text-slate-400">doluluk</div>
+          <div style={{ background: '#fff', border: '1px solid #e8e8e3', borderRadius: 10, padding: '8px 16px', textAlign: 'center', minWidth: 70 }}>
+            <div style={{ fontSize: 18, fontWeight: 600, fontFamily: "'SF Mono','Menlo',monospace", letterSpacing: '-0.5px' }}>{monthStats.f}</div>
+            <div style={{ fontSize: 10, color: '#999', fontWeight: 500, marginTop: 1 }}>{t('facilityOccupancy').toLowerCase()}</div>
           </div>
         </div>
       </div>
 
-      {/* Gün seçilmemişse → Takvim Grid, seçilmişse → DayDetail tam sayfa */}
-      {!selectedDay ? (
-        <>
-          {/* ── HAFTA GUNU BASLIKLARI ── */}
-          <div className="grid grid-cols-7 gap-1 mb-0.5 shrink-0">
-            {weekHeaders.map((day, i) => (
-              <div key={i} className="text-center text-[11px] font-semibold text-slate-400 py-1 uppercase">
-                {day}
-              </div>
-            ))}
+      {/* ═══ WEEKDAY HEADERS ═══ */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 6, marginBottom: 6 }}>
+        {weekdays.map((d, i) => (
+          <div key={i} style={{ fontSize: 12, fontWeight: 500, color: '#999', textAlign: 'center', padding: '8px 0' }}>
+            {d}
           </div>
+        ))}
+      </div>
 
-          {/* ── TAKVIM GRID ── */}
-          <div
-            className="grid grid-cols-7 gap-1 flex-1 min-h-0"
-            style={{ gridTemplateRows: `repeat(${weekCount}, 1fr)` }}
-          >
-            {calendarDays.map(day => {
-              if (day.type === 'empty') {
-                return <div key={day.key} />;
-              }
-              return (
-                <MonthlyDayCard
-                  key={day.key}
-                  date={day.date}
-                  dayOfMonth={day.dayOfMonth}
-                  dayOfWeek={day.dayOfWeek}
-                  occupancy={day.occupancy}
-                  isToday={day.isToday}
-                  isSelected={day.isSelected}
-                  isClosed={day.isClosed}
-                  isPast={day.isPast}
-                  onClick={() => {
-                    if (!day.isClosed) setSelectedDay(day.date);
-                  }}
-                />
-              );
-            })}
-          </div>
+      {/* ═══ CALENDAR GRID ═══ */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 6 }}>
+        {calendarDays.map(day => {
+          if (day.type === 'empty') {
+            return <div key={day.key} style={{ aspectRatio: '1/1', background: 'transparent', border: '1px solid transparent', borderRadius: 12 }} />;
+          }
+          return (
+            <MonthlyDayCard
+              key={day.key}
+              dayOfMonth={day.dayOfMonth}
+              dayOfWeek={day.dayOfWeek}
+              occupancy={day.occupancy}
+              isToday={day.isToday}
+              isSelected={day.isSelected}
+              isClosed={day.isClosed}
+              isPast={day.isPast}
+              onClick={() => { if (!day.isClosed) setSelectedDay(day.date); }}
+            />
+          );
+        })}
+      </div>
 
-          {/* ── LEGEND ── */}
-          <div className="flex items-center justify-center gap-4 pt-1.5 shrink-0">
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-purple-500" />
-              <span className="text-[9px] text-slate-400">{t('massageOccupancy').toLowerCase()}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="text-[9px] text-slate-400">{t('facilityOccupancy').toLowerCase()}</span>
-            </div>
-            <span className="text-[9px] text-slate-300">|</span>
-            <div className="flex items-center gap-1">
-              <span className="w-3 h-1 rounded-sm bg-green-300" />
-              <span className="text-[9px] text-slate-400">{t('occupancyLow').toLowerCase()}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-3 h-1 rounded-sm bg-amber-400" />
-              <span className="text-[9px] text-slate-400">{t('occupancyBusy').toLowerCase()}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-3 h-1 rounded-sm bg-red-400" />
-              <span className="text-[9px] text-slate-400">{t('occupancyFull').toLowerCase()}</span>
-            </div>
-          </div>
-        </>
-      ) : (
-        /* ── GÜN DETAY PANELİ — takvim yerine tam sayfa ── */
-        <div className="flex-1 min-h-0">
-          <DayDetailPanel
-            date={selectedDay}
-            onClose={() => setSelectedDay(null)}
-            company={company}
-            experts={experts}
-            spaces={spaces}
-            workingHours={workingHours}
-          />
-        </div>
+      {/* ═══ LEGEND ═══ */}
+      <div style={{ display: 'flex', gap: 18, alignItems: 'center', justifyContent: 'center', marginTop: 16, flexWrap: 'wrap' }}>
+        <LegendDot color="#534AB7" label={t('massageOccupancy').toLowerCase()} />
+        <LegendDot color="#1D9E75" label={t('facilityOccupancy').toLowerCase()} />
+        <div style={{ width: 1, height: 14, background: '#e8e8e3', margin: '0 4px' }} />
+        <LegendBar color="#97C459" label={t('occupancyLow').toLowerCase()} />
+        <LegendBar color="#EF9F27" label={t('occupancyBusy').toLowerCase()} />
+        <LegendBar color="#E24B4A" label={t('occupancyFull').toLowerCase()} />
+      </div>
+
+      {/* ═══ DETAIL PANEL — takvimin altında açılır ═══ */}
+      {selectedDay && (
+        <DayDetailPanel
+          date={selectedDay}
+          onClose={() => setSelectedDay(null)}
+          company={company}
+          experts={experts}
+          spaces={spaces}
+          workingHours={workingHours}
+        />
       )}
+    </div>
+  );
+}
+
+function LegendDot({ color, label }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#666', fontWeight: 500 }}>
+      <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
+      {label}
+    </div>
+  );
+}
+
+function LegendBar({ color, label }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#666', fontWeight: 500 }}>
+      <div style={{ width: 14, height: 5, borderRadius: 3, background: color }} />
+      {label}
     </div>
   );
 }

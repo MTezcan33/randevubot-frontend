@@ -969,20 +969,8 @@ const AppointmentsPage = () => {
 
         {/* ═══ AYLIK GÖRÜNÜM ═══ */}
         {calendarView === 'monthly' && (
-          <div className="flex-grow flex flex-col gap-2 min-h-0">
-            <div className="flex items-center justify-between shrink-0">
-              <CalendarViewToggle view={calendarView} onChange={handleViewChange} />
-              <Button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="bg-gradient-to-r from-emerald-800 to-teal-700 hover:opacity-90 text-white border-0"
-                size="sm"
-              >
-                <Plus className="w-4 h-4 mr-1" /> {t('createAppointment')}
-              </Button>
-            </div>
-            <div className="flex-1 bg-white rounded-lg shadow-sm border p-3 min-h-0 flex flex-col">
-              <MonthlyCalendar />
-            </div>
+          <div className="flex-grow min-h-0 overflow-auto" style={{ padding: '0 4px' }}>
+            <MonthlyCalendar onSwitchView={() => handleViewChange('expert')} />
           </div>
         )}
 
