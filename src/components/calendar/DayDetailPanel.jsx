@@ -24,6 +24,8 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
   const [dayAppointments, setDayAppointments] = useState([]);
   const [saving, setSaving] = useState(false);
   const [expertServicesMap, setExpertServicesMap] = useState(new Map());
+  const [customers, setCustomers] = useState([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
 
   const dateObj = new Date(date + 'T00:00:00');
   const [y, m, d] = date.split('-');
@@ -36,6 +38,13 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
     if (!company?.id || !date) return;
     fetchDayAppointments(company.id, date).then(setDayAppointments);
   }, [company?.id, date]);
+
+  // Musterileri yukle
+  useEffect(() => {
+    if (!company?.id) return;
+    supabase.from('customers').select('id, name, phone').eq('company_id', company.id).eq('is_active', true).order('name')
+      .then(({ data }) => setCustomers(data || []));
+  }, [company?.id]);
 
   // Expert services
   useEffect(() => {
@@ -115,12 +124,17 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
   // Randevu kaydet — uzman hizmeti
   const handleConfirmExpert = async () => {
     if (!newAppointment || !selectedService || !company?.id) return;
+    if (!selectedCustomerId) {
+      toast({ title: 'Müşteri seçin', description: 'Randevu oluşturmak için müşteri seçmelisiniz.', variant: 'destructive' });
+      return;
+    }
     setSaving(true);
     try {
       const ins = {
         company_id: company.id, service_id: selectedService.id, date, time: newAppointment.startTime,
         total_duration: selectedService.duration, total_amount: selectedService.price || 0,
         status: 'onaylandı', payment_status: 'unpaid',
+        customer_id: selectedCustomerId,
       };
       if (newAppointment.expert) ins.expert_id = newAppointment.expert.id;
       if (selectedRoom) ins.space_id = selectedRoom.id;
@@ -143,6 +157,10 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
   // Randevu kaydet — self servis (tesis girisi)
   const handleConfirmFacility = async () => {
     if (!selectedService || !selectedRoom || !company?.id) return;
+    if (!selectedCustomerId) {
+      toast({ title: 'Müşteri seçin', description: 'Randevu oluşturmak için müşteri seçmelisiniz.', variant: 'destructive' });
+      return;
+    }
     if (facilityOccupancy && facilityOccupancy.current >= facilityOccupancy.max) {
       toast({ title: 'Kapasite dolu', description: `${selectedRoom.name} maksimum kapasiteye ulaştı.`, variant: 'destructive' });
       return;
@@ -155,6 +173,7 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
         company_id: company.id, service_id: selectedService.id, date, time: currentTime,
         total_duration: selectedService.duration, total_amount: selectedService.price || 0,
         space_id: selectedRoom.id, status: 'onaylandı', payment_status: 'unpaid',
+        customer_id: selectedCustomerId,
       };
       const { data: aptData, error } = await supabase.from('appointments').insert(ins).select().single();
       if (error) throw error;
@@ -264,6 +283,9 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
               occupancy={facilityOccupancy}
               saving={saving}
               onConfirm={handleConfirmFacility}
+              customers={customers}
+              selectedCustomerId={selectedCustomerId}
+              onCustomerChange={setSelectedCustomerId}
             />
           )}
 
@@ -278,14 +300,31 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
 
       {/* ═══ CONFIRM BAR — sadece uzman hizmetleri icin ═══ */}
       {newAppointment && selectedService && !isSelfService && (
-        <div style={{ padding: '12px 20px', borderTop: '1px solid #e8e8e3', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafaf8' }}>
-          <div style={{ fontSize: 13, color: '#1a1a1a' }}>
-            <b>{selectedService.description}</b> · {newAppointment.expert?.name} · {newAppointment.startTime} - {newAppointment.endTime} · {selectedService.duration}dk
+        <div style={{ borderTop: '1px solid #e8e8e3', background: '#fafaf8' }}>
+          {/* Musteri secici */}
+          <div style={{ padding: '8px 20px', borderBottom: '1px solid #e8e8e3', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 12, fontWeight: 500, color: '#666', whiteSpace: 'nowrap' }}>Müşteri:</span>
+            <select
+              value={selectedCustomerId}
+              onChange={e => setSelectedCustomerId(e.target.value)}
+              style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid #e8e8e3', fontSize: 12, fontFamily: 'inherit', background: '#fff', color: '#1a1a1a' }}
+            >
+              <option value="">— Müşteri seçin —</option>
+              {customers.map(c => (
+                <option key={c.id} value={c.id}>{c.name} {c.phone ? `(${c.phone})` : ''}</option>
+              ))}
+            </select>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: '#999' }}>↕↔ Sürükle taşı</span>
-            <button onClick={() => setNewAppointment(null)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e8e8e3', background: '#fff', color: '#666', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
-            <button onClick={handleConfirmExpert} disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#1D9E75', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.7 : 1 }}>Onayla</button>
+          {/* Randevu ozet + butonlar */}
+          <div style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: 13, color: '#1a1a1a' }}>
+              <b>{selectedService.description}</b> · {newAppointment.expert?.name} · {newAppointment.startTime} - {newAppointment.endTime} · {selectedService.duration}dk
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: '#999' }}>↕↔ Sürükle taşı</span>
+              <button onClick={() => setNewAppointment(null)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e8e8e3', background: '#fff', color: '#666', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
+              <button onClick={handleConfirmExpert} disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#1D9E75', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.7 : 1 }}>Onayla</button>
+            </div>
           </div>
         </div>
       )}
@@ -294,7 +333,7 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
 }
 
 // ═══ SELF SERVİS KAPASİTE PANELİ ═══
-function FacilityCapacityPanel({ room, service, occupancy, saving, onConfirm }) {
+function FacilityCapacityPanel({ room, service, occupancy, saving, onConfirm, customers, selectedCustomerId, onCustomerChange }) {
   if (!room || !occupancy) return null;
 
   const pct = Math.round((occupancy.current / occupancy.max) * 100);
@@ -338,6 +377,21 @@ function FacilityCapacityPanel({ room, service, occupancy, saving, onConfirm }) 
       <div style={{ background: '#fafaf8', border: '1px solid #e8e8e3', borderRadius: 10, padding: '12px 20px', textAlign: 'center' }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a' }}>{service.description}</div>
         <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>{service.duration} dk · {service.price ? `${Number(service.price).toLocaleString('tr-TR')} TL` : 'Ücretsiz'}</div>
+      </div>
+
+      {/* Musteri secici */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', maxWidth: 300 }}>
+        <span style={{ fontSize: 12, fontWeight: 500, color: '#666', whiteSpace: 'nowrap' }}>Müşteri:</span>
+        <select
+          value={selectedCustomerId}
+          onChange={e => onCustomerChange(e.target.value)}
+          style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid #e8e8e3', fontSize: 12, fontFamily: 'inherit', background: '#fff' }}
+        >
+          <option value="">— Müşteri seçin —</option>
+          {(customers || []).map(c => (
+            <option key={c.id} value={c.id}>{c.name} {c.phone ? `(${c.phone})` : ''}</option>
+          ))}
+        </select>
       </div>
 
       {/* Onayla butonu */}
