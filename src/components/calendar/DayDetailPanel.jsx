@@ -26,6 +26,8 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
   const [expertServicesMap, setExpertServicesMap] = useState(new Map());
   const [customers, setCustomers] = useState([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState(null); // 'expert' | 'facility'
 
   const dateObj = new Date(date + 'T00:00:00');
   const [y, m, d] = date.split('-');
@@ -121,20 +123,40 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
     setNewAppointment({ colIndex, startSlot: slotIndex, expert, startTime: slotToTime(slotIndex), endTime: slotToTime(slotIndex + slotsNeeded) });
   }, [slotsNeeded]);
 
-  // Randevu kaydet — uzman hizmeti
-  const handleConfirmExpert = async () => {
-    if (!newAppointment || !selectedService || !company?.id) return;
-    if (!selectedCustomerId) {
-      toast({ title: 'Müşteri seçin', description: 'Randevu oluşturmak için müşteri seçmelisiniz.', variant: 'destructive' });
+  // Onayla tiklaninca modal ac
+  const handleConfirmClick = (type) => {
+    if (type === 'expert' && (!newAppointment || !selectedService || !company?.id)) return;
+    if (type === 'facility' && (!selectedService || !selectedRoom || !company?.id)) return;
+    if (type === 'facility' && facilityOccupancy && facilityOccupancy.current >= facilityOccupancy.max) {
+      toast({ title: 'Kapasite dolu', description: `${selectedRoom.name} maksimum kapasiteye ulaştı.`, variant: 'destructive' });
       return;
     }
+    setConfirmTarget(type);
+    setShowCustomerModal(true);
+  };
+
+  // Modal'dan musteri secildi — randevu kaydet
+  const handleCustomerConfirmed = async (customerId) => {
+    setShowCustomerModal(false);
+    setSelectedCustomerId(customerId);
+    if (confirmTarget === 'expert') {
+      await saveExpertAppointment(customerId);
+    } else {
+      await saveFacilityAppointment(customerId);
+    }
+    setConfirmTarget(null);
+  };
+
+  // Randevu kaydet — uzman hizmeti
+  const saveExpertAppointment = async (custId) => {
+    if (!newAppointment || !selectedService || !company?.id || !custId) return;
     setSaving(true);
     try {
       const ins = {
         company_id: company.id, service_id: selectedService.id, date, time: newAppointment.startTime,
         total_duration: selectedService.duration, total_amount: selectedService.price || 0,
         status: 'onaylandı', payment_status: 'unpaid',
-        customer_id: selectedCustomerId,
+        customer_id: custId,
       };
       if (newAppointment.expert) ins.expert_id = newAppointment.expert.id;
       if (selectedRoom) ins.space_id = selectedRoom.id;
@@ -155,16 +177,8 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
   };
 
   // Randevu kaydet — self servis (tesis girisi)
-  const handleConfirmFacility = async () => {
-    if (!selectedService || !selectedRoom || !company?.id) return;
-    if (!selectedCustomerId) {
-      toast({ title: 'Müşteri seçin', description: 'Randevu oluşturmak için müşteri seçmelisiniz.', variant: 'destructive' });
-      return;
-    }
-    if (facilityOccupancy && facilityOccupancy.current >= facilityOccupancy.max) {
-      toast({ title: 'Kapasite dolu', description: `${selectedRoom.name} maksimum kapasiteye ulaştı.`, variant: 'destructive' });
-      return;
-    }
+  const saveFacilityAppointment = async (custId) => {
+    if (!selectedService || !selectedRoom || !company?.id || !custId) return;
     setSaving(true);
     try {
       const now = new Date();
@@ -173,7 +187,7 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
         company_id: company.id, service_id: selectedService.id, date, time: currentTime,
         total_duration: selectedService.duration, total_amount: selectedService.price || 0,
         space_id: selectedRoom.id, status: 'onaylandı', payment_status: 'unpaid',
-        customer_id: selectedCustomerId,
+        customer_id: custId,
       };
       const { data: aptData, error } = await supabase.from('appointments').insert(ins).select().single();
       if (error) throw error;
@@ -282,10 +296,7 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
               service={selectedService}
               occupancy={facilityOccupancy}
               saving={saving}
-              onConfirm={handleConfirmFacility}
-              customers={customers}
-              selectedCustomerId={selectedCustomerId}
-              onCustomerChange={setSelectedCustomerId}
+              onConfirm={() => handleConfirmClick('facility')}
             />
           )}
 
@@ -301,21 +312,6 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
       {/* ═══ CONFIRM BAR — sadece uzman hizmetleri icin ═══ */}
       {newAppointment && selectedService && !isSelfService && (
         <div style={{ borderTop: '1px solid #e8e8e3', background: '#fafaf8' }}>
-          {/* Musteri secici */}
-          <div style={{ padding: '8px 20px', borderBottom: '1px solid #e8e8e3', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 12, fontWeight: 500, color: '#666', whiteSpace: 'nowrap' }}>Müşteri:</span>
-            <select
-              value={selectedCustomerId}
-              onChange={e => setSelectedCustomerId(e.target.value)}
-              style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid #e8e8e3', fontSize: 12, fontFamily: 'inherit', background: '#fff', color: '#1a1a1a' }}
-            >
-              <option value="">— Müşteri seçin —</option>
-              {customers.map(c => (
-                <option key={c.id} value={c.id}>{c.name} {c.phone ? `(${c.phone})` : ''}</option>
-              ))}
-            </select>
-          </div>
-          {/* Randevu ozet + butonlar */}
           <div style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ fontSize: 13, color: '#1a1a1a' }}>
               <b>{selectedService.description}</b> · {newAppointment.expert?.name} · {newAppointment.startTime} - {newAppointment.endTime} · {selectedService.duration}dk
@@ -323,17 +319,29 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <span style={{ fontSize: 11, color: '#999' }}>↕↔ Sürükle taşı</span>
               <button onClick={() => setNewAppointment(null)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e8e8e3', background: '#fff', color: '#666', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
-              <button onClick={handleConfirmExpert} disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#1D9E75', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.7 : 1 }}>Onayla</button>
+              <button onClick={() => handleConfirmClick('expert')} disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#1D9E75', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.7 : 1 }}>Onayla</button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* ═══ MÜŞTERİ SEÇİM MODALI ═══ */}
+      {showCustomerModal && (
+        <CustomerSelectModal
+          customers={customers}
+          company={company}
+          saving={saving}
+          onConfirm={handleCustomerConfirmed}
+          onClose={() => { setShowCustomerModal(false); setConfirmTarget(null); }}
+          onCustomerCreated={(c) => setCustomers(prev => [...prev, c].sort((a, b) => a.name.localeCompare(b.name)))}
+        />
       )}
     </div>
   );
 }
 
 // ═══ SELF SERVİS KAPASİTE PANELİ ═══
-function FacilityCapacityPanel({ room, service, occupancy, saving, onConfirm, customers, selectedCustomerId, onCustomerChange }) {
+function FacilityCapacityPanel({ room, service, occupancy, saving, onConfirm }) {
   if (!room || !occupancy) return null;
 
   const pct = Math.round((occupancy.current / occupancy.max) * 100);
@@ -379,21 +387,6 @@ function FacilityCapacityPanel({ room, service, occupancy, saving, onConfirm, cu
         <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>{service.duration} dk · {service.price ? `${Number(service.price).toLocaleString('tr-TR')} TL` : 'Ücretsiz'}</div>
       </div>
 
-      {/* Musteri secici */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', maxWidth: 300 }}>
-        <span style={{ fontSize: 12, fontWeight: 500, color: '#666', whiteSpace: 'nowrap' }}>Müşteri:</span>
-        <select
-          value={selectedCustomerId}
-          onChange={e => onCustomerChange(e.target.value)}
-          style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid #e8e8e3', fontSize: 12, fontFamily: 'inherit', background: '#fff' }}
-        >
-          <option value="">— Müşteri seçin —</option>
-          {(customers || []).map(c => (
-            <option key={c.id} value={c.id}>{c.name} {c.phone ? `(${c.phone})` : ''}</option>
-          ))}
-        </select>
-      </div>
-
       {/* Onayla butonu */}
       <button
         onClick={onConfirm}
@@ -407,6 +400,154 @@ function FacilityCapacityPanel({ room, service, occupancy, saving, onConfirm, cu
       >
         {saving ? 'Kaydediliyor...' : isFull ? 'Kapasite Dolu' : 'Giriş Onayla'}
       </button>
+    </div>
+  );
+}
+
+// ═══ MÜŞTERİ SEÇİM MODALI ═══
+function CustomerSelectModal({ customers, company, saving, onConfirm, onClose, onCustomerCreated }) {
+  const [search, setSearch] = useState('');
+  const [selectedId, setSelectedId] = useState('');
+  const [mode, setMode] = useState('select'); // 'select' | 'new'
+  const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [creating, setCreating] = useState(false);
+
+  const filtered = customers.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    (c.phone && c.phone.includes(search))
+  );
+
+  // Yeni musteri olustur
+  const handleCreateCustomer = async () => {
+    if (!newName.trim()) return;
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.from('customers').insert({
+        company_id: company.id, name: newName.trim().toUpperCase(), phone: newPhone.trim() || null, is_active: true,
+      }).select('id, name, phone').single();
+      if (error) throw error;
+      onCustomerCreated(data);
+      onConfirm(data.id);
+    } catch (err) {
+      console.error('Müşteri oluşturma hatası:', err);
+    } finally { setCreating(false); }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      onClick={onClose}>
+      {/* Overlay */}
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} />
+
+      {/* Modal */}
+      <div style={{ position: 'relative', background: '#fff', borderRadius: 14, width: 420, maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+        onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #e8e8e3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a' }}>Müşteri Seçin</div>
+          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid #e8e8e3', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M10.5 3.5l-7 7M3.5 3.5l7 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+          </button>
+        </div>
+
+        {/* Tab secici */}
+        <div style={{ display: 'flex', borderBottom: '1px solid #e8e8e3' }}>
+          <button onClick={() => setMode('select')} style={{
+            flex: 1, padding: '10px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            border: 'none', borderBottom: mode === 'select' ? '2px solid #534AB7' : '2px solid transparent',
+            background: 'transparent', color: mode === 'select' ? '#534AB7' : '#999',
+          }}>Mevcut Müşteri</button>
+          <button onClick={() => setMode('new')} style={{
+            flex: 1, padding: '10px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            border: 'none', borderBottom: mode === 'new' ? '2px solid #534AB7' : '2px solid transparent',
+            background: 'transparent', color: mode === 'new' ? '#534AB7' : '#999',
+          }}>Yeni Müşteri</button>
+        </div>
+
+        {/* Icerik */}
+        {mode === 'select' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+            {/* Arama */}
+            <div style={{ padding: '12px 16px' }}>
+              <input
+                type="text" value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="İsim veya telefon ile ara..."
+                autoFocus
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #e8e8e3', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+            {/* Liste */}
+            <div style={{ flex: 1, overflowY: 'auto', maxHeight: 300, padding: '0 8px 8px' }}>
+              {filtered.length === 0 ? (
+                <div style={{ padding: 20, textAlign: 'center', color: '#999', fontSize: 13 }}>
+                  {search ? 'Sonuç bulunamadı' : 'Henüz müşteri yok'}
+                </div>
+              ) : filtered.map(c => (
+                <div key={c.id} onClick={() => setSelectedId(c.id)} style={{
+                  padding: '10px 14px', borderRadius: 10, cursor: 'pointer', marginBottom: 2,
+                  background: selectedId === c.id ? '#F0EDFF' : 'transparent',
+                  border: selectedId === c.id ? '1px solid #534AB7' : '1px solid transparent',
+                  transition: 'all 0.15s',
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a' }}>{c.name}</div>
+                  {c.phone && <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{c.phone}</div>}
+                </div>
+              ))}
+            </div>
+            {/* Onayla */}
+            <div style={{ padding: '12px 16px', borderTop: '1px solid #e8e8e3' }}>
+              <button
+                onClick={() => selectedId && onConfirm(selectedId)}
+                disabled={!selectedId || saving}
+                style={{
+                  width: '100%', padding: '12px', borderRadius: 10, border: 'none', fontSize: 14, fontWeight: 600,
+                  cursor: !selectedId ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                  background: !selectedId ? '#d5d5d0' : '#1D9E75', color: '#fff',
+                  opacity: saving ? 0.7 : 1,
+                }}
+              >
+                {saving ? 'Kaydediliyor...' : 'Randevuyu Onayla'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>Ad Soyad *</label>
+              <input
+                type="text" value={newName}
+                onChange={e => setNewName(e.target.value.toUpperCase())}
+                placeholder="MÜŞTERİ ADI"
+                autoFocus
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #e8e8e3', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>Telefon</label>
+              <input
+                type="tel" value={newPhone}
+                onChange={e => setNewPhone(e.target.value)}
+                placeholder="+90 5XX XXX XX XX"
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #e8e8e3', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+            <button
+              onClick={handleCreateCustomer}
+              disabled={!newName.trim() || creating || saving}
+              style={{
+                width: '100%', padding: '12px', borderRadius: 10, border: 'none', fontSize: 14, fontWeight: 600,
+                cursor: !newName.trim() ? 'not-allowed' : 'pointer', fontFamily: 'inherit', marginTop: 4,
+                background: !newName.trim() ? '#d5d5d0' : '#1D9E75', color: '#fff',
+                opacity: (creating || saving) ? 0.7 : 1,
+              }}
+            >
+              {creating ? 'Oluşturuluyor...' : 'Müşteri Oluştur ve Randevuyu Onayla'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
