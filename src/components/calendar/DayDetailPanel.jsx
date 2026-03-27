@@ -411,6 +411,7 @@ function CustomerSelectModal({ customers, company, saving, onConfirm, onClose, o
   const [mode, setMode] = useState('select'); // 'select' | 'new'
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
+  const [newEmail, setNewEmail] = useState('');
   const [creating, setCreating] = useState(false);
 
   const filtered = customers.filter(c =>
@@ -424,7 +425,7 @@ function CustomerSelectModal({ customers, company, saving, onConfirm, onClose, o
     setCreating(true);
     try {
       const { data, error } = await supabase.from('customers').insert({
-        company_id: company.id, name: newName.trim().toUpperCase(), phone: newPhone.trim() || null, is_active: true,
+        company_id: company.id, name: newName.trim().toUpperCase(), phone: newPhone.trim() || null, email: newEmail.trim() || null, is_active: true,
       }).select('id, name, phone').single();
       if (error) throw error;
       onCustomerCreated(data);
@@ -530,6 +531,15 @@ function CustomerSelectModal({ customers, company, saving, onConfirm, onClose, o
                 type="tel" value={newPhone}
                 onChange={e => setNewPhone(e.target.value)}
                 placeholder="+90 5XX XXX XX XX"
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #e8e8e3', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>E-posta</label>
+              <input
+                type="email" value={newEmail}
+                onChange={e => setNewEmail(e.target.value)}
+                placeholder="ornek@mail.com"
                 style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #e8e8e3', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
