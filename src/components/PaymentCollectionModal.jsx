@@ -262,7 +262,7 @@ const PaymentCollectionModal = ({ open, onClose, appointmentId, companyId, exper
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-20">
+          <div className="flex items-center justify-center" style={{ minHeight: 400 }}>
             <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
           </div>
         ) : detail ? (
