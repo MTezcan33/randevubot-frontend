@@ -15,7 +15,8 @@ function barColor(p) {
   return '#A32D2D';
 }
 
-function textColor(p) {
+// Koyu tema icin daha parlak text renkleri
+function textColorDark(p) {
   if (p <= 30) return '#27500A';
   if (p <= 50) return '#3B6D11';
   if (p <= 70) return '#854F0B';
@@ -23,13 +24,23 @@ function textColor(p) {
   return '#501313';
 }
 
+function textColorLight(p) {
+  if (p <= 30) return '#4A8C1F';
+  if (p <= 50) return '#5BA028';
+  if (p <= 70) return '#B87A1A';
+  if (p <= 85) return '#C43A39';
+  return '#A32D2D';
+}
+
 export default function MonthlyDayCard({
   dayOfMonth, dayOfWeek, occupancy,
   isToday, isSelected, isClosed, isPast, onClick,
+  theme = 'dark',
 }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language?.substring(0, 2) || 'tr';
   const dayName = (DAY_NAMES[lang] || DAY_NAMES.tr)[dayOfWeek];
+  const isDark = theme === 'dark';
 
   const mo = occupancy?.massagePercent || 0;
   const to = occupancy?.facilityPercent || 0;
@@ -39,19 +50,24 @@ export default function MonthlyDayCard({
   const tMax = occupancy?.facilityMax || 0;
 
   const isSaturday = dayOfWeek === 6;
+  const textColor = isDark ? textColorDark : textColorLight;
 
   // Kapali gun
   if (isClosed) {
     return (
       <div style={{
-        background: '#f8f7f4', borderTop: '1px solid #e8e5de', borderRight: '1px solid #e8e5de', borderBottom: '1px solid #e8e5de',
-        borderLeft: '3px solid #ccc', borderRadius: '0 10px 10px 0',
+        background: isDark ? '#f8f7f4' : '#fafafa',
+        borderTop: `1px solid ${isDark ? '#e8e5de' : '#eee'}`,
+        borderRight: `1px solid ${isDark ? '#e8e5de' : '#eee'}`,
+        borderBottom: `1px solid ${isDark ? '#e8e5de' : '#eee'}`,
+        borderLeft: `3px solid ${isDark ? '#ccc' : '#ddd'}`,
+        borderRadius: '0 10px 10px 0',
         padding: '6px 8px 5px', display: 'flex',
         flexDirection: 'column', opacity: 0.6, cursor: 'default', minHeight: 0, overflow: 'hidden',
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: 'auto' }}>
-          <span style={{ fontSize: 16, fontWeight: 600, color: '#1a1a1a' }}>{dayOfMonth}</span>
-          <span style={{ fontSize: 12, fontWeight: 500, color: '#666' }}>{dayName}</span>
+          <span style={{ fontSize: 16, fontWeight: 600, color: isDark ? '#1a1a1a' : '#666' }}>{dayOfMonth}</span>
+          <span style={{ fontSize: 12, fontWeight: 500, color: '#999' }}>{dayName}</span>
         </div>
         <div style={{ fontSize: 11, color: '#999', fontWeight: 500, marginTop: 'auto' }}>
           {t('closed')}
@@ -63,11 +79,22 @@ export default function MonthlyDayCard({
   // Sol kenar aksani rengi
   const leftBorderColor = isToday ? '#378ADD' : isSelected ? '#1D9E75' : isSaturday ? '#BA7517' : '#1D9E75';
 
+  // Tema bazli kart renkleri
+  const normalBorderColor = isDark
+    ? (isSaturday ? '#E8DFC0' : '#d8ddd8')
+    : (isSaturday ? '#f0e8d0' : '#e8e8e8');
+
+  const cardBg = isSelected ? '#E1F5EE'
+    : isSaturday ? (isDark ? '#FFFDF5' : '#FFFEF8')
+    : (isDark ? '#fff' : '#fff');
+
+  const cardShadow = isDark ? '0 1px 3px rgba(0,0,0,0.08)' : 'none';
+
   const cardStyle = {
-    background: isSelected ? '#E1F5EE' : isSaturday ? '#FFFDF5' : '#fff',
-    borderTop: isToday ? '2px solid #378ADD' : isSelected ? '2px solid #1D9E75' : `1px solid ${isSaturday ? '#E8DFC0' : '#d8ddd8'}`,
-    borderRight: isToday ? '2px solid #378ADD' : isSelected ? '2px solid #1D9E75' : `1px solid ${isSaturday ? '#E8DFC0' : '#d8ddd8'}`,
-    borderBottom: isToday ? '2px solid #378ADD' : isSelected ? '2px solid #1D9E75' : `1px solid ${isSaturday ? '#E8DFC0' : '#d8ddd8'}`,
+    background: cardBg,
+    borderTop: isToday ? '2px solid #378ADD' : isSelected ? '2px solid #1D9E75' : `1px solid ${normalBorderColor}`,
+    borderRight: isToday ? '2px solid #378ADD' : isSelected ? '2px solid #1D9E75' : `1px solid ${normalBorderColor}`,
+    borderBottom: isToday ? '2px solid #378ADD' : isSelected ? '2px solid #1D9E75' : `1px solid ${normalBorderColor}`,
     borderLeft: `3px solid ${leftBorderColor}`,
     borderRadius: '0 10px 10px 0',
     padding: '6px 8px 5px',
@@ -78,6 +105,7 @@ export default function MonthlyDayCard({
     minHeight: 0,
     overflow: 'hidden',
     opacity: isPast ? 0.4 : 1,
+    boxShadow: cardShadow,
   };
 
   // Doluluk barı track ve fill renkleri (bos durum icin)
@@ -119,10 +147,12 @@ export default function MonthlyDayCard({
     );
   };
 
+  const hoverBorderColor = isDark ? '#c0c0b8' : '#d5d5d0';
+
   return (
     <div onClick={onClick} style={cardStyle}
-      onMouseEnter={e => { if (!isToday && !isSelected) { e.currentTarget.style.borderColor = '#d5d5d0'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'; }}}
-      onMouseLeave={e => { if (!isToday && !isSelected) { e.currentTarget.style.borderColor = isSaturday ? '#E8DFC0' : '#d8ddd8'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}}
+      onMouseEnter={e => { if (!isToday && !isSelected) { e.currentTarget.style.borderColor = hoverBorderColor; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = isDark ? '0 4px 12px rgba(0,0,0,0.15)' : '0 2px 8px rgba(0,0,0,0.06)'; }}}
+      onMouseLeave={e => { if (!isToday && !isSelected) { e.currentTarget.style.borderColor = normalBorderColor; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = cardShadow; }}}
     >
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 'auto' }}>
         <span style={{ fontSize: 14, fontWeight: 600, color: isSelected ? '#085041' : '#1a1a1a', lineHeight: 1 }}>

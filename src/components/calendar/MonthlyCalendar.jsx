@@ -26,6 +26,7 @@ export default function MonthlyCalendar() {
   const [viewMonth, setViewMonth] = useState(() => new Date());
   const [selectedDay, setSelectedDay] = useState(null);
   const [spaces, setSpaces] = useState([]);
+  const [calTheme, setCalTheme] = useState(() => localStorage.getItem('cal_theme') || 'dark');
 
   const year = viewMonth.getFullYear();
   const month = viewMonth.getMonth();
@@ -33,6 +34,13 @@ export default function MonthlyCalendar() {
 
   useEffect(() => { if (company?.id) getSpaces(company.id).then(d => setSpaces(d || [])); }, [company?.id]);
   const { occupancyMap } = useMonthlyOccupancy(company?.id, viewMonth, workingHours, experts, spaces);
+
+  const toggleTheme = () => {
+    const next = calTheme === 'dark' ? 'light' : 'dark';
+    setCalTheme(next);
+    localStorage.setItem('cal_theme', next);
+  };
+  const isDark = calTheme === 'dark';
 
   const prevMonth = () => { setViewMonth(p => new Date(p.getFullYear(), p.getMonth() - 1, 1)); setSelectedDay(null); };
   const nextMonth = () => { setViewMonth(p => new Date(p.getFullYear(), p.getMonth() + 1, 1)); setSelectedDay(null); };
@@ -90,20 +98,37 @@ export default function MonthlyCalendar() {
           <span style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a', minWidth: 110, textAlign: 'center' }}>{monthName} {year}</span>
           <button onClick={nextMonth} style={navBtnStyle}><ChevronSvg dir="right" /></button>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <StatBox value={monthStats.m} label="masaj" />
           <StatBox value={monthStats.f} label="tesis" />
           <StatBox value={`%${monthStats.pct}`} label="doluluk" />
+          {/* Tema toggle */}
+          <button onClick={toggleTheme} title={isDark ? 'Açık tema' : 'Koyu tema'} style={{
+            width: 32, height: 32, borderRadius: 8, border: '1px solid #e8e8e3', background: isDark ? '#2a2d35' : '#fff',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 4,
+            transition: 'all 0.2s',
+          }}>
+            {isDark ? (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f5d76e" strokeWidth="2" strokeLinecap="round"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
+            ) : (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#EF9F27" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            )}
+          </button>
         </div>
       </div>
 
       {/* ═══ WEEKDAY + GRID — flex-1 ile kalan alani doldur ═══ */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0,
+        background: isDark ? '#2a2d35' : '#f8f8f6',
+        borderRadius: 12, padding: '8px 6px 6px',
+        transition: 'background 0.3s ease',
+      }}>
 
         {/* Weekday headers */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, flexShrink: 0 }}>
           {weekdays.map((d, i) => (
-            <div key={i} style={{ fontSize: 11, fontWeight: 500, color: '#999', textAlign: 'center', padding: '4px 0' }}>{d}</div>
+            <div key={i} style={{ fontSize: 11, fontWeight: 500, color: isDark ? '#8b8fa0' : '#999', textAlign: 'center', padding: '4px 0' }}>{d}</div>
           ))}
         </div>
 
@@ -111,7 +136,7 @@ export default function MonthlyCalendar() {
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
           gridTemplateRows: `repeat(${weekCount}, 1fr)`,
-          gap: 4, flex: 1, minHeight: 0,
+          gap: isDark ? 5 : 4, flex: 1, minHeight: 0,
         }}>
           {calendarDays.map(day => {
             if (day.type === 'empty') return <div key={day.key} />;
@@ -120,6 +145,7 @@ export default function MonthlyCalendar() {
                 occupancy={day.occupancy} isToday={day.isToday} isSelected={day.isSelected}
                 isClosed={day.isClosed} isPast={day.isPast}
                 onClick={() => { if (!day.isClosed) handleDayClick(day.date); }}
+                theme={calTheme}
               />
             );
           })}
