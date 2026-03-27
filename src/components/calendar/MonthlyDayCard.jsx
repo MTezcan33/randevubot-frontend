@@ -25,7 +25,7 @@ function textColor(p) {
 
 export default function MonthlyDayCard({
   dayOfMonth, dayOfWeek, occupancy,
-  isToday, isSelected, isClosed, isPast, onClick,
+  isToday, isSelected, isClosed, onClick,
 }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language?.substring(0, 2) || 'tr';
@@ -47,7 +47,7 @@ export default function MonthlyDayCard({
         background: '#D5DED8', borderTop: '1px solid #ADBEB4', borderRight: '1px solid #ADBEB4', borderBottom: '1px solid #ADBEB4',
         borderLeft: '4px solid #8AA098', borderRadius: '0 10px 10px 0',
         padding: '6px 8px 5px', display: 'flex',
-        flexDirection: 'column', opacity: 0.6, cursor: 'default', minHeight: 0, overflow: 'hidden',
+        flexDirection: 'column', cursor: 'default', minHeight: 0, overflow: 'hidden',
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: 'auto' }}>
           <span style={{ fontSize: 15, fontWeight: 500, color: '#6E8878' }}>{dayOfMonth}</span>
@@ -78,7 +78,6 @@ export default function MonthlyDayCard({
     flexDirection: 'column',
     minHeight: 0,
     overflow: 'hidden',
-    opacity: isPast ? 0.4 : 1,
   };
 
   // Masaj satiri — mor tonlari
