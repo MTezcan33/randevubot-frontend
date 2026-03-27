@@ -227,14 +227,14 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
   const showFacilityPanel = isSelfService && selectedRoom;
 
   return (
-    <div style={{ border: '1px solid #e8e8e3', borderRadius: 12, overflow: 'hidden', background: '#fff', display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ border: '1px solid #C8D9CF', borderRadius: 14, overflow: 'hidden', background: '#fff', display: 'flex', flexDirection: 'column', height: '100%' }}>
 
       {/* ═══ HEADER ═══ */}
-      <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e8e8e3' }}>
+      <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #C8D9CF', background: '#EFF5F1' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           <div>
-            <div style={{ fontSize: 17, fontWeight: 600 }}>{titleDate}</div>
-            <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>{dayStats.total} randevu</div>
+            <div style={{ fontSize: 16, fontWeight: 500, color: '#2C3A32' }}>{titleDate}</div>
+            <div style={{ fontSize: 11, color: '#6E8878', marginTop: 2 }}>{dayStats.total} randevu</div>
           </div>
           <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
             <MiniBar color="#534AB7" pct={dayStats.mPct} />
@@ -243,8 +243,8 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button onClick={onClose} style={{
-            width: 32, height: 32, borderRadius: '50%', border: '1px solid #e8e8e3', background: '#fff',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666',
+            width: 32, height: 32, borderRadius: '50%', border: '1px solid #C8D9CF', background: '#F5F9F7',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6E8878',
           }}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M10.5 3.5l-7 7M3.5 3.5l7 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
           </button>
@@ -252,20 +252,20 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
       </div>
 
       {/* ═══ BREADCRUMB ═══ */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '10px 20px', background: '#fafaf8', borderBottom: '1px solid #e8e8e3', fontSize: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 20px', background: '#E5EBE7', borderBottom: '1px solid #C8D9CF', fontSize: 11, flexWrap: 'wrap' }}>
         {crumbs.map((c, i) => (
           <React.Fragment key={i}>
-            {i > 0 && <span style={{ color: '#999' }}>›</span>}
-            <span style={{ color: '#534AB7', fontWeight: 600 }}>{c.label}</span>
+            {i > 0 && <span style={{ color: '#A8C4B4' }}>›</span>}
+            <span style={{ color: '#534AB7', fontWeight: 500 }}>{c.label}</span>
           </React.Fragment>
         ))}
-        {hint && (<><span style={{ color: '#999' }}>›</span><span style={{ color: '#999' }}>{hint}</span></>)}
+        {hint && (<><span style={{ color: '#A8C4B4' }}>›</span><span style={{ color: '#8FA69A' }}>{hint}</span></>)}
       </div>
 
       {/* ═══ BODY ═══ */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        {/* Sol panel */}
-        <div style={{ width: 240, minWidth: 240, borderRight: '1px solid #e8e8e3', overflowY: 'auto' }}>
+        {/* Sol panel — Sage Mist */}
+        <div style={{ width: 240, minWidth: 240, borderRight: '1px solid #C8D9CF', overflowY: 'auto', background: '#EFF5F1' }}>
           <DayDetailServiceList
             company={company} date={date}
             selectedService={selectedService} onSelectService={handleSelectService}
@@ -311,14 +311,14 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
 
       {/* ═══ CONFIRM BAR — sadece uzman hizmetleri icin ═══ */}
       {newAppointment && selectedService && !isSelfService && (
-        <div style={{ borderTop: '1px solid #e8e8e3', background: '#fafaf8' }}>
+        <div style={{ borderTop: '1px solid #eee', background: '#FAFAF8' }}>
           <div style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: 13, color: '#1a1a1a' }}>
+            <div style={{ fontSize: 13, color: '#2C3A32' }}>
               <b>{selectedService.description}</b> · {newAppointment.expert?.name} · {newAppointment.startTime} - {newAppointment.endTime} · {selectedService.duration}dk
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span style={{ fontSize: 11, color: '#999' }}>↕↔ Sürükle taşı</span>
-              <button onClick={() => setNewAppointment(null)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e8e8e3', background: '#fff', color: '#666', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
+              <span style={{ fontSize: 11, color: '#8FA69A' }}>↕↔ Sürükle taşı</span>
+              <button onClick={() => setNewAppointment(null)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #C8D9CF', background: '#F5F9F7', color: '#6E8878', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
               <button onClick={() => handleConfirmClick('expert')} disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#1D9E75', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.7 : 1 }}>Onayla</button>
             </div>
           </div>
@@ -566,10 +566,10 @@ function MiniBar({ color, pct }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       <div style={{ width: 7, height: 7, borderRadius: '50%', background: color }} />
-      <div style={{ width: 80, height: 6, borderRadius: 3, background: '#eeeee8', overflow: 'hidden' }}>
+      <div style={{ width: 80, height: 6, borderRadius: 3, background: '#D0E2D8', overflow: 'hidden' }}>
         <div style={{ height: '100%', borderRadius: 3, width: `${pct}%`, background: barColor(pct) }} />
       </div>
-      <span style={{ fontSize: 12, fontWeight: 600, fontFamily: "'SF Mono','Menlo',monospace", color: textColor(pct) }}>%{pct}</span>
+      <span style={{ fontSize: 11, fontWeight: 500, fontFamily: "'SF Mono','Menlo',monospace", color: textColor(pct) }}>%{pct}</span>
     </div>
   );
 }

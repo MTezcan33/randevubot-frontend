@@ -102,7 +102,7 @@ export default function DayDetailTimeGrid({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       {/* Header — uzman isimleri + doluluk bari */}
-      <div style={{ display: 'grid', gridTemplateColumns: gtc, borderBottom: '1px solid #d5d5d0' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: gtc, borderBottom: '1px solid #e0e0db', background: '#FDFCFA' }}>
         <div style={{ padding: '8px 4px', fontSize: 10, color: '#999', fontWeight: 500 }} />
         {experts.map((exp, ci) => {
           const colors = getStaffColors(ci);

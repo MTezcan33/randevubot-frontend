@@ -40,18 +40,19 @@ export default function DayDetailServiceList({
         <div
           onClick={() => onSelectService(isS ? null : svc)}
           style={{
-            borderBottom: '1px solid #e8e8e3', padding: '6px 12px', cursor: 'pointer',
+            borderBottom: '1px solid #D0E2D8', padding: '6px 12px', cursor: 'pointer',
             transition: 'all 0.12s',
-            background: isS ? (isSelf ? '#E1F5EE' : '#EEEDFE') : undefined,
-            borderLeft: isS ? `3px solid ${isSelf ? '#1D9E75' : '#534AB7'}` : '3px solid transparent',
+            background: isS ? '#E8E5F5' : undefined,
+            borderLeft: isS ? `3px solid #7F77DD` : '3px solid transparent',
+            paddingLeft: isS ? '9px' : '12px',
           }}
-          onMouseEnter={e => { if (!isS) e.currentTarget.style.background = '#f5f5f0'; }}
+          onMouseEnter={e => { if (!isS) e.currentTarget.style.background = '#E5EDE8'; }}
           onMouseLeave={e => { if (!isS) e.currentTarget.style.background = ''; }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 11, fontWeight: 500, color: '#1a1a1a' }}>{svc.description}</span>
+            <span style={{ fontSize: 11, fontWeight: 500, color: '#2C3A32' }}>{svc.description}</span>
             <span style={{
-              fontSize: 12, color: isS ? '#534AB7' : '#999',
+              fontSize: 12, color: isS ? '#7F77DD' : '#A8C4B4',
               transition: 'transform 0.15s',
               display: 'inline-block',
               transform: isS ? 'rotate(90deg)' : 'none',
@@ -63,9 +64,9 @@ export default function DayDetailServiceList({
                 Self Servis
               </span>
             )}
-            <span style={{ fontSize: 10, color: '#666' }}>{svc.duration} dk</span>
+            <span style={{ fontSize: 10, color: '#6E8878' }}>{svc.duration} dk</span>
             {svc.price > 0 && (
-              <span style={{ fontSize: 10, fontWeight: 500, color: '#1a1a1a' }}>{formatPrice(svc.price)} TL</span>
+              <span style={{ fontSize: 10, fontWeight: 500, color: '#3A5444' }}>{formatPrice(svc.price)} TL</span>
             )}
           </div>
         </div>
@@ -90,7 +91,7 @@ export default function DayDetailServiceList({
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '10px 12px 6px' }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#534AB7' }} />
-            <span style={{ fontSize: 11, fontWeight: 500, color: '#888', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Hizmetler</span>
+            <span style={{ fontSize: 10, fontWeight: 500, color: '#5A7264', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Hizmetler</span>
           </div>
           {expertSvcs.map(renderItem)}
         </>
@@ -101,7 +102,7 @@ export default function DayDetailServiceList({
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '10px 12px 6px' }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#1D9E75' }} />
-            <span style={{ fontSize: 11, fontWeight: 500, color: '#888', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Self servis</span>
+            <span style={{ fontSize: 10, fontWeight: 500, color: '#5A7264', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Self servis</span>
           </div>
           {selfSvcs.map(renderItem)}
         </>

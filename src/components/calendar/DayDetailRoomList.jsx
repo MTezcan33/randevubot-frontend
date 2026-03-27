@@ -40,7 +40,7 @@ export default function DayDetailRoomList({
   };
 
   return (
-    <div style={{ padding: '5px 12px 6px 18px', background: '#f5f5f0', borderBottom: '1px solid #e8e8e3' }}>
+    <div style={{ padding: '5px 12px 6px 18px', background: '#E5EBE7', borderBottom: '1px solid #C8D9CF' }}>
       {availableRooms.map(room => {
         const isRS = selectedRoom?.id === room.id;
 
@@ -49,25 +49,25 @@ export default function DayDetailRoomList({
             <div
               onClick={() => onSelectRoom(isRS ? null : room)}
               style={{
-                background: isRS ? (isSelfService ? '#E1F5EE' : '#EEEDFE') : '#fff',
-                border: `1px solid ${isRS ? (isSelfService ? '#1D9E75' : '#534AB7') : '#e8e8e3'}`,
+                background: isRS ? '#EEEDFE' : '#F5F9F7',
+                border: `1px solid ${isRS ? '#7F77DD' : '#C8D9CF'}`,
                 borderRadius: 8, padding: '7px 9px', marginBottom: 5, cursor: 'pointer',
                 transition: 'all 0.12s',
               }}
-              onMouseEnter={e => { if (!isRS) e.currentTarget.style.borderColor = '#d5d5d0'; }}
-              onMouseLeave={e => { if (!isRS) e.currentTarget.style.borderColor = '#e8e8e3'; }}
+              onMouseEnter={e => { if (!isRS) e.currentTarget.style.borderColor = '#A8C4B4'; }}
+              onMouseLeave={e => { if (!isRS) e.currentTarget.style.borderColor = isRS ? '#7F77DD' : '#C8D9CF'; }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 11, fontWeight: 500, color: '#1a1a1a' }}>{room.name}</span>
+                <span style={{ fontSize: 11, fontWeight: 500, color: '#2C3A32' }}>{room.name}</span>
                 {/* Self servis icin kapasite goster */}
                 {isSelfService && (
-                  <span style={{ fontSize: 11, color: '#666', fontWeight: 500 }}>
+                  <span style={{ fontSize: 11, color: '#6E8878', fontWeight: 500 }}>
                     Kapasite: {room.capacity}
                   </span>
                 )}
               </div>
               {room.description && (
-                <div style={{ fontSize: 9, color: '#999', lineHeight: 1.3, marginTop: 2 }}>{room.description}</div>
+                <div style={{ fontSize: 9, color: '#6E8878', lineHeight: 1.3, marginTop: 2 }}>{room.description}</div>
               )}
 
               {/* UZMAN HİZMETİ: Yatak secimi */}
@@ -76,7 +76,7 @@ export default function DayDetailRoomList({
                   onClick={e => e.stopPropagation()}
                 >
                   {loadingUnits ? (
-                    <span style={{ fontSize: 11, color: '#999' }}>...</span>
+                    <span style={{ fontSize: 11, color: '#8FA69A' }}>...</span>
                   ) : (() => {
                     const units = unitData.length > 0
                       ? unitData.map(u => ({ id: u.id, name: u.name, busy: u.appointmentCount > 0 }))
@@ -102,15 +102,16 @@ function BedButton({ name, busy, selected, onClick }) {
   return (
     <div onClick={busy ? undefined : onClick} style={{
       display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 6,
-      border: `1px solid ${selected ? '#534AB7' : '#e8e8e3'}`,
-      background: selected ? '#EEEDFE' : '#fff',
-      cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.4 : 1,
+      border: `1px solid ${selected ? '#7F77DD' : '#C8D9CF'}`,
+      background: selected ? '#EEEDFE' : '#F5F9F7',
+      cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.35 : 1,
       transition: 'all 0.12s', fontSize: 10, fontFamily: 'inherit',
     }}>
-      <span style={{ fontWeight: 500, fontSize: 10, color: '#1a1a1a' }}>{name}</span>
+      <span style={{ fontWeight: 500, fontSize: 10, color: '#2C3A32' }}>{name}</span>
       <span style={{
         fontSize: 9, padding: '1px 6px', borderRadius: 6, fontWeight: 600,
-        background: busy ? '#F09595' : '#C0DD97', color: busy ? '#791F1F' : '#27500A',
+        background: busy ? 'rgba(226,75,74,0.15)' : 'rgba(93,202,165,0.2)',
+        color: busy ? '#A32D2D' : '#0F6E56',
       }}>{busy ? 'dolu' : 'müsait'}</span>
     </div>
   );
