@@ -265,7 +265,7 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
       {/* ═══ BODY ═══ */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         {/* Sol panel */}
-        <div style={{ width: 280, minWidth: 280, borderRight: '1px solid #e8e8e3', overflowY: 'auto' }}>
+        <div style={{ width: 240, minWidth: 240, borderRight: '1px solid #e8e8e3', overflowY: 'auto' }}>
           <DayDetailServiceList
             company={company} date={date}
             selectedService={selectedService} onSelectService={handleSelectService}

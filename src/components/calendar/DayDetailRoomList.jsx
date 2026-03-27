@@ -40,7 +40,7 @@ export default function DayDetailRoomList({
   };
 
   return (
-    <div style={{ padding: '8px 16px 10px 24px', background: '#f5f5f0', borderBottom: '1px solid #e8e8e3' }}>
+    <div style={{ padding: '5px 12px 6px 18px', background: '#f5f5f0', borderBottom: '1px solid #e8e8e3' }}>
       {availableRooms.map(room => {
         const isRS = selectedRoom?.id === room.id;
 
@@ -51,14 +51,14 @@ export default function DayDetailRoomList({
               style={{
                 background: isRS ? (isSelfService ? '#E1F5EE' : '#EEEDFE') : '#fff',
                 border: `1px solid ${isRS ? (isSelfService ? '#1D9E75' : '#534AB7') : '#e8e8e3'}`,
-                borderRadius: 10, padding: '10px 12px', marginBottom: 8, cursor: 'pointer',
+                borderRadius: 8, padding: '7px 9px', marginBottom: 5, cursor: 'pointer',
                 transition: 'all 0.12s',
               }}
               onMouseEnter={e => { if (!isRS) e.currentTarget.style.borderColor = '#d5d5d0'; }}
               onMouseLeave={e => { if (!isRS) e.currentTarget.style.borderColor = '#e8e8e3'; }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a' }}>{room.name}</span>
+                <span style={{ fontSize: 11, fontWeight: 500, color: '#1a1a1a' }}>{room.name}</span>
                 {/* Self servis icin kapasite goster */}
                 {isSelfService && (
                   <span style={{ fontSize: 11, color: '#666', fontWeight: 500 }}>
@@ -67,7 +67,7 @@ export default function DayDetailRoomList({
                 )}
               </div>
               {room.description && (
-                <div style={{ fontSize: 11, color: '#666', lineHeight: 1.4, marginTop: 3 }}>{room.description}</div>
+                <div style={{ fontSize: 9, color: '#999', lineHeight: 1.3, marginTop: 2 }}>{room.description}</div>
               )}
 
               {/* UZMAN HİZMETİ: Yatak secimi */}
@@ -101,15 +101,15 @@ export default function DayDetailRoomList({
 function BedButton({ name, busy, selected, onClick }) {
   return (
     <div onClick={busy ? undefined : onClick} style={{
-      display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8,
+      display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 6,
       border: `1px solid ${selected ? '#534AB7' : '#e8e8e3'}`,
       background: selected ? '#EEEDFE' : '#fff',
       cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.4 : 1,
-      transition: 'all 0.12s', fontSize: 12, fontFamily: 'inherit',
+      transition: 'all 0.12s', fontSize: 10, fontFamily: 'inherit',
     }}>
-      <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{name}</span>
+      <span style={{ fontWeight: 500, fontSize: 10, color: '#1a1a1a' }}>{name}</span>
       <span style={{
-        fontSize: 10, padding: '2px 8px', borderRadius: 8, fontWeight: 600,
+        fontSize: 9, padding: '1px 6px', borderRadius: 6, fontWeight: 600,
         background: busy ? '#F09595' : '#C0DD97', color: busy ? '#791F1F' : '#27500A',
       }}>{busy ? 'dolu' : 'müsait'}</span>
     </div>
