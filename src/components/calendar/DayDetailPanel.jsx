@@ -331,6 +331,7 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
           customers={customers}
           company={company}
           saving={saving}
+          toast={toast}
           onConfirm={handleCustomerConfirmed}
           onClose={() => { setShowCustomerModal(false); setConfirmTarget(null); }}
           onCustomerCreated={(c) => setCustomers(prev => [...prev, c].sort((a, b) => a.name.localeCompare(b.name)))}
@@ -405,7 +406,7 @@ function FacilityCapacityPanel({ room, service, occupancy, saving, onConfirm }) 
 }
 
 // ═══ MÜŞTERİ SEÇİM MODALI ═══
-function CustomerSelectModal({ customers, company, saving, onConfirm, onClose, onCustomerCreated }) {
+function CustomerSelectModal({ customers, company, saving, toast, onConfirm, onClose, onCustomerCreated }) {
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState('');
   const [mode, setMode] = useState('select'); // 'select' | 'new'
@@ -432,6 +433,7 @@ function CustomerSelectModal({ customers, company, saving, onConfirm, onClose, o
       onConfirm(data.id);
     } catch (err) {
       console.error('Müşteri oluşturma hatası:', err);
+      toast?.({ title: 'Müşteri oluşturulamadı', description: err.message, variant: 'destructive' });
     } finally { setCreating(false); }
   };
 
