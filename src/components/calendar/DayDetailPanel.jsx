@@ -421,7 +421,7 @@ function CustomerSelectModal({ customers, company, saving, toast, onConfirm, onC
     (c.phone && c.phone.includes(search))
   );
 
-  // Yeni musteri olustur
+  // Yeni musteri olustur — telefon zaten varsa mevcut musteriyi kullan
   const handleCreateCustomer = async () => {
     if (!newName.trim()) return;
     setCreating(true);
@@ -430,7 +430,20 @@ function CustomerSelectModal({ customers, company, saving, toast, onConfirm, onC
       if (newPhone.trim()) insertData.phone = newPhone.trim();
       if (newEmail.trim()) insertData.email = newEmail.trim();
       const { data, error } = await supabase.from('customers').insert(insertData).select('id, name, phone').single();
-      if (error) throw error;
+      if (error) {
+        // Telefon unique constraint — mevcut musteriyi bul ve onunla devam et
+        if (error.code === '23505' && newPhone.trim()) {
+          const { data: existing } = await supabase.from('customers').select('id, name, phone')
+            .eq('company_id', company.id).eq('phone', newPhone.trim()).single();
+          if (existing) {
+            toast?.({ title: 'Mevcut müşteri bulundu', description: `${existing.name} — bu telefon zaten kayıtlı.` });
+            onCustomerCreated(existing);
+            onConfirm(existing.id);
+            return;
+          }
+        }
+        throw error;
+      }
       onCustomerCreated(data);
       onConfirm(data.id);
     } catch (err) {
