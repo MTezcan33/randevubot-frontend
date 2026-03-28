@@ -166,8 +166,8 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
       if (error) throw error;
       if (aptData) {
         // Yan tablolara kayit — hata olursa yutulur, ana randevu zaten olusmustu
-        await supabase.from('appointment_services').insert({ appointment_id: aptData.id, service_id: selectedService.id, expert_id: newAppointment.expert?.id || null }).catch(() => {});
-        if (selectedRoom) await supabase.from('appointment_resources').insert({ appointment_id: aptData.id, resource_type: 'space', resource_id: selectedRoom.id }).catch(() => {});
+        try { await supabase.from('appointment_services').insert({ appointment_id: aptData.id, service_id: selectedService.id, expert_id: newAppointment.expert?.id || null }); } catch (_) {}
+        if (selectedRoom) { try { await supabase.from('appointment_resources').insert({ appointment_id: aptData.id, resource_type: 'space', resource_id: selectedRoom.id }); } catch (_) {} }
       }
       toast({ title: t('appointmentCreatedSuccess'), description: `${selectedService.description} · ${newAppointment.expert?.name || ''} · ${newAppointment.startTime}` });
       setNewAppointment(null);
@@ -193,8 +193,8 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
       const { data: aptData, error } = await supabase.from('appointments').insert(ins).select().single();
       if (error) throw error;
       if (aptData) {
-        await supabase.from('appointment_services').insert({ appointment_id: aptData.id, service_id: selectedService.id }).catch(() => {});
-        await supabase.from('appointment_resources').insert({ appointment_id: aptData.id, resource_type: 'space', resource_id: selectedRoom.id }).catch(() => {});
+        try { await supabase.from('appointment_services').insert({ appointment_id: aptData.id, service_id: selectedService.id }); } catch (_) {}
+        try { await supabase.from('appointment_resources').insert({ appointment_id: aptData.id, resource_type: 'space', resource_id: selectedRoom.id }); } catch (_) {}
       }
       toast({ title: t('appointmentCreatedSuccess'), description: `${selectedService.description} · ${selectedRoom.name}` });
       fetchDayAppointments(company.id, date).then(setDayAppointments);
@@ -431,40 +431,34 @@ function CustomerSelectModal({ customers, company, saving, toast, onConfirm, onC
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [creating, setCreating] = useState(false);
-  const [foundCustomer, setFoundCustomer] = useState(null); // mevcut musteri bulundu
-  const [searchDone, setSearchDone] = useState(false);
+  const [foundCustomer, setFoundCustomer] = useState(null);
 
   // Telefon girilince otomatik ara
-  const fullPhone = countryCode + phone.replace(/^0+/, ''); // basta 0 varsa kaldir
+  const fullPhone = countryCode + phone.replace(/^0+/, '');
 
   useEffect(() => {
-    if (phone.length < 7) { setFoundCustomer(null); setSearchDone(false); return; }
+    if (phone.length < 7) { setFoundCustomer(null); return; }
     const timer = setTimeout(() => {
       const match = customers.find(c => c.phone && c.phone === fullPhone);
       setFoundCustomer(match || null);
-      setSearchDone(true);
     }, 300);
     return () => clearTimeout(timer);
   }, [phone, countryCode]);
 
-  // Mevcut musteri ile devam
-  const handleUseExisting = () => {
-    if (foundCustomer) onConfirm(foundCustomer.id);
-  };
-
-  // Yeni musteri olustur
-  const handleCreateCustomer = async () => {
-    if (!newName.trim() || phone.length < 7) return;
+  // Onayla — mevcut musteri varsa onu, yoksa yeni olustur
+  const handleConfirm = async () => {
+    // Mevcut musteri bulunduysa direkt onayla
+    if (foundCustomer) { onConfirm(foundCustomer.id); return; }
+    // Yeni musteri olustur
+    if (!newName.trim()) return;
     setCreating(true);
     try {
-      const insertData = { company_id: company.id, name: newName.trim().toUpperCase(), phone: fullPhone };
+      const insertData = { company_id: company.id, name: newName.trim().toUpperCase() };
+      if (phone.length >= 7) insertData.phone = fullPhone;
       if (newEmail.trim()) insertData.email = newEmail.trim();
       const { data, error } = await supabase.from('customers').insert(insertData).select('id, name, phone').single();
       if (error) {
-        if (error.code === '23505') {
-          toast?.({ title: 'Bu telefon zaten kayıtlı', description: 'Mevcut müşteri ile devam edin.', variant: 'destructive' });
-          return;
-        }
+        if (error.code === '23505') { toast?.({ title: 'Bu telefon zaten kayıtlı', variant: 'destructive' }); return; }
         throw error;
       }
       onCustomerCreated(data);
@@ -475,6 +469,8 @@ function CustomerSelectModal({ customers, company, saving, toast, onConfirm, onC
     } finally { setCreating(false); }
   };
 
+  const canConfirm = foundCustomer || newName.trim();
+  const btnLabel = creating ? 'Oluşturuluyor...' : saving ? 'Kaydediliyor...' : foundCustomer ? `${foundCustomer.name} ile Onayla` : 'Müşteri Oluştur ve Onayla';
   const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #e8e8e3', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' };
 
   return (
@@ -482,7 +478,7 @@ function CustomerSelectModal({ customers, company, saving, toast, onConfirm, onC
       onClick={onClose}>
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} />
 
-      <div style={{ position: 'relative', background: '#fff', borderRadius: 14, width: 420, maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+      <div style={{ position: 'relative', background: '#fff', borderRadius: 14, width: 420, display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
         onClick={e => e.stopPropagation()}>
 
         {/* Header */}
@@ -493,13 +489,12 @@ function CustomerSelectModal({ customers, company, saving, toast, onConfirm, onC
           </button>
         </div>
 
-        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          {/* ═══ 1. TELEFON NUMARASI ═══ */}
+          {/* ═══ 1. TELEFON ═══ */}
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#0F3D2A', display: 'block', marginBottom: 6 }}>Telefon Numarası *</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#0F3D2A', display: 'block', marginBottom: 6 }}>Telefon *</label>
             <div style={{ display: 'flex', gap: 6 }}>
-              {/* Ulke kodu secici */}
               <div style={{ position: 'relative' }}>
                 <button onClick={() => setShowCodes(!showCodes)} style={{
                   padding: '10px 8px', borderRadius: 10, border: '1px solid #e8e8e3', background: '#fff',
@@ -533,7 +528,6 @@ function CustomerSelectModal({ customers, company, saving, toast, onConfirm, onC
                   </div>
                 )}
               </div>
-              {/* Telefon input */}
               <input
                 type="tel" value={phone} autoFocus
                 onChange={e => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
@@ -543,69 +537,52 @@ function CustomerSelectModal({ customers, company, saving, toast, onConfirm, onC
             </div>
           </div>
 
-          {/* ═══ 2. MEVCUT MÜŞTERİ BULUNDU ═══ */}
+          {/* Mevcut musteri bulunduysa bilgi goster */}
           {foundCustomer && (
-            <div style={{
-              background: '#E8F1EC', border: '1px solid #B5D0C0', borderRadius: 10, padding: '12px 14px',
-            }}>
-              <div style={{ fontSize: 11, color: '#1D9E75', fontWeight: 500, marginBottom: 6 }}>Mevcut müşteri bulundu</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#0F3D2A' }}>{foundCustomer.name}</div>
-              <div style={{ fontSize: 11, color: '#5A8A6E', marginTop: 2 }}>{foundCustomer.phone}</div>
-              <button onClick={handleUseExisting} disabled={saving} style={{
-                marginTop: 10, width: '100%', padding: '10px', borderRadius: 8, border: 'none',
-                background: '#1D9E75', color: '#fff', fontSize: 13, fontWeight: 600,
-                cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.7 : 1,
-              }}>
-                {saving ? 'Kaydediliyor...' : 'Bu Müşteri ile Onayla'}
-              </button>
+            <div style={{ background: '#E8F1EC', border: '1px solid #B5D0C0', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13, color: '#1D9E75' }}>✓</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#0F3D2A' }}>{foundCustomer.name}</span>
+              <span style={{ fontSize: 11, color: '#5A8A6E' }}>— kayıtlı müşteri</span>
             </div>
           )}
 
-          {/* ═══ 3. YENİ MÜŞTERİ FORMU (telefon girildi ama bulunamadi) ═══ */}
-          {searchDone && !foundCustomer && phone.length >= 7 && (
-            <>
-              <div style={{ fontSize: 11, color: '#5A8A6E', textAlign: 'center', padding: '2px 0' }}>
-                Bu numara kayıtlı değil — yeni müşteri oluşturun
-              </div>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#0F3D2A', display: 'block', marginBottom: 6 }}>Ad Soyad *</label>
-                <input
-                  type="text" value={newName}
-                  onChange={e => setNewName(e.target.value.toUpperCase())}
-                  placeholder="MÜŞTERİ ADI"
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>E-posta</label>
-                <input
-                  type="email" value={newEmail}
-                  onChange={e => setNewEmail(e.target.value)}
-                  placeholder="ornek@mail.com"
-                  style={inputStyle}
-                />
-              </div>
-              <button
-                onClick={handleCreateCustomer}
-                disabled={!newName.trim() || creating || saving}
-                style={{
-                  width: '100%', padding: '12px', borderRadius: 10, border: 'none', fontSize: 14, fontWeight: 600,
-                  cursor: !newName.trim() ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                  background: !newName.trim() ? '#d5d5d0' : '#1D9E75', color: '#fff',
-                  opacity: (creating || saving) ? 0.7 : 1,
-                }}
-              >
-                {creating ? 'Oluşturuluyor...' : 'Müşteri Oluştur ve Onayla'}
-              </button>
-            </>
-          )}
+          {/* ═══ 2. AD SOYAD ═══ */}
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#0F3D2A', display: 'block', marginBottom: 6 }}>Ad Soyad {!foundCustomer ? '*' : ''}</label>
+            <input
+              type="text" value={foundCustomer ? foundCustomer.name : newName}
+              onChange={e => { if (!foundCustomer) setNewName(e.target.value.toUpperCase()); }}
+              placeholder="MÜŞTERİ ADI"
+              disabled={!!foundCustomer}
+              style={{ ...inputStyle, background: foundCustomer ? '#f5f5f0' : '#fff', color: foundCustomer ? '#888' : '#1a1a1a' }}
+            />
+          </div>
 
-          {/* ═══ 4. HENÜZ TELEFON GİRİLMEDİ ═══ */}
-          {phone.length < 7 && (
-            <div style={{ fontSize: 12, color: '#8FA69A', textAlign: 'center', padding: '8px 0' }}>
-              Telefon numarasını girin
-            </div>
-          )}
+          {/* ═══ 3. E-POSTA ═══ */}
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>E-posta</label>
+            <input
+              type="email" value={newEmail}
+              onChange={e => setNewEmail(e.target.value)}
+              placeholder="ornek@mail.com"
+              disabled={!!foundCustomer}
+              style={{ ...inputStyle, background: foundCustomer ? '#f5f5f0' : '#fff', color: foundCustomer ? '#888' : '#1a1a1a' }}
+            />
+          </div>
+
+          {/* ═══ ONAYLA BUTONU ═══ */}
+          <button
+            onClick={handleConfirm}
+            disabled={!canConfirm || creating || saving}
+            style={{
+              width: '100%', padding: '12px', borderRadius: 10, border: 'none', fontSize: 14, fontWeight: 600,
+              cursor: !canConfirm ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+              background: !canConfirm ? '#d5d5d0' : '#1D9E75', color: '#fff',
+              opacity: (creating || saving) ? 0.7 : 1,
+            }}
+          >
+            {btnLabel}
+          </button>
         </div>
       </div>
     </div>
