@@ -165,8 +165,9 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
       const { data: aptData, error } = await supabase.from('appointments').insert(ins).select().single();
       if (error) throw error;
       if (aptData) {
-        await supabase.from('appointment_services').insert({ appointment_id: aptData.id, service_id: selectedService.id, expert_id: newAppointment.expert?.id || null });
-        if (selectedRoom) await supabase.from('appointment_resources').insert({ appointment_id: aptData.id, resource_type: 'space', resource_id: selectedRoom.id });
+        // Yan tablolara kayit — hata olursa yutulur, ana randevu zaten olusmustu
+        await supabase.from('appointment_services').insert({ appointment_id: aptData.id, service_id: selectedService.id, expert_id: newAppointment.expert?.id || null }).catch(() => {});
+        if (selectedRoom) await supabase.from('appointment_resources').insert({ appointment_id: aptData.id, resource_type: 'space', resource_id: selectedRoom.id }).catch(() => {});
       }
       toast({ title: t('appointmentCreatedSuccess'), description: `${selectedService.description} · ${newAppointment.expert?.name || ''} · ${newAppointment.startTime}` });
       setNewAppointment(null);
@@ -192,8 +193,8 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
       const { data: aptData, error } = await supabase.from('appointments').insert(ins).select().single();
       if (error) throw error;
       if (aptData) {
-        await supabase.from('appointment_services').insert({ appointment_id: aptData.id, service_id: selectedService.id });
-        await supabase.from('appointment_resources').insert({ appointment_id: aptData.id, resource_type: 'space', resource_id: selectedRoom.id });
+        await supabase.from('appointment_services').insert({ appointment_id: aptData.id, service_id: selectedService.id }).catch(() => {});
+        await supabase.from('appointment_resources').insert({ appointment_id: aptData.id, resource_type: 'space', resource_id: selectedRoom.id }).catch(() => {});
       }
       toast({ title: t('appointmentCreatedSuccess'), description: `${selectedService.description} · ${selectedRoom.name}` });
       fetchDayAppointments(company.id, date).then(setDayAppointments);
@@ -425,9 +426,10 @@ function CustomerSelectModal({ customers, company, saving, toast, onConfirm, onC
     if (!newName.trim()) return;
     setCreating(true);
     try {
-      const { data, error } = await supabase.from('customers').insert({
-        company_id: company.id, name: newName.trim().toUpperCase(), phone: newPhone.trim() || null, email: newEmail.trim() || null, is_active: true,
-      }).select('id, name, phone').single();
+      const insertData = { company_id: company.id, name: newName.trim().toUpperCase() };
+      if (newPhone.trim()) insertData.phone = newPhone.trim();
+      if (newEmail.trim()) insertData.email = newEmail.trim();
+      const { data, error } = await supabase.from('customers').insert(insertData).select('id, name, phone').single();
       if (error) throw error;
       onCustomerCreated(data);
       onConfirm(data.id);
