@@ -535,26 +535,25 @@ function CustomerSelectModal({ customers, company, saving, toast, onConfirm, onC
                 style={{ ...inputStyle, flex: 1 }}
               />
             </div>
+            {/* Mevcut musteri bulunduysa bilgi goster */}
+            {foundCustomer && (
+              <div style={{ marginTop: 6, background: '#E8F1EC', border: '1px solid #B5D0C0', borderRadius: 8, padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                <span style={{ color: '#1D9E75' }}>✓</span>
+                <span style={{ fontWeight: 600, color: '#0F3D2A' }}>{foundCustomer.name}</span>
+                <span style={{ color: '#5A8A6E' }}>— kayıtlı müşteri</span>
+              </div>
+            )}
           </div>
-
-          {/* Mevcut musteri bulunduysa bilgi goster */}
-          {foundCustomer && (
-            <div style={{ background: '#E8F1EC', border: '1px solid #B5D0C0', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: '#1D9E75' }}>✓</span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#0F3D2A' }}>{foundCustomer.name}</span>
-              <span style={{ fontSize: 11, color: '#5A8A6E' }}>— kayıtlı müşteri</span>
-            </div>
-          )}
 
           {/* ═══ 2. AD SOYAD ═══ */}
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#0F3D2A', display: 'block', marginBottom: 6 }}>Ad Soyad {!foundCustomer ? '*' : ''}</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#0F3D2A', display: 'block', marginBottom: 6 }}>Ad Soyad *</label>
             <input
               type="text" value={foundCustomer ? foundCustomer.name : newName}
               onChange={e => { if (!foundCustomer) setNewName(e.target.value.toUpperCase()); }}
               placeholder="MÜŞTERİ ADI"
               disabled={!!foundCustomer}
-              style={{ ...inputStyle, background: foundCustomer ? '#f5f5f0' : '#fff', color: foundCustomer ? '#888' : '#1a1a1a' }}
+              style={{ ...inputStyle, background: foundCustomer ? '#f5f5f0' : '#fff', color: foundCustomer ? '#666' : '#1a1a1a' }}
             />
           </div>
 
@@ -566,7 +565,7 @@ function CustomerSelectModal({ customers, company, saving, toast, onConfirm, onC
               onChange={e => setNewEmail(e.target.value)}
               placeholder="ornek@mail.com"
               disabled={!!foundCustomer}
-              style={{ ...inputStyle, background: foundCustomer ? '#f5f5f0' : '#fff', color: foundCustomer ? '#888' : '#1a1a1a' }}
+              style={{ ...inputStyle, background: foundCustomer ? '#f5f5f0' : '#fff', color: foundCustomer ? '#666' : '#1a1a1a' }}
             />
           </div>
 
