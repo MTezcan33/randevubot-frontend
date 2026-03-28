@@ -406,41 +406,64 @@ function FacilityCapacityPanel({ room, service, occupancy, saving, onConfirm }) 
   );
 }
 
+// ═══ ÜLKE KODLARI ═══
+const COUNTRY_CODES = [
+  { code: '+90', flag: '🇹🇷', name: 'Türkiye' },
+  { code: '+7',  flag: '🇷🇺', name: 'Rusya' },
+  { code: '+380',flag: '🇺🇦', name: 'Ukrayna' },
+  { code: '+49', flag: '🇩🇪', name: 'Almanya' },
+  { code: '+44', flag: '🇬🇧', name: 'İngiltere' },
+  { code: '+963',flag: '🇸🇾', name: 'Suriye' },
+  { code: '+994',flag: '🇦🇿', name: 'Azerbaycan' },
+  { code: '+995',flag: '🇬🇪', name: 'Gürcistan' },
+  { code: '+31', flag: '🇳🇱', name: 'Hollanda' },
+  { code: '+33', flag: '🇫🇷', name: 'Fransa' },
+  { code: '+966',flag: '🇸🇦', name: 'S. Arabistan' },
+  { code: '+971',flag: '🇦🇪', name: 'BAE' },
+  { code: '+1',  flag: '🇺🇸', name: 'ABD' },
+];
+
 // ═══ MÜŞTERİ SEÇİM MODALI ═══
 function CustomerSelectModal({ customers, company, saving, toast, onConfirm, onClose, onCustomerCreated }) {
-  const [search, setSearch] = useState('');
-  const [selectedId, setSelectedId] = useState('');
-  const [mode, setMode] = useState('select'); // 'select' | 'new'
+  const [phone, setPhone] = useState('');
+  const [countryCode, setCountryCode] = useState('+90');
+  const [showCodes, setShowCodes] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newPhone, setNewPhone] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [creating, setCreating] = useState(false);
+  const [foundCustomer, setFoundCustomer] = useState(null); // mevcut musteri bulundu
+  const [searchDone, setSearchDone] = useState(false);
 
-  const filtered = customers.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    (c.phone && c.phone.includes(search))
-  );
+  // Telefon girilince otomatik ara
+  const fullPhone = countryCode + phone.replace(/^0+/, ''); // basta 0 varsa kaldir
 
-  // Yeni musteri olustur — telefon zaten varsa mevcut musteriyi kullan
+  useEffect(() => {
+    if (phone.length < 7) { setFoundCustomer(null); setSearchDone(false); return; }
+    const timer = setTimeout(() => {
+      const match = customers.find(c => c.phone && c.phone === fullPhone);
+      setFoundCustomer(match || null);
+      setSearchDone(true);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [phone, countryCode]);
+
+  // Mevcut musteri ile devam
+  const handleUseExisting = () => {
+    if (foundCustomer) onConfirm(foundCustomer.id);
+  };
+
+  // Yeni musteri olustur
   const handleCreateCustomer = async () => {
-    if (!newName.trim()) return;
+    if (!newName.trim() || phone.length < 7) return;
     setCreating(true);
     try {
-      const insertData = { company_id: company.id, name: newName.trim().toUpperCase() };
-      if (newPhone.trim()) insertData.phone = newPhone.trim();
+      const insertData = { company_id: company.id, name: newName.trim().toUpperCase(), phone: fullPhone };
       if (newEmail.trim()) insertData.email = newEmail.trim();
       const { data, error } = await supabase.from('customers').insert(insertData).select('id, name, phone').single();
       if (error) {
-        // Telefon unique constraint — mevcut musteriyi bul ve onunla devam et
-        if (error.code === '23505' && newPhone.trim()) {
-          const { data: existing } = await supabase.from('customers').select('id, name, phone')
-            .eq('company_id', company.id).eq('phone', newPhone.trim()).single();
-          if (existing) {
-            toast?.({ title: 'Mevcut müşteri bulundu', description: `${existing.name} — bu telefon zaten kayıtlı.` });
-            onCustomerCreated(existing);
-            onConfirm(existing.id);
-            return;
-          }
+        if (error.code === '23505') {
+          toast?.({ title: 'Bu telefon zaten kayıtlı', description: 'Mevcut müşteri ile devam edin.', variant: 'destructive' });
+          return;
         }
         throw error;
       }
@@ -452,128 +475,138 @@ function CustomerSelectModal({ customers, company, saving, toast, onConfirm, onC
     } finally { setCreating(false); }
   };
 
+  const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #e8e8e3', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' };
+
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={onClose}>
-      {/* Overlay */}
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} />
 
-      {/* Modal */}
       <div style={{ position: 'relative', background: '#fff', borderRadius: 14, width: 420, maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
         onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #e8e8e3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a' }}>Müşteri Seçin</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a' }}>Müşteri</div>
           <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid #e8e8e3', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
             <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M10.5 3.5l-7 7M3.5 3.5l7 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
           </button>
         </div>
 
-        {/* Tab secici */}
-        <div style={{ display: 'flex', borderBottom: '1px solid #e8e8e3' }}>
-          <button onClick={() => setMode('select')} style={{
-            flex: 1, padding: '10px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-            border: 'none', borderBottom: mode === 'select' ? '2px solid #534AB7' : '2px solid transparent',
-            background: 'transparent', color: mode === 'select' ? '#534AB7' : '#999',
-          }}>Mevcut Müşteri</button>
-          <button onClick={() => setMode('new')} style={{
-            flex: 1, padding: '10px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-            border: 'none', borderBottom: mode === 'new' ? '2px solid #534AB7' : '2px solid transparent',
-            background: 'transparent', color: mode === 'new' ? '#534AB7' : '#999',
-          }}>Yeni Müşteri</button>
-        </div>
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
 
-        {/* Icerik */}
-        {mode === 'select' ? (
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-            {/* Arama */}
-            <div style={{ padding: '12px 16px' }}>
+          {/* ═══ 1. TELEFON NUMARASI ═══ */}
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#0F3D2A', display: 'block', marginBottom: 6 }}>Telefon Numarası *</label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {/* Ulke kodu secici */}
+              <div style={{ position: 'relative' }}>
+                <button onClick={() => setShowCodes(!showCodes)} style={{
+                  padding: '10px 8px', borderRadius: 10, border: '1px solid #e8e8e3', background: '#fff',
+                  fontSize: 13, fontFamily: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                  minWidth: 85, justifyContent: 'center', whiteSpace: 'nowrap',
+                }}>
+                  <span>{COUNTRY_CODES.find(c => c.code === countryCode)?.flag}</span>
+                  <span style={{ fontWeight: 500 }}>{countryCode}</span>
+                  <span style={{ fontSize: 10, color: '#999' }}>▼</span>
+                </button>
+                {showCodes && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, zIndex: 10, background: '#fff', borderRadius: 10,
+                    border: '1px solid #e8e8e3', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', marginTop: 4,
+                    maxHeight: 220, overflowY: 'auto', minWidth: 200,
+                  }}>
+                    {COUNTRY_CODES.map(c => (
+                      <div key={c.code} onClick={() => { setCountryCode(c.code); setShowCodes(false); }}
+                        style={{
+                          padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                          fontSize: 13, background: countryCode === c.code ? '#F0EDFF' : undefined,
+                        }}
+                        onMouseEnter={e => { if (countryCode !== c.code) e.currentTarget.style.background = '#f5f5f0'; }}
+                        onMouseLeave={e => { if (countryCode !== c.code) e.currentTarget.style.background = ''; }}
+                      >
+                        <span>{c.flag}</span>
+                        <span style={{ fontWeight: 500 }}>{c.code}</span>
+                        <span style={{ color: '#888' }}>{c.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* Telefon input */}
               <input
-                type="text" value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="İsim veya telefon ile ara..."
-                autoFocus
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #e8e8e3', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+                type="tel" value={phone} autoFocus
+                onChange={e => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="5XX XXX XX XX"
+                style={{ ...inputStyle, flex: 1 }}
               />
             </div>
-            {/* Liste */}
-            <div style={{ flex: 1, overflowY: 'auto', maxHeight: 300, padding: '0 8px 8px' }}>
-              {filtered.length === 0 ? (
-                <div style={{ padding: 20, textAlign: 'center', color: '#999', fontSize: 13 }}>
-                  {search ? 'Sonuç bulunamadı' : 'Henüz müşteri yok'}
-                </div>
-              ) : filtered.map(c => (
-                <div key={c.id} onClick={() => setSelectedId(c.id)} style={{
-                  padding: '10px 14px', borderRadius: 10, cursor: 'pointer', marginBottom: 2,
-                  background: selectedId === c.id ? '#F0EDFF' : 'transparent',
-                  border: selectedId === c.id ? '1px solid #534AB7' : '1px solid transparent',
-                  transition: 'all 0.15s',
-                }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a' }}>{c.name}</div>
-                  {c.phone && <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{c.phone}</div>}
-                </div>
-              ))}
-            </div>
-            {/* Onayla */}
-            <div style={{ padding: '12px 16px', borderTop: '1px solid #e8e8e3' }}>
-              <button
-                onClick={() => selectedId && onConfirm(selectedId)}
-                disabled={!selectedId || saving}
-                style={{
-                  width: '100%', padding: '12px', borderRadius: 10, border: 'none', fontSize: 14, fontWeight: 600,
-                  cursor: !selectedId ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                  background: !selectedId ? '#d5d5d0' : '#1D9E75', color: '#fff',
-                  opacity: saving ? 0.7 : 1,
-                }}
-              >
-                {saving ? 'Kaydediliyor...' : 'Randevuyu Onayla'}
+          </div>
+
+          {/* ═══ 2. MEVCUT MÜŞTERİ BULUNDU ═══ */}
+          {foundCustomer && (
+            <div style={{
+              background: '#E8F1EC', border: '1px solid #B5D0C0', borderRadius: 10, padding: '12px 14px',
+            }}>
+              <div style={{ fontSize: 11, color: '#1D9E75', fontWeight: 500, marginBottom: 6 }}>Mevcut müşteri bulundu</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#0F3D2A' }}>{foundCustomer.name}</div>
+              <div style={{ fontSize: 11, color: '#5A8A6E', marginTop: 2 }}>{foundCustomer.phone}</div>
+              <button onClick={handleUseExisting} disabled={saving} style={{
+                marginTop: 10, width: '100%', padding: '10px', borderRadius: 8, border: 'none',
+                background: '#1D9E75', color: '#fff', fontSize: 13, fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.7 : 1,
+              }}>
+                {saving ? 'Kaydediliyor...' : 'Bu Müşteri ile Onayla'}
               </button>
             </div>
-          </div>
-        ) : (
-          <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>Ad Soyad *</label>
-              <input
-                type="text" value={newName}
-                onChange={e => setNewName(e.target.value.toUpperCase())}
-                placeholder="MÜŞTERİ ADI"
-                autoFocus
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #e8e8e3', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
-              />
+          )}
+
+          {/* ═══ 3. YENİ MÜŞTERİ FORMU (telefon girildi ama bulunamadi) ═══ */}
+          {searchDone && !foundCustomer && phone.length >= 7 && (
+            <>
+              <div style={{ fontSize: 11, color: '#5A8A6E', textAlign: 'center', padding: '2px 0' }}>
+                Bu numara kayıtlı değil — yeni müşteri oluşturun
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#0F3D2A', display: 'block', marginBottom: 6 }}>Ad Soyad *</label>
+                <input
+                  type="text" value={newName}
+                  onChange={e => setNewName(e.target.value.toUpperCase())}
+                  placeholder="MÜŞTERİ ADI"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>E-posta</label>
+                <input
+                  type="email" value={newEmail}
+                  onChange={e => setNewEmail(e.target.value)}
+                  placeholder="ornek@mail.com"
+                  style={inputStyle}
+                />
+              </div>
+              <button
+                onClick={handleCreateCustomer}
+                disabled={!newName.trim() || creating || saving}
+                style={{
+                  width: '100%', padding: '12px', borderRadius: 10, border: 'none', fontSize: 14, fontWeight: 600,
+                  cursor: !newName.trim() ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                  background: !newName.trim() ? '#d5d5d0' : '#1D9E75', color: '#fff',
+                  opacity: (creating || saving) ? 0.7 : 1,
+                }}
+              >
+                {creating ? 'Oluşturuluyor...' : 'Müşteri Oluştur ve Onayla'}
+              </button>
+            </>
+          )}
+
+          {/* ═══ 4. HENÜZ TELEFON GİRİLMEDİ ═══ */}
+          {phone.length < 7 && (
+            <div style={{ fontSize: 12, color: '#8FA69A', textAlign: 'center', padding: '8px 0' }}>
+              Telefon numarasını girin
             </div>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>Telefon</label>
-              <input
-                type="tel" value={newPhone}
-                onChange={e => setNewPhone(e.target.value)}
-                placeholder="+90 5XX XXX XX XX"
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #e8e8e3', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>E-posta</label>
-              <input
-                type="email" value={newEmail}
-                onChange={e => setNewEmail(e.target.value)}
-                placeholder="ornek@mail.com"
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #e8e8e3', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
-              />
-            </div>
-            <button
-              onClick={handleCreateCustomer}
-              disabled={!newName.trim() || creating || saving}
-              style={{
-                width: '100%', padding: '12px', borderRadius: 10, border: 'none', fontSize: 14, fontWeight: 600,
-                cursor: !newName.trim() ? 'not-allowed' : 'pointer', fontFamily: 'inherit', marginTop: 4,
-                background: !newName.trim() ? '#d5d5d0' : '#1D9E75', color: '#fff',
-                opacity: (creating || saving) ? 0.7 : 1,
-              }}
-            >
-              {creating ? 'Oluşturuluyor...' : 'Müşteri Oluştur ve Randevuyu Onayla'}
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
