@@ -312,8 +312,8 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
 
       {/* ═══ CONFIRM BAR — sadece uzman hizmetleri icin ═══ */}
       {newAppointment && selectedService && !isSelfService && (
-        <div style={{ borderTop: '1px solid #eee', background: '#FAFAF8' }}>
-          <div style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ borderTop: '1px solid #B5D0C0', background: '#E8F1EC', flexShrink: 0, position: 'relative', zIndex: 10 }}>
+          <div style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 80 }}>
             <div style={{ fontSize: 11, color: '#0F3D2A' }}>
               <b style={{ fontWeight: 500 }}>{selectedService.description}</b> · {newAppointment.expert?.name} · {newAppointment.startTime} - {newAppointment.endTime} · {selectedService.duration}dk
             </div>
