@@ -204,8 +204,12 @@ export default function DayDetailTimeGrid({
               {columns.map((col, ci) => {
                 const activeSlots = isExpertMode ? bookedSlots : bedBookedSlots;
                 const bk = activeSlots[`${ci}-${si}`];
-                const isNewSlot = isExpertMode && newAppointment && newAppointment.colIndex === ci
-                  && si >= newAppointment.startSlot && si < newAppointment.startSlot + slotsNeeded;
+                // Yeni randevu: expert modda colIndex eslesmeli, bed modda secili yatak eslesmeli
+                const isNewSlot = newAppointment && (
+                  isExpertMode
+                    ? newAppointment.colIndex === ci
+                    : (newAppointment.selectedUnitId && newAppointment.selectedUnitId === col.id)
+                ) && si >= newAppointment.startSlot && si < newAppointment.startSlot + slotsNeeded;
                 const isNewFirst = isNewSlot && si === newAppointment.startSlot;
                 const isFree = !bk && !isNewSlot;
 
@@ -242,43 +246,52 @@ export default function DayDetailTimeGrid({
                     onMouseLeave={e => { if (isExpertMode && isFree && service && !dropOk && !dropNo) e.currentTarget.style.background = ''; }}
                   >
                     {/* Randevu bloku */}
-                    {bk?.isFirst && (
-                      <div style={{
-                        position: 'absolute', left: 2, right: 2, top: 1,
-                        height: bk.totalSlots * ROW_H - 2, borderRadius: 6,
-                        padding: '4px 6px', overflow: 'hidden', zIndex: 2, pointerEvents: 'none',
-                        background: blockColors.light, borderLeft: `3px solid ${blockColors.fill}`,
-                      }}>
-                        <div style={{ fontSize: 10, fontWeight: 600, color: blockColors.dark, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {isExpertMode ? col.name : (experts.find(e => e.id === bk.apt.expert_id)?.name || '')}
-                        </div>
-                        <div style={{ fontSize: 9, color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {bk.apt.company_services?.description || ''}
-                        </div>
-                        {!isExpertMode && bk.apt.customers?.name && (
-                          <div style={{ fontSize: 8, color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>
-                            {bk.apt.customers.name}
+                    {bk?.isFirst && (() => {
+                      const unitName = isExpertMode && bk.apt.room_unit_id
+                        ? (roomUnits.find(u => u.id === bk.apt.room_unit_id)?.name || '')
+                        : '';
+                      return (
+                        <div style={{
+                          position: 'absolute', left: 2, right: 2, top: 1,
+                          height: bk.totalSlots * ROW_H - 2, borderRadius: 6,
+                          padding: '4px 6px', overflow: 'hidden', zIndex: 2, pointerEvents: 'none',
+                          background: blockColors.light, borderLeft: `3px solid ${blockColors.fill}`,
+                        }}>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: blockColors.dark, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {isExpertMode ? col.name : (experts.find(e => e.id === bk.apt.expert_id)?.name || '')}
                           </div>
-                        )}
-                      </div>
-                    )}
+                          <div style={{ fontSize: 9, color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {bk.apt.company_services?.description || ''}
+                            {isExpertMode && unitName ? ` · ${unitName}` : ''}
+                          </div>
+                          {!isExpertMode && (
+                            <div style={{ fontSize: 8, color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>
+                              {bk.apt.customers?.name || ''}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
-                    {/* Yeni randevu bloku — sadece expert modda */}
+                    {/* Yeni randevu bloku (mor) */}
                     {isNewFirst && (
                       <div
-                        onMouseDown={e => onDragStart?.(e)}
+                        onMouseDown={e => isExpertMode ? onDragStart?.(e) : null}
                         style={{
                           position: 'absolute', left: 2, right: 2, top: 1,
                           height: slotsNeeded * ROW_H - 2, borderRadius: 6,
                           background: '#534AB7', zIndex: 5, padding: '5px 8px',
-                          cursor: 'grab',
+                          cursor: isExpertMode ? 'grab' : 'default',
                         }}
                       >
                         <div style={{ fontSize: 11, fontWeight: 600, color: '#fff' }}>{service?.description}</div>
                         <div style={{ fontSize: 9, color: '#CECBF6', marginTop: 1 }}>
-                          {newAppointment.expert?.name} · {newAppointment.startTime}-{newAppointment.endTime}
+                          {isExpertMode
+                            ? `${newAppointment.expert?.name} · ${newAppointment.startTime}-${newAppointment.endTime}`
+                            : `${newAppointment.expert?.name} · ${col.name}`
+                          }
                         </div>
-                        <div style={{ fontSize: 8, color: '#AFA9EC', marginTop: 2 }}>⁂ sürükle taşı</div>
+                        {isExpertMode && <div style={{ fontSize: 8, color: '#AFA9EC', marginTop: 2 }}>⁂ sürükle taşı</div>}
                       </div>
                     )}
                   </div>

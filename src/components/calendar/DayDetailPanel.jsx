@@ -125,12 +125,12 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
     slotsNeeded, bookedSlots, experts: filteredExperts, cellRefs, totalSlots: TOTAL_SLOTS,
     onDrop: (col, slot) => {
       const expert = filteredExperts[col];
-      if (expert) setNewAppointment({ colIndex: col, startSlot: slot, expert, startTime: slotToTime(slot), endTime: slotToTime(slot + slotsNeeded) });
+      if (expert) setNewAppointment({ colIndex: col, startSlot: slot, expert, startTime: slotToTime(slot), endTime: slotToTime(slot + slotsNeeded), selectedUnitId: selectedUnit?.id || null });
     },
   });
 
   const handleSlotClick = useCallback((colIndex, slotIndex, expert) => {
-    setNewAppointment({ colIndex, startSlot: slotIndex, expert, startTime: slotToTime(slotIndex), endTime: slotToTime(slotIndex + slotsNeeded) });
+    setNewAppointment({ colIndex, startSlot: slotIndex, expert, startTime: slotToTime(slotIndex), endTime: slotToTime(slotIndex + slotsNeeded), selectedUnitId: selectedUnit?.id || null });
   }, [slotsNeeded]);
 
   // Onayla tiklaninca modal ac
