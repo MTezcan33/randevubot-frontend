@@ -364,24 +364,6 @@ export const checkResourceAvailability = async ({
 export const getAppointmentResourcesByDate = async (companyId, date) => {
   // Tablo henüz oluşturulmamışsa boş dizi döndür
   try {
-  const { data, error } = await supabase
-    .from('appointment_resources')
-    .select(`
-      id,
-      appointment_id,
-      resource_type,
-      resource_id
-    `)
-    .in('appointment_id',
-      supabase
-        .from('appointments')
-        .select('id')
-        .eq('company_id', companyId)
-        .eq('date', date)
-        .neq('status', 'iptal')
-    );
-
-  // Supabase nested IN sorgusu desteklemedigi icin alternatif yol
   // Once randevulari al, sonra kaynaklari al
   const { data: appIds, error: appError } = await supabase
     .from('appointments')
