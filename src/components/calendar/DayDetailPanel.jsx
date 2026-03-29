@@ -453,10 +453,22 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
             />
           )}
 
-          {/* Hicbiri secilmemis */}
-          {!showExpertGrid && !showFacilityPanel && (
+          {/* Hicbiri secilmemis — tum personellerin gunluk takvimi */}
+          {!showExpertGrid && !showFacilityPanel && (allExperts || []).length > 0 && (
+            <DayDetailTimeGrid
+              date={date} experts={allExperts} appointments={dayAppointments}
+              service={null} newAppointment={null}
+              onSlotClick={() => {}} onDragStart={() => {}}
+              dragState={null} cellRefs={cellRefs}
+              viewMode="expert"
+              roomUnits={[]}
+              onExistingDragStart={handleExistingDragStart}
+              movingAptId={movingAptId}
+            />
+          )}
+          {!showExpertGrid && !showFacilityPanel && (allExperts || []).length === 0 && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240, color: '#999', fontSize: 14 }}>
-              {!selectedService ? 'Soldan bir hizmet seçin' : isSelfService ? 'Bir tesis seçin' : !selectedRoom ? 'Bir oda seçin' : 'Yatak / alan seçin'}
+              Henüz uzman tanımlanmamış
             </div>
           )}
         </div>
