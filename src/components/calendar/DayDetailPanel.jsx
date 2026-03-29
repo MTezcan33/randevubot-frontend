@@ -200,10 +200,6 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
     const dur = apt.total_duration || apt.company_services?.duration || 60;
     const startSlot = timeToSlot(apt.time);
     const slotsN = durationToSlots(dur);
-    // Hizmeti gecici olarak ayarla (surukle-birak sirasinda slot sayisi icin)
-    if (!selectedService && apt.company_services) {
-      setSelectedService(apt.company_services);
-    }
     setMovingAptId(apt.id);
     setNewAppointment({
       colIndex: ci,
@@ -216,7 +212,7 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
     });
     // Drag hook'unu baslat — kucuk gecikme ile state guncellemesi beklenir
     requestAnimationFrame(() => handleDragStart(e));
-  }, [activeExperts, selectedService, handleDragStart]);
+  }, [activeExperts, handleDragStart]);
 
   // Onayla tiklaninca modal ac
   const handleConfirmClick = (type) => {

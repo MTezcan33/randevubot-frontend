@@ -255,7 +255,25 @@ export default function DayDetailTimeGrid({
                       const isMovable = isExpertMode && onExistingDragStart && bk.apt.status !== 'iptal';
                       return (
                         <div
-                          onMouseDown={isMovable ? (e) => { e.stopPropagation(); onExistingDragStart(e, bk.apt); } : undefined}
+                          onMouseDown={isMovable ? (e) => {
+                            e.stopPropagation();
+                            // Sadece mouse hareket ederse surukle (tiklamada tetiklenmesin)
+                            const startX = e.clientX, startY = e.clientY;
+                            const apt = bk.apt;
+                            const onMove = (me) => {
+                              if (Math.abs(me.clientX - startX) > 5 || Math.abs(me.clientY - startY) > 5) {
+                                document.removeEventListener('mousemove', onMove);
+                                document.removeEventListener('mouseup', onUp);
+                                onExistingDragStart(e, apt);
+                              }
+                            };
+                            const onUp = () => {
+                              document.removeEventListener('mousemove', onMove);
+                              document.removeEventListener('mouseup', onUp);
+                            };
+                            document.addEventListener('mousemove', onMove);
+                            document.addEventListener('mouseup', onUp);
+                          } : undefined}
                           onClick={(e) => e.stopPropagation()}
                           style={{
                             position: 'absolute', left: 2, right: 2, top: 1,
