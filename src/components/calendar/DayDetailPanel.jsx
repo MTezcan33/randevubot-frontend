@@ -5,6 +5,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { fetchDayAppointments } from '@/services/monthlyCalendarService';
 import { useDragAppointment } from '@/hooks/useDragAppointment';
 import { checkResourceAvailability } from '@/services/resourceService';
+import { getRoomUnits } from '@/services/roomUnitService';
 import DayDetailServiceList from './DayDetailServiceList';
 import DayDetailTimeGrid, { slotToTime, durationToSlots, TOTAL_SLOTS, SLOT_MINUTES, DAY_START_HOUR } from './DayDetailTimeGrid';
 
@@ -29,12 +30,20 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState(null); // 'expert' | 'facility'
+  const [gridViewMode, setGridViewMode] = useState('expert'); // 'expert' | 'bed'
+  const [selectedRoomUnits, setSelectedRoomUnits] = useState([]);
 
   const dateObj = new Date(date + 'T00:00:00');
   const [y, m, d] = date.split('-');
   const titleDate = `${parseInt(d)} ${MONTHS[parseInt(m)-1]} ${y}, ${DAYS_FULL[dateObj.getDay()]}`;
 
   const isSelfService = selectedService?.requires_expert === false;
+
+  // Oda secildiginde yataklari yukle
+  useEffect(() => {
+    if (!selectedRoom?.id || !company?.id || isSelfService) { setSelectedRoomUnits([]); return; }
+    getRoomUnits(company.id, selectedRoom.id).then(units => setSelectedRoomUnits(units || []));
+  }, [selectedRoom?.id, company?.id, isSelfService]);
 
   // Randevulari yukle
   useEffect(() => {
@@ -227,6 +236,12 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
     } finally { setSaving(false); }
   };
 
+  // Oda secildiginde yataklari yukle
+  useEffect(() => {
+    if (!selectedRoom?.id || !company?.id || isSelfService) { setSelectedRoomUnits([]); return; }
+    getRoomUnits(company.id, selectedRoom.id).then(units => setSelectedRoomUnits(units || []));
+  }, [selectedRoom?.id, company?.id, isSelfService]);
+
   const handleSelectService = (s) => { setSelectedService(s); setSelectedRoom(null); setSelectedUnit(null); setNewAppointment(null); };
   const handleSelectRoom = (r) => { setSelectedRoom(r); setSelectedUnit(null); setNewAppointment(null); };
   const handleSelectUnit = (u) => { setSelectedUnit(u); setNewAppointment(null); };
@@ -306,12 +321,41 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
 
           {/* UZMAN HİZMETİ → Saat cizelgesi */}
           {showExpertGrid && (
-            <DayDetailTimeGrid
-              date={date} experts={filteredExperts} appointments={dayAppointments}
-              service={selectedService} newAppointment={newAppointment}
-              onSlotClick={handleSlotClick} onDragStart={handleDragStart}
-              dragState={dragState} cellRefs={cellRefs}
-            />
+            <>
+              {/* Personel / Yatak toggle */}
+              {selectedRoomUnits.length > 0 && (
+                <div style={{ display: 'flex', gap: 4, padding: '6px 12px', borderBottom: '1px solid #e8e8e3', background: '#FDFCFA' }}>
+                  <button
+                    onClick={() => setGridViewMode('expert')}
+                    style={{
+                      padding: '4px 12px', borderRadius: 6, fontSize: 11, fontWeight: 500,
+                      border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                      background: gridViewMode === 'expert' ? '#0F3D2A' : '#f0f0eb',
+                      color: gridViewMode === 'expert' ? '#fff' : '#666',
+                      transition: 'all 0.15s',
+                    }}
+                  >Personel</button>
+                  <button
+                    onClick={() => setGridViewMode('bed')}
+                    style={{
+                      padding: '4px 12px', borderRadius: 6, fontSize: 11, fontWeight: 500,
+                      border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                      background: gridViewMode === 'bed' ? '#534AB7' : '#f0f0eb',
+                      color: gridViewMode === 'bed' ? '#fff' : '#666',
+                      transition: 'all 0.15s',
+                    }}
+                  >Yatak</button>
+                </div>
+              )}
+              <DayDetailTimeGrid
+                date={date} experts={filteredExperts} appointments={dayAppointments}
+                service={selectedService} newAppointment={newAppointment}
+                onSlotClick={handleSlotClick} onDragStart={handleDragStart}
+                dragState={dragState} cellRefs={cellRefs}
+                viewMode={gridViewMode}
+                roomUnits={selectedRoomUnits}
+              />
+            </>
           )}
 
           {/* SELF SERVİS → Kapasite paneli */}
