@@ -81,6 +81,9 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
     return (allExperts || []).filter(e => svcExperts.has(e.id));
   }, [selectedService, allExperts, expertServicesMap, isSelfService]);
 
+  // Aktif uzman listesi — hizmet seciliyse filtrelenmis, degilse tum uzmanlar
+  const activeExperts = filteredExperts.length > 0 ? filteredExperts : (allExperts || []);
+
   const slotsNeeded = selectedService ? durationToSlots(selectedService.duration) : 0;
 
   // Doluluk
@@ -106,10 +109,10 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
   // Booked slots (uzman hizmetleri icin)
   const bookedSlots = useMemo(() => {
     const map = {};
-    if (!filteredExperts.length) return map;
+    if (!activeExperts.length) return map;
     dayAppointments.forEach(apt => {
       if (!apt.time || apt.status === 'iptal') return;
-      const ci = filteredExperts.findIndex(e => e.id === apt.expert_id);
+      const ci = activeExperts.findIndex(e => e.id === apt.expert_id);
       if (ci === -1) return;
       const [h, mn] = apt.time.split(':').map(Number);
       const startSlot = Math.floor((h * 60 + mn - DAY_START_HOUR * 60) / SLOT_MINUTES);
@@ -118,7 +121,7 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
       for (let k = 0; k < slots; k++) { const s = startSlot + k; if (s >= 0 && s < TOTAL_SLOTS) map[`${ci}-${s}`] = true; }
     });
     return map;
-  }, [filteredExperts, dayAppointments]);
+  }, [activeExperts, dayAppointments]);
 
   // Suruklenen mevcut randevuyu bookedSlots'tan cikar
   const effectiveBookedSlots = useMemo(() => {
@@ -135,11 +138,11 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
     });
     // DayDetailPanel bookedSlots'u sadece true kullanir, apt bilgisi yok
     // Bu yuzden movingAptId varken slotlari yeniden hesapla (suruklenen haric)
-    if (movingAptId && filteredExperts.length) {
+    if (movingAptId && activeExperts.length) {
       const map = {};
       dayAppointments.forEach(apt => {
         if (!apt.time || apt.status === 'iptal' || apt.id === movingAptId) return;
-        const ci = filteredExperts.findIndex(e => e.id === apt.expert_id);
+        const ci = activeExperts.findIndex(e => e.id === apt.expert_id);
         if (ci === -1) return;
         const [h, mn] = apt.time.split(':').map(Number);
         const startSlot = Math.floor((h * 60 + mn - DAY_START_HOUR * 60) / SLOT_MINUTES);
@@ -150,14 +153,14 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
       return map;
     }
     return bookedSlots;
-  }, [bookedSlots, movingAptId, filteredExperts, dayAppointments]);
+  }, [bookedSlots, movingAptId, activeExperts, dayAppointments]);
 
   // Drag (sadece uzman hizmetleri)
   const { dragState, handleDragStart } = useDragAppointment({
     newAppointment: newAppointment ? { ...newAppointment, serviceName: selectedService?.description } : null,
-    slotsNeeded, bookedSlots: effectiveBookedSlots, experts: filteredExperts, cellRefs, totalSlots: TOTAL_SLOTS,
+    slotsNeeded, bookedSlots: effectiveBookedSlots, experts: activeExperts, cellRefs, totalSlots: TOTAL_SLOTS,
     onDrop: async (col, slot) => {
-      const expert = filteredExperts[col];
+      const expert = activeExperts[col];
       if (!expert) return;
       if (movingAptId) {
         // Mevcut randevuyu yeni konuma tasi — DB guncelle
@@ -192,7 +195,7 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
 
   // Mevcut randevuyu suruklemek icin: bloku "virtual new appointment" a donustur
   const handleExistingDragStart = useCallback((e, apt) => {
-    const ci = filteredExperts.findIndex(ex => ex.id === apt.expert_id);
+    const ci = activeExperts.findIndex(ex => ex.id === apt.expert_id);
     if (ci === -1) return;
     const dur = apt.total_duration || apt.company_services?.duration || 60;
     const startSlot = timeToSlot(apt.time);
@@ -205,7 +208,7 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
     setNewAppointment({
       colIndex: ci,
       startSlot,
-      expert: filteredExperts[ci],
+      expert: activeExperts[ci],
       startTime: slotToTime(startSlot),
       endTime: slotToTime(startSlot + slotsN),
       selectedUnitId: apt.room_unit_id || null,
@@ -213,7 +216,7 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
     });
     // Drag hook'unu baslat — kucuk gecikme ile state guncellemesi beklenir
     requestAnimationFrame(() => handleDragStart(e));
-  }, [filteredExperts, selectedService, handleDragStart]);
+  }, [activeExperts, selectedService, handleDragStart]);
 
   // Onayla tiklaninca modal ac
   const handleConfirmClick = (type) => {
@@ -430,7 +433,7 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
                 </div>
               )}
               <DayDetailTimeGrid
-                date={date} experts={filteredExperts} appointments={dayAppointments}
+                date={date} experts={activeExperts} appointments={dayAppointments}
                 service={selectedService} newAppointment={newAppointment}
                 onSlotClick={handleSlotClick} onDragStart={handleDragStart}
                 dragState={dragState} cellRefs={cellRefs}
@@ -456,10 +459,10 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
           {/* Hicbiri secilmemis — tum personellerin gunluk takvimi */}
           {!showExpertGrid && !showFacilityPanel && (allExperts || []).length > 0 && (
             <DayDetailTimeGrid
-              date={date} experts={allExperts} appointments={dayAppointments}
-              service={null} newAppointment={null}
-              onSlotClick={() => {}} onDragStart={() => {}}
-              dragState={null} cellRefs={cellRefs}
+              date={date} experts={activeExperts} appointments={dayAppointments}
+              service={selectedService} newAppointment={newAppointment}
+              onSlotClick={() => {}} onDragStart={handleDragStart}
+              dragState={dragState} cellRefs={cellRefs}
               viewMode="expert"
               roomUnits={[]}
               onExistingDragStart={handleExistingDragStart}
