@@ -335,7 +335,8 @@ export const getAppointmentResources = async (appointmentId) => {
 export const checkResourceAvailability = async ({
   companyId, date, startTime, duration,
   spaceId = null, expertId = null,
-  equipmentIds = [], excludeAppointmentId = null
+  equipmentIds = [], excludeAppointmentId = null,
+  roomUnitId = null
 }) => {
   const { data, error } = await supabase.rpc('check_resource_availability', {
     p_company_id: companyId,
@@ -346,6 +347,7 @@ export const checkResourceAvailability = async ({
     p_expert_id: expertId,
     p_equipment_ids: equipmentIds,
     p_exclude_appointment_id: excludeAppointmentId,
+    p_room_unit_id: roomUnitId,
   });
   if (error) throw error;
   return data; // { available: bool, conflicts: [...] }

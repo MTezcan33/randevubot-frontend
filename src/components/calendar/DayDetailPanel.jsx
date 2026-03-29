@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { fetchDayAppointments } from '@/services/monthlyCalendarService';
 import { useDragAppointment } from '@/hooks/useDragAppointment';
+import { checkResourceAvailability } from '@/services/resourceService';
 import DayDetailServiceList from './DayDetailServiceList';
 import DayDetailTimeGrid, { slotToTime, durationToSlots, TOTAL_SLOTS, SLOT_MINUTES, DAY_START_HOUR } from './DayDetailTimeGrid';
 
@@ -161,6 +162,29 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
       if (newAppointment.expert) ins.expert_id = newAppointment.expert.id;
       if (selectedRoom) ins.space_id = selectedRoom.id;
       if (selectedUnit?.id && !String(selectedUnit.id).startsWith('auto-')) ins.room_unit_id = selectedUnit.id;
+
+      // Yatak cakisma kontrolu
+      if (selectedUnit?.id && !String(selectedUnit.id).startsWith('auto-')) {
+        try {
+          const conflictResult = await checkResourceAvailability({
+            companyId: company.id,
+            date,
+            startTime: newAppointment.startTime,
+            duration: selectedService.duration,
+            spaceId: selectedRoom?.id || null,
+            expertId: newAppointment.expert?.id || null,
+            roomUnitId: selectedUnit.id,
+          });
+          if (conflictResult && !conflictResult.available) {
+            const messages = (conflictResult.conflicts || []).map(c => c.message).join(', ');
+            toast({ title: 'Çakışma!', description: messages, variant: 'destructive' });
+            setSaving(false);
+            return;
+          }
+        } catch (checkErr) {
+          console.error('Çakışma kontrolü hatası:', checkErr);
+        }
+      }
 
       const { data: aptData, error } = await supabase.from('appointments').insert(ins).select().single();
       if (error) throw error;

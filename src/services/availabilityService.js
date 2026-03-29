@@ -106,7 +106,7 @@ export async function getServiceRequirements(serviceId) {
 async function getExistingAppointments(companyId, date, excludeAppointmentId = null) {
   let query = supabase
     .from('appointments')
-    .select('id, expert_id, space_id, date, time, total_duration, status')
+    .select('id, expert_id, space_id, room_unit_id, date, time, total_duration, status')
     .eq('company_id', companyId)
     .eq('date', date)
     .neq('status', 'iptal');
@@ -374,6 +374,7 @@ export async function checkSlotAvailability(companyId, date, startTime, duration
     spaceId = null,
     equipmentIds = [],
     excludeAppointmentId = null,
+    roomUnitId = null,
   } = options;
 
   const startMin = timeToMinutes(startTime);
@@ -448,6 +449,23 @@ export async function checkSlotAvailability(companyId, date, startTime, duration
     const equipmentCheck = await checkEquipmentAvailability(resourceAllocations, checkEquipmentIds, startMin, endMin);
     if (!equipmentCheck.available) {
       conflicts.push(...equipmentCheck.conflicts);
+    }
+  }
+
+  // 4) Yatak (room unit) çakışma kontrolü
+  if (options.roomUnitId) {
+    const unitConflicts = existingAppointments.filter(apt => {
+      if (apt.room_unit_id !== options.roomUnitId) return false;
+      const aptStart = timeToMinutes(apt.time);
+      const aptEnd = aptStart + (apt.total_duration || 60);
+      return timesOverlap(startMin, endMin, aptStart, aptEnd);
+    });
+    if (unitConflicts.length > 0) {
+      conflicts.push({
+        type: 'room_unit',
+        name: 'Yatak',
+        message: 'Bu yatak ' + formatMinutes(timeToMinutes(unitConflicts[0].time)) + '-' + formatMinutes(timeToMinutes(unitConflicts[0].time) + (unitConflicts[0].total_duration || 60)) + ' arasında dolu',
+      });
     }
   }
 

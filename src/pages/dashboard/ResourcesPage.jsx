@@ -30,6 +30,7 @@ import {
   getSpaceWorkingHours, setSpaceWorkingHours, createDefaultWorkingHours,
   getEquipment, createEquipment, updateEquipment, deleteEquipment
 } from '../../services/resourceService';
+import { getRoomUnits, syncRoomUnits, getBedOccupancy } from '../../services/roomUnitService';
 
 // Renk seçenekleri
 const COLOR_PRESETS = [
@@ -47,6 +48,18 @@ const BOOKING_MODES = [
 
 // Günler (Türkçe — mevcut pattern)
 const DAYS = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
+
+const SPACE_TYPE_PRESETS = [
+  { type: 'masaj_odasi', label: 'Masaj Odası', icon: '💆', defaults: { booking_mode: 'private', capacity: 1, buffer_minutes: 15, description: 'Özel masaj odası' }, showBedSelector: true },
+  { type: 'hamam', label: 'Hamam', icon: '🏛️', defaults: { booking_mode: 'shared', capacity: 15, buffer_minutes: 0, description: 'Türk hamamı' }, showBedSelector: false },
+  { type: 'sauna', label: 'Sauna', icon: '🧖', defaults: { booking_mode: 'shared', capacity: 8, buffer_minutes: 0, description: 'Sauna' }, showBedSelector: false },
+  { type: 'buhar_odasi', label: 'Buhar Odası', icon: '💨', defaults: { booking_mode: 'shared', capacity: 6, buffer_minutes: 0, description: 'Buhar odası' }, showBedSelector: false },
+  { type: 'tuz_odasi', label: 'Tuz Odası', icon: '🧂', defaults: { booking_mode: 'shared', capacity: 6, buffer_minutes: 0, description: 'Tuz terapi odası' }, showBedSelector: false },
+  { type: 'havuz', label: 'Yüzme Havuzu', icon: '🏊', defaults: { booking_mode: 'shared', capacity: 20, buffer_minutes: 0, description: 'Yüzme havuzu' }, showBedSelector: false },
+  { type: 'fitness', label: 'Fitness Salonu', icon: '🏋️', defaults: { booking_mode: 'shared', capacity: 15, buffer_minutes: 0, description: 'Fitness alanı' }, showBedSelector: false },
+  { type: 'vip_suit', label: 'VIP Suit', icon: '👑', defaults: { booking_mode: 'private', capacity: 1, buffer_minutes: 20, description: 'VIP özel suit' }, showBedSelector: true },
+  { type: 'ozel', label: 'Özel (Manuel)', icon: '⚙️', defaults: { booking_mode: 'private', capacity: 1, buffer_minutes: 15, description: '' }, showBedSelector: false },
+];
 
 const ResourcesPage = () => {
   const { company } = useAuth();
@@ -88,12 +101,18 @@ const ResourcesPage = () => {
   });
 
   const [saving, setSaving] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState(null);
+  const [showPresetStep, setShowPresetStep] = useState(false);
+  const [bedCount, setBedCount] = useState(1);
+  const [existingBeds, setExistingBeds] = useState([]);
 
   // Doluluk tab state
   const [occupancyDate, setOccupancyDate] = useState(new Date());
   const [dailyOccupancy, setDailyOccupancy] = useState([]);
   const [weeklyHeatmap, setWeeklyHeatmap] = useState([]);
   const [occupancyLoading, setOccupancyLoading] = useState(false);
+  const [expandedOccSpaceId, setExpandedOccSpaceId] = useState(null);
+  const [bedOccupancyData, setBedOccupancyData] = useState([]);
 
   // ============================================================
   // VERİ YÜKLEME
@@ -230,6 +249,18 @@ const ResourcesPage = () => {
     setWeeklyHeatmap(heatmapData);
   };
 
+  const handleToggleBedOccupancy = async (spaceId) => {
+    if (expandedOccSpaceId === spaceId) {
+      setExpandedOccSpaceId(null);
+      setBedOccupancyData([]);
+      return;
+    }
+    setExpandedOccSpaceId(spaceId);
+    const dateStr = occupancyDate.toISOString().split('T')[0];
+    const data = await getBedOccupancy(company.id, spaceId, dateStr);
+    setBedOccupancyData(data);
+  };
+
   useEffect(() => {
     if (company) {
       fetchSpaces();
@@ -283,6 +314,14 @@ const ResourcesPage = () => {
           DAYS.map(day => ({ day, is_open: true, start_time: '09:00', end_time: '21:00' }))
         );
       }
+      setShowPresetStep(false);
+      setSelectedPreset(SPACE_TYPE_PRESETS.find(p => p.type === space.space_type) || null);
+      // Load existing beds
+      try {
+        const beds = await getRoomUnits(company.id, space.id);
+        setExistingBeds(beds);
+        setBedCount(beds.length || space.capacity || 1);
+      } catch { setExistingBeds([]); setBedCount(space.capacity || 1); }
     } else {
       setEditingSpace(null);
       setSpaceForm({
@@ -294,6 +333,10 @@ const ResourcesPage = () => {
       setSpaceWorkingHoursState(
         DAYS.map(day => ({ day, is_open: true, start_time: '09:00', end_time: '21:00' }))
       );
+      setSelectedPreset(null);
+      setShowPresetStep(true);
+      setBedCount(1);
+      setExistingBeds([]);
     }
     setSpaceModalOpen(true);
   };
@@ -313,6 +356,15 @@ const ResourcesPage = () => {
       // Çalışma saatlerini kaydet
       await setSpaceWorkingHours(company.id, spaceId, spaceWorkingHours);
 
+      // Alan tipini kaydet
+      if (selectedPreset?.type) {
+        await supabase.from('spaces').update({ space_type: selectedPreset.type }).eq('id', spaceId);
+      }
+      // Yatak senkronizasyonu (sadece private/showBedSelector olanlar)
+      if (selectedPreset?.showBedSelector || spaceForm.booking_mode === 'private') {
+        await syncRoomUnits(company.id, spaceId, bedCount, existingBeds);
+      }
+
       toast({
         title: t('success'),
         description: editingSpace ? t('spaceUpdated') : t('spaceCreated'),
@@ -328,6 +380,17 @@ const ResourcesPage = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSelectPreset = (preset) => {
+    setSelectedPreset(preset);
+    setSpaceForm(f => ({
+      ...f,
+      ...preset.defaults,
+      color: preset.type === 'ozel' ? f.color : COLOR_PRESETS[SPACE_TYPE_PRESETS.indexOf(preset) % COLOR_PRESETS.length],
+    }));
+    setBedCount(preset.defaults.capacity || 1);
+    setShowPresetStep(false);
   };
 
   const handleDeleteSpace = async () => {
@@ -798,14 +861,21 @@ const ResourcesPage = () => {
                   </thead>
                   <tbody>
                     {spaces.filter(s => s.is_active !== false).map(space => (
-                      <tr key={space.id} className="border-t border-stone-50">
-                        <td className="py-2 px-2 text-stone-700 font-medium sticky left-0 bg-white truncate max-w-[140px]">
+                      <React.Fragment key={space.id}>
+                      <tr className="border-t border-stone-50">
+                        <td
+                          className="py-2 px-2 text-stone-700 font-medium sticky left-0 bg-white truncate max-w-[140px] cursor-pointer hover:bg-stone-50"
+                          onClick={() => space.booking_mode === 'private' && handleToggleBedOccupancy(space.id)}
+                        >
                           <div className="flex items-center gap-1.5">
                             <div
                               className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                               style={{ backgroundColor: space.color || '#6366F1' }}
                             />
                             <span className="truncate">{space.name}</span>
+                            {space.booking_mode === 'private' && (
+                              <span className="text-stone-400 text-[10px] ml-auto">{expandedOccSpaceId === space.id ? '▲' : '▼'}</span>
+                            )}
                           </div>
                         </td>
                         {dailyOccupancy.map(h => {
@@ -837,6 +907,32 @@ const ResourcesPage = () => {
                           );
                         })}
                       </tr>
+                      {/* Yatak bazli doluluk alt satirlari */}
+                      {expandedOccSpaceId === space.id && bedOccupancyData.length > 0 && bedOccupancyData.map(bed => (
+                        <tr key={bed.id} className="border-t border-stone-50 bg-stone-50/50">
+                          <td className="py-1.5 px-2 sticky left-0 bg-stone-50/50">
+                            <div className="flex items-center gap-1.5 pl-4">
+                              <span className="text-[10px] text-stone-400">┗</span>
+                              <span className="text-xs text-stone-500">{bed.name}</span>
+                              <span className={`text-[10px] font-medium ml-auto ${
+                                bed.occupancyPct >= 80 ? 'text-red-500' : bed.occupancyPct >= 40 ? 'text-amber-600' : 'text-emerald-600'
+                              }`}>
+                                %{bed.occupancyPct}
+                              </span>
+                            </div>
+                          </td>
+                          {dailyOccupancy.map(h => {
+                            const hourMin = parseInt(h.hour) * 60;
+                            const isOccupied = (bed.busySlots || []).some(s => s.startMin < hourMin + 60 && s.endMin > hourMin);
+                            return (
+                              <td key={h.hour} className="py-1 px-0.5">
+                                <div className={`w-full h-5 rounded ${isOccupied ? 'bg-purple-300' : 'bg-stone-100'}`} />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>
@@ -966,7 +1062,35 @@ const ResourcesPage = () => {
             </DialogTitle>
           </DialogHeader>
 
+          {/* Tip seçim adımı — sadece yeni alan eklerken */}
+          {showPresetStep && !editingSpace ? (
+            <div className="py-4">
+              <p className="text-sm text-stone-500 mb-4">Alanınıza uygun bir tip seçin</p>
+              <div className="grid grid-cols-3 gap-3">
+                {SPACE_TYPE_PRESETS.map(preset => (
+                  <button
+                    key={preset.type}
+                    onClick={() => handleSelectPreset(preset)}
+                    className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-stone-200 hover:border-emerald-400 hover:bg-emerald-50 transition-all text-center"
+                  >
+                    <span className="text-2xl">{preset.icon}</span>
+                    <span className="text-sm font-medium text-stone-700">{preset.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
           <div className="space-y-4 py-2">
+            {/* Seçili tip badge'i */}
+            {selectedPreset && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-stone-50 rounded-lg mb-2">
+                <span className="text-lg">{selectedPreset.icon}</span>
+                <span className="text-sm font-medium text-stone-600">{selectedPreset.label}</span>
+                {!editingSpace && (
+                  <button onClick={() => setShowPresetStep(true)} className="text-xs text-emerald-600 hover:underline ml-auto">Değiştir</button>
+                )}
+              </div>
+            )}
             {/* İsim */}
             <div>
               <label className="text-sm font-medium text-stone-700 mb-1 block">{t('spaceName')} *</label>
@@ -1011,6 +1135,27 @@ const ResourcesPage = () => {
                 />
               </div>
             </div>
+
+            {/* Yatak Sayısı — sadece private/masaj odası tipi için */}
+            {(selectedPreset?.showBedSelector || spaceForm.booking_mode === 'private') && (
+              <div>
+                <label className="text-sm font-medium text-stone-700 mb-1 block">Yatak Sayısı</label>
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setBedCount(Math.max(1, bedCount - 1))}
+                    className="w-8 h-8 rounded-lg border border-stone-300 flex items-center justify-center text-lg font-bold text-stone-600 hover:bg-stone-100"
+                  >{'\u2212'}</button>
+                  <span className="text-xl font-semibold text-stone-800 w-8 text-center">{bedCount}</span>
+                  <button
+                    type="button"
+                    onClick={() => setBedCount(Math.min(10, bedCount + 1))}
+                    className="w-8 h-8 rounded-lg border border-stone-300 flex items-center justify-center text-lg font-bold text-stone-600 hover:bg-stone-100"
+                  >+</button>
+                </div>
+                <p className="text-xs text-stone-400 mt-1">Her yatak için ayrı çalışma takvimi oluşturulacak</p>
+              </div>
+            )}
 
             {/* Booking Mode */}
             <div>
@@ -1101,6 +1246,7 @@ const ResourcesPage = () => {
               </div>
             </div>
           </div>
+          )}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setSpaceModalOpen(false)} disabled={saving}>
@@ -1108,7 +1254,7 @@ const ResourcesPage = () => {
             </Button>
             <Button
               onClick={handleSaveSpace}
-              disabled={saving || !spaceForm.name.trim()}
+              disabled={saving || !spaceForm.name.trim() || (showPresetStep && !editingSpace)}
               className="bg-gradient-to-r from-emerald-700 to-teal-600"
             >
               {saving ? t('saving') : t('save')}

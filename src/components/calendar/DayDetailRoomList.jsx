@@ -78,11 +78,24 @@ export default function DayDetailRoomList({
                   {loadingUnits ? (
                     <span style={{ fontSize: 11, color: '#5A8A6E' }}>...</span>
                   ) : (() => {
+                    const totalDayMinutes = (21 - 8) * 60; // 780 dakika
                     const units = unitData.length > 0
-                      ? unitData.map(u => ({ id: u.id, name: u.name, busy: u.appointmentCount > 0 }))
+                      ? unitData.map(u => {
+                          const bookedMinutes = (u.busySlots || []).reduce((sum, s) => sum + (s.endMin - s.startMin), 0);
+                          const occupancyPct = Math.round((bookedMinutes / totalDayMinutes) * 100);
+                          return {
+                            id: u.id,
+                            name: u.name,
+                            busy: occupancyPct >= 95,
+                            partiallyBooked: occupancyPct > 0 && occupancyPct < 95,
+                            occupancyPct,
+                            busySlots: u.busySlots || [],
+                          };
+                        })
                       : generateDefaultUnits(room);
                     return units.map(unit => (
                       <BedButton key={unit.id} name={unit.name} busy={unit.busy}
+                        partiallyBooked={unit.partiallyBooked} occupancyPct={unit.occupancyPct}
                         selected={selectedUnit?.id === unit.id}
                         onClick={() => !unit.busy && onSelectUnit(selectedUnit?.id === unit.id ? null : { id: unit.id, name: unit.name })}
                       />
@@ -98,7 +111,23 @@ export default function DayDetailRoomList({
   );
 }
 
-function BedButton({ name, busy, selected, onClick }) {
+function BedButton({ name, busy, partiallyBooked, occupancyPct, selected, onClick }) {
+  const statusBg = busy
+    ? 'rgba(226,75,74,0.15)'
+    : partiallyBooked
+      ? 'rgba(239,159,39,0.2)'
+      : 'rgba(29,158,117,0.2)';
+  const statusColor = busy
+    ? '#A32D2D'
+    : partiallyBooked
+      ? '#854F0B'
+      : '#0F6E56';
+  const statusText = busy
+    ? 'dolu'
+    : partiallyBooked
+      ? `%${occupancyPct} dolu`
+      : 'müsait';
+
   return (
     <div onClick={busy ? undefined : onClick} style={{
       display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 6,
@@ -110,9 +139,9 @@ function BedButton({ name, busy, selected, onClick }) {
       <span style={{ fontWeight: 500, fontSize: 10, color: '#0F3D2A' }}>{name}</span>
       <span style={{
         fontSize: 9, padding: '1px 6px', borderRadius: 6, fontWeight: 600,
-        background: busy ? 'rgba(226,75,74,0.15)' : 'rgba(29,158,117,0.2)',
-        color: busy ? '#A32D2D' : '#0F6E56',
-      }}>{busy ? 'dolu' : 'müsait'}</span>
+        background: statusBg,
+        color: statusColor,
+      }}>{statusText}</span>
     </div>
   );
 }
