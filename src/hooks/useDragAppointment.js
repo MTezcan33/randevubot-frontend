@@ -34,6 +34,11 @@ export function useDragAppointment({
 
   const handleDragStart = useCallback((e) => {
     if (!newAppointment || e.button !== 0) return;
+    startDrag(e, newAppointment.serviceName || 'Randevu');
+  }, [newAppointment]);
+
+  // Dogrudan surukle — state beklemeden (mevcut randevu suruklemede kullanilir)
+  const startDrag = useCallback((e, label) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -46,10 +51,10 @@ export function useDragAppointment({
     ghost.style.backgroundColor = 'rgba(124, 58, 237, 0.9)';
     ghost.style.left = `${e.clientX + 12}px`;
     ghost.style.top = `${e.clientY + 12}px`;
-    ghost.textContent = newAppointment.serviceName || 'Randevu';
+    ghost.textContent = label || 'Randevu';
     document.body.appendChild(ghost);
     ghostRef.current = ghost;
-  }, [newAppointment]);
+  }, []);
 
   const handleDragMove = useCallback((e) => {
     if (!isDragging || !ghostRef.current) return;
@@ -133,5 +138,6 @@ export function useDragAppointment({
     isDragging,
     dragState,
     handleDragStart,
+    startDrag,
   };
 }

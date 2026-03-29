@@ -156,7 +156,7 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
   }, [bookedSlots, movingAptId, activeExperts, dayAppointments]);
 
   // Drag (sadece uzman hizmetleri)
-  const { dragState, handleDragStart } = useDragAppointment({
+  const { dragState, handleDragStart, startDrag } = useDragAppointment({
     newAppointment: newAppointment ? { ...newAppointment, serviceName: selectedService?.description } : null,
     slotsNeeded, bookedSlots: effectiveBookedSlots, experts: activeExperts, cellRefs, totalSlots: TOTAL_SLOTS,
     onDrop: async (col, slot) => {
@@ -210,9 +210,9 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
       selectedUnitId: apt.room_unit_id || null,
       serviceName: apt.company_services?.description || '',
     });
-    // Drag hook'unu baslat — kucuk gecikme ile state guncellemesi beklenir
-    requestAnimationFrame(() => handleDragStart(e));
-  }, [activeExperts, handleDragStart]);
+    // startDrag state beklemez — dogrudan ghost olusturur ve sureklemeyi baslatir
+    startDrag(e, apt.company_services?.description || 'Randevu');
+  }, [activeExperts, startDrag]);
 
   // Onayla tiklaninca modal ac
   const handleConfirmClick = (type) => {
