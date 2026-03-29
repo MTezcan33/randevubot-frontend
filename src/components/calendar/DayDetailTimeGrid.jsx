@@ -276,12 +276,14 @@ export default function DayDetailTimeGrid({
                     {/* Yeni randevu bloku (mor) */}
                     {isNewFirst && (
                       <div
-                        onMouseDown={e => isExpertMode ? onDragStart?.(e) : null}
+                        onMouseDown={e => { e.stopPropagation(); if (isExpertMode) onDragStart?.(e); }}
+                        onClick={e => e.stopPropagation()}
                         style={{
                           position: 'absolute', left: 2, right: 2, top: 1,
                           height: slotsNeeded * ROW_H - 2, borderRadius: 6,
                           background: '#534AB7', zIndex: 5, padding: '5px 8px',
                           cursor: isExpertMode ? 'grab' : 'default',
+                          pointerEvents: 'auto',
                         }}
                       >
                         <div style={{ fontSize: 11, fontWeight: 600, color: '#fff' }}>{service?.description}</div>
