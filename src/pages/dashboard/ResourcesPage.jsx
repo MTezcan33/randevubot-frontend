@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import {
   Plus, Edit, Trash2, DoorOpen, Wrench, Clock, Users,
   Search, MoreVertical, Star, MapPin, Package, Shield,
-  BarChart3, CalendarDays, ChevronLeft, ChevronRight
+  BarChart3, CalendarDays, ChevronLeft, ChevronRight,
+  Bed, Flame, Droplets, Snowflake, Waves, Dumbbell, Crown, Settings, ChevronDown
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -50,15 +51,15 @@ const BOOKING_MODES = [
 const DAYS = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
 const SPACE_TYPE_PRESETS = [
-  { type: 'masaj_odasi', label: 'Masaj Odası', icon: '💆', defaults: { booking_mode: 'private', capacity: 1, buffer_minutes: 15, description: 'Özel masaj odası' }, showBedSelector: true },
-  { type: 'hamam', label: 'Hamam', icon: '🏛️', defaults: { booking_mode: 'shared', capacity: 15, buffer_minutes: 0, description: 'Türk hamamı' }, showBedSelector: false },
-  { type: 'sauna', label: 'Sauna', icon: '🧖', defaults: { booking_mode: 'shared', capacity: 8, buffer_minutes: 0, description: 'Sauna' }, showBedSelector: false },
-  { type: 'buhar_odasi', label: 'Buhar Odası', icon: '💨', defaults: { booking_mode: 'shared', capacity: 6, buffer_minutes: 0, description: 'Buhar odası' }, showBedSelector: false },
-  { type: 'tuz_odasi', label: 'Tuz Odası', icon: '🧂', defaults: { booking_mode: 'shared', capacity: 6, buffer_minutes: 0, description: 'Tuz terapi odası' }, showBedSelector: false },
-  { type: 'havuz', label: 'Yüzme Havuzu', icon: '🏊', defaults: { booking_mode: 'shared', capacity: 20, buffer_minutes: 0, description: 'Yüzme havuzu' }, showBedSelector: false },
-  { type: 'fitness', label: 'Fitness Salonu', icon: '🏋️', defaults: { booking_mode: 'shared', capacity: 15, buffer_minutes: 0, description: 'Fitness alanı' }, showBedSelector: false },
-  { type: 'vip_suit', label: 'VIP Suit', icon: '👑', defaults: { booking_mode: 'private', capacity: 1, buffer_minutes: 20, description: 'VIP özel suit' }, showBedSelector: true },
-  { type: 'ozel', label: 'Özel (Manuel)', icon: '⚙️', defaults: { booking_mode: 'private', capacity: 1, buffer_minutes: 15, description: '' }, showBedSelector: false },
+  { type: 'masaj_odasi', label: 'Masaj Odası', Icon: Bed, color: '#9333EA', defaults: { booking_mode: 'private', capacity: 1, buffer_minutes: 15, description: 'Özel masaj odası' }, showBedSelector: true },
+  { type: 'hamam', label: 'Hamam', Icon: Flame, color: '#F97316', defaults: { booking_mode: 'shared', capacity: 15, buffer_minutes: 0, description: 'Türk hamamı' }, showBedSelector: false },
+  { type: 'sauna', label: 'Sauna', Icon: Flame, color: '#EF4444', defaults: { booking_mode: 'shared', capacity: 8, buffer_minutes: 0, description: 'Sauna' }, showBedSelector: false },
+  { type: 'buhar_odasi', label: 'Buhar Odası', Icon: Droplets, color: '#06B6D4', defaults: { booking_mode: 'shared', capacity: 6, buffer_minutes: 0, description: 'Buhar odası' }, showBedSelector: false },
+  { type: 'tuz_odasi', label: 'Tuz Odası', Icon: Snowflake, color: '#F59E0B', defaults: { booking_mode: 'shared', capacity: 6, buffer_minutes: 0, description: 'Tuz terapi odası' }, showBedSelector: false },
+  { type: 'havuz', label: 'Yüzme Havuzu', Icon: Waves, color: '#3B82F6', defaults: { booking_mode: 'shared', capacity: 20, buffer_minutes: 0, description: 'Yüzme havuzu' }, showBedSelector: false },
+  { type: 'fitness', label: 'Fitness Salonu', Icon: Dumbbell, color: '#10B981', defaults: { booking_mode: 'shared', capacity: 15, buffer_minutes: 0, description: 'Fitness alanı' }, showBedSelector: false },
+  { type: 'vip_suit', label: 'VIP Suit', Icon: Crown, color: '#D4AF37', defaults: { booking_mode: 'private', capacity: 1, buffer_minutes: 20, description: 'VIP özel suit' }, showBedSelector: true },
+  { type: 'ozel', label: 'Özel (Manuel)', Icon: Settings, color: '#64748B', defaults: { booking_mode: 'private', capacity: 1, buffer_minutes: 15, description: '' }, showBedSelector: false },
 ];
 
 const ResourcesPage = () => {
@@ -1067,16 +1068,19 @@ const ResourcesPage = () => {
             <div className="py-4">
               <p className="text-sm text-stone-500 mb-4">Alanınıza uygun bir tip seçin</p>
               <div className="grid grid-cols-3 gap-3">
-                {SPACE_TYPE_PRESETS.map(preset => (
-                  <button
-                    key={preset.type}
-                    onClick={() => handleSelectPreset(preset)}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-stone-200 hover:border-emerald-400 hover:bg-emerald-50 transition-all text-center"
-                  >
-                    <span className="text-2xl">{preset.icon}</span>
-                    <span className="text-sm font-medium text-stone-700">{preset.label}</span>
-                  </button>
-                ))}
+                {SPACE_TYPE_PRESETS.map(preset => {
+                  const PresetIcon = preset.Icon;
+                  return (
+                    <button
+                      key={preset.type}
+                      onClick={() => handleSelectPreset(preset)}
+                      className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-stone-200 hover:border-emerald-400 hover:bg-emerald-50 transition-all text-center"
+                    >
+                      <PresetIcon className="w-7 h-7" style={{ color: preset.color }} />
+                      <span className="text-sm font-medium text-stone-700">{preset.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ) : (
@@ -1084,7 +1088,7 @@ const ResourcesPage = () => {
             {/* Seçili tip badge'i */}
             {selectedPreset && (
               <div className="flex items-center gap-2 px-3 py-2 bg-stone-50 rounded-lg mb-2">
-                <span className="text-lg">{selectedPreset.icon}</span>
+                <selectedPreset.Icon className="w-5 h-5" style={{ color: selectedPreset.color }} />
                 <span className="text-sm font-medium text-stone-600">{selectedPreset.label}</span>
                 {!editingSpace && (
                   <button onClick={() => setShowPresetStep(true)} className="text-xs text-emerald-600 hover:underline ml-auto">Değiştir</button>
@@ -1113,47 +1117,74 @@ const ResourcesPage = () => {
               />
             </div>
 
-            {/* Kapasite + Buffer */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium text-stone-700 mb-1 block">{t('capacity')}</label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={spaceForm.capacity}
-                  onChange={(e) => setSpaceForm(f => ({ ...f, capacity: parseInt(e.target.value) || 1 }))}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-stone-700 mb-1 block">{t('bufferMinutes')}</label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={5}
-                  value={spaceForm.buffer_minutes}
-                  onChange={(e) => setSpaceForm(f => ({ ...f, buffer_minutes: parseInt(e.target.value) || 0 }))}
-                />
-              </div>
-            </div>
-
-            {/* Yatak Sayısı — sadece private/masaj odası tipi için */}
-            {(selectedPreset?.showBedSelector || spaceForm.booking_mode === 'private') && (
-              <div>
-                <label className="text-sm font-medium text-stone-700 mb-1 block">Yatak Sayısı</label>
-                <div className="flex items-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setBedCount(Math.max(1, bedCount - 1))}
-                    className="w-8 h-8 rounded-lg border border-stone-300 flex items-center justify-center text-lg font-bold text-stone-600 hover:bg-stone-100"
-                  >{'\u2212'}</button>
-                  <span className="text-xl font-semibold text-stone-800 w-8 text-center">{bedCount}</span>
-                  <button
-                    type="button"
-                    onClick={() => setBedCount(Math.min(10, bedCount + 1))}
-                    className="w-8 h-8 rounded-lg border border-stone-300 flex items-center justify-center text-lg font-bold text-stone-600 hover:bg-stone-100"
-                  >+</button>
+            {/* Private mod: Yatak Sayısı + Tampon | Shared mod: Kapasite + Tampon */}
+            {(selectedPreset?.showBedSelector || spaceForm.booking_mode === 'private') ? (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium text-stone-700 mb-1 block">Yatak Sayısı</label>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => { const v = Math.max(1, bedCount - 1); setBedCount(v); setSpaceForm(f => ({ ...f, capacity: v })); }}
+                        className="w-8 h-8 rounded-lg border border-stone-300 flex items-center justify-center text-lg font-bold text-stone-600 hover:bg-stone-100"
+                      >{'\u2212'}</button>
+                      <span className="text-xl font-semibold text-stone-800 w-8 text-center">{bedCount}</span>
+                      <button
+                        type="button"
+                        onClick={() => { const v = Math.min(10, bedCount + 1); setBedCount(v); setSpaceForm(f => ({ ...f, capacity: v })); }}
+                        className="w-8 h-8 rounded-lg border border-stone-300 flex items-center justify-center text-lg font-bold text-stone-600 hover:bg-stone-100"
+                      >+</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-stone-700 mb-1 block">{t('bufferMinutes')}</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={5}
+                      value={spaceForm.buffer_minutes}
+                      onChange={(e) => setSpaceForm(f => ({ ...f, buffer_minutes: parseInt(e.target.value) || 0 }))}
+                    />
+                  </div>
                 </div>
-                <p className="text-xs text-stone-400 mt-1">Her yatak için ayrı çalışma takvimi oluşturulacak</p>
+                {/* Yatak listesi */}
+                {bedCount > 0 && (
+                  <div className="bg-stone-50 rounded-lg p-3">
+                    <p className="text-xs font-medium text-stone-500 mb-2">Yataklar</p>
+                    <div className="flex flex-wrap gap-2">
+                      {Array.from({ length: bedCount }, (_, i) => (
+                        <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg border border-stone-200 text-xs">
+                          <Bed className="w-3.5 h-3.5 text-purple-500" />
+                          <span className="font-medium text-stone-700">Yatak {i + 1}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-stone-400 mt-2">Her yatak, alan çalışma saatlerini miras alır. Kayıt sonrası yataklar arası özel saatler ayarlanabilir.</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium text-stone-700 mb-1 block">{t('capacity')}</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={spaceForm.capacity}
+                    onChange={(e) => setSpaceForm(f => ({ ...f, capacity: parseInt(e.target.value) || 1 }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-stone-700 mb-1 block">{t('bufferMinutes')}</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={5}
+                    value={spaceForm.buffer_minutes}
+                    onChange={(e) => setSpaceForm(f => ({ ...f, buffer_minutes: parseInt(e.target.value) || 0 }))}
+                  />
+                </div>
               </div>
             )}
 
