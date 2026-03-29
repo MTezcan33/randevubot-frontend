@@ -7,7 +7,7 @@ import { useDragAppointment } from '@/hooks/useDragAppointment';
 import { checkResourceAvailability } from '@/services/resourceService';
 import { getRoomUnits } from '@/services/roomUnitService';
 import DayDetailServiceList from './DayDetailServiceList';
-import DayDetailTimeGrid, { slotToTime, durationToSlots, TOTAL_SLOTS, SLOT_MINUTES, DAY_START_HOUR } from './DayDetailTimeGrid';
+import DayDetailTimeGrid, { slotToTime, timeToSlot, durationToSlots, TOTAL_SLOTS, SLOT_MINUTES, DAY_START_HOUR } from './DayDetailTimeGrid';
 
 const MONTHS = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
 const DAYS_FULL = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
@@ -32,6 +32,7 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
   const [confirmTarget, setConfirmTarget] = useState(null); // 'expert' | 'facility'
   const [gridViewMode, setGridViewMode] = useState('expert'); // 'expert' | 'bed'
   const [selectedRoomUnits, setSelectedRoomUnits] = useState([]);
+  const [movingAptId, setMovingAptId] = useState(null); // suruklenmekte olan mevcut randevu id'si
 
   const dateObj = new Date(date + 'T00:00:00');
   const [y, m, d] = date.split('-');
@@ -119,19 +120,100 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
     return map;
   }, [filteredExperts, dayAppointments]);
 
+  // Suruklenen mevcut randevuyu bookedSlots'tan cikar
+  const effectiveBookedSlots = useMemo(() => {
+    if (!movingAptId) return bookedSlots;
+    const filtered = {};
+    Object.keys(bookedSlots).forEach(key => {
+      if (bookedSlots[key] !== true) {
+        // DayDetailTimeGrid formatinda { apt, ... } nesnesi
+        if (bookedSlots[key]?.apt?.id !== movingAptId) filtered[key] = bookedSlots[key];
+      } else {
+        // DayDetailPanel formatinda sadece true
+        filtered[key] = bookedSlots[key];
+      }
+    });
+    // DayDetailPanel bookedSlots'u sadece true kullanir, apt bilgisi yok
+    // Bu yuzden movingAptId varken slotlari yeniden hesapla (suruklenen haric)
+    if (movingAptId && filteredExperts.length) {
+      const map = {};
+      dayAppointments.forEach(apt => {
+        if (!apt.time || apt.status === 'iptal' || apt.id === movingAptId) return;
+        const ci = filteredExperts.findIndex(e => e.id === apt.expert_id);
+        if (ci === -1) return;
+        const [h, mn] = apt.time.split(':').map(Number);
+        const startSlot = Math.floor((h * 60 + mn - DAY_START_HOUR * 60) / SLOT_MINUTES);
+        const dur = apt.total_duration || apt.company_services?.duration || 60;
+        const slots = durationToSlots(dur);
+        for (let k = 0; k < slots; k++) { const s = startSlot + k; if (s >= 0 && s < TOTAL_SLOTS) map[`${ci}-${s}`] = true; }
+      });
+      return map;
+    }
+    return bookedSlots;
+  }, [bookedSlots, movingAptId, filteredExperts, dayAppointments]);
+
   // Drag (sadece uzman hizmetleri)
   const { dragState, handleDragStart } = useDragAppointment({
     newAppointment: newAppointment ? { ...newAppointment, serviceName: selectedService?.description } : null,
-    slotsNeeded, bookedSlots, experts: filteredExperts, cellRefs, totalSlots: TOTAL_SLOTS,
-    onDrop: (col, slot) => {
+    slotsNeeded, bookedSlots: effectiveBookedSlots, experts: filteredExperts, cellRefs, totalSlots: TOTAL_SLOTS,
+    onDrop: async (col, slot) => {
       const expert = filteredExperts[col];
-      if (expert) setNewAppointment({ colIndex: col, startSlot: slot, expert, startTime: slotToTime(slot), endTime: slotToTime(slot + slotsNeeded), selectedUnitId: selectedUnit?.id || null });
+      if (!expert) return;
+      if (movingAptId) {
+        // Mevcut randevuyu yeni konuma tasi — DB guncelle
+        const newTime = slotToTime(slot);
+        try {
+          const updateData = { time: newTime };
+          // Uzman degistiyse expert_id de guncelle
+          const movingApt = dayAppointments.find(a => a.id === movingAptId);
+          if (movingApt && expert.id !== movingApt.expert_id) {
+            updateData.expert_id = expert.id;
+          }
+          const { error } = await supabase.from('appointments').update(updateData).eq('id', movingAptId);
+          if (error) throw error;
+          toast({ title: 'Randevu taşındı', description: `${expert.name} · ${newTime}` });
+          setNewAppointment(null);
+          setMovingAptId(null);
+          fetchDayAppointments(company.id, date).then(setDayAppointments);
+        } catch (err) {
+          toast({ title: 'Taşıma hatası', description: err.message, variant: 'destructive' });
+          setNewAppointment(null);
+          setMovingAptId(null);
+        }
+      } else {
+        setNewAppointment({ colIndex: col, startSlot: slot, expert, startTime: slotToTime(slot), endTime: slotToTime(slot + slotsNeeded), selectedUnitId: selectedUnit?.id || null });
+      }
     },
   });
 
   const handleSlotClick = useCallback((colIndex, slotIndex, expert) => {
     setNewAppointment({ colIndex, startSlot: slotIndex, expert, startTime: slotToTime(slotIndex), endTime: slotToTime(slotIndex + slotsNeeded), selectedUnitId: selectedUnit?.id || null });
   }, [slotsNeeded]);
+
+  // Mevcut randevuyu suruklemek icin: bloku "virtual new appointment" a donustur
+  const handleExistingDragStart = useCallback((e, apt) => {
+    const ci = filteredExperts.findIndex(ex => ex.id === apt.expert_id);
+    if (ci === -1) return;
+    const dur = apt.total_duration || apt.company_services?.duration || 60;
+    const startSlot = timeToSlot(apt.time);
+    const slotsN = durationToSlots(dur);
+    // Hizmeti gecici olarak ayarla (surukle-birak sirasinda slot sayisi icin)
+    if (!selectedService && apt.company_services) {
+      setSelectedService(apt.company_services);
+    }
+    setMovingAptId(apt.id);
+    setNewAppointment({
+      colIndex: ci,
+      startSlot,
+      expert: filteredExperts[ci],
+      startTime: slotToTime(startSlot),
+      endTime: slotToTime(startSlot + slotsN),
+      selectedUnitId: apt.room_unit_id || null,
+      serviceName: apt.company_services?.description || '',
+    });
+    // Drag hook'unu baslat — kucuk gecikme ile state guncellemesi beklenir
+    requestAnimationFrame(() => handleDragStart(e));
+  }, [filteredExperts, selectedService, handleDragStart]);
 
   // Onayla tiklaninca modal ac
   const handleConfirmClick = (type) => {
@@ -354,6 +436,8 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
                 dragState={dragState} cellRefs={cellRefs}
                 viewMode={gridViewMode}
                 roomUnits={selectedRoomUnits}
+                onExistingDragStart={handleExistingDragStart}
+                movingAptId={movingAptId}
               />
             </>
           )}

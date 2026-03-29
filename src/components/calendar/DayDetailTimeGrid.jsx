@@ -54,6 +54,8 @@ export default function DayDetailTimeGrid({
   newAppointment, onSlotClick, onDragStart, dragState, cellRefs,
   viewMode = 'expert', // 'expert' | 'bed'
   roomUnits = [],      // array of { id, name } for bed mode
+  onExistingDragStart, // callback(e, apt) — mevcut randevu surukle
+  movingAptId = null,  // suruklenmekte olan mevcut randevunun id'si
 }) {
   const { t } = useTranslation();
   const slotsNeeded = service ? durationToSlots(service.duration) : 0;
@@ -246,17 +248,24 @@ export default function DayDetailTimeGrid({
                     onMouseLeave={e => { if (isExpertMode && isFree && service && !dropOk && !dropNo) e.currentTarget.style.background = ''; }}
                   >
                     {/* Randevu bloku */}
-                    {bk?.isFirst && (() => {
+                    {bk?.isFirst && !(movingAptId && bk.apt.id === movingAptId) && (() => {
                       const unitName = isExpertMode && bk.apt.room_unit_id
                         ? (roomUnits.find(u => u.id === bk.apt.room_unit_id)?.name || '')
                         : '';
+                      const isMovable = isExpertMode && onExistingDragStart && bk.apt.status !== 'iptal';
                       return (
-                        <div style={{
-                          position: 'absolute', left: 2, right: 2, top: 1,
-                          height: bk.totalSlots * ROW_H - 2, borderRadius: 6,
-                          padding: '4px 6px', overflow: 'hidden', zIndex: 2, pointerEvents: 'none',
-                          background: blockColors.light, borderLeft: `3px solid ${blockColors.fill}`,
-                        }}>
+                        <div
+                          onMouseDown={isMovable ? (e) => { e.stopPropagation(); onExistingDragStart(e, bk.apt); } : undefined}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            position: 'absolute', left: 2, right: 2, top: 1,
+                            height: bk.totalSlots * ROW_H - 2, borderRadius: 6,
+                            padding: '4px 6px', overflow: 'hidden', zIndex: 2,
+                            pointerEvents: isMovable ? 'auto' : 'none',
+                            cursor: isMovable ? 'grab' : 'default',
+                            background: blockColors.light, borderLeft: `3px solid ${blockColors.fill}`,
+                          }}
+                        >
                           <div style={{ fontSize: 10, fontWeight: 600, color: blockColors.dark, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {isExpertMode ? col.name : (experts.find(e => e.id === bk.apt.expert_id)?.name || '')}
                           </div>
