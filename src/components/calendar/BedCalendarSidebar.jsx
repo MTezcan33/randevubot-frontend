@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronRight, Bed, Layers } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { ChevronDown, ChevronRight, Bed, Layers, User } from 'lucide-react';
 import { getUnitAvailability } from '@/services/roomUnitService';
+import { getAllExpertSpaces } from '@/services/resourceService';
 
 /**
  * Bagimsiz yatak takvimi gorunumu icin sol sidebar.
- * Odalari accordion tarzinda listeler, oda tiklaninca yataklari gosterir.
+ * Odalari accordion tarzinda listeler, oda tiklaninca yataklari ve personelleri gosterir.
  */
 export default function BedCalendarSidebar({
   company,
   date,
   spaces,
+  experts, // Tum uzmanlar
   selectedRoom,
   selectedUnit,
   onSelectRoom,
@@ -19,6 +21,7 @@ export default function BedCalendarSidebar({
   const [expandedRoomId, setExpandedRoomId] = useState(null);
   const [unitDataMap, setUnitDataMap] = useState({}); // { roomId: unitData[] }
   const [loadingRoomId, setLoadingRoomId] = useState(null);
+  const [expertSpaceMap, setExpertSpaceMap] = useState({}); // { spaceId: [expertId, ...] }
 
   // Sadece private odalar (yatak takvimi icin)
   const privateRooms = (spaces || []).filter(s => s.is_active && s.booking_mode === 'private');
@@ -43,6 +46,28 @@ export default function BedCalendarSidebar({
   useEffect(() => {
     setUnitDataMap({});
   }, [date]);
+
+  // Uzman-oda atamalarini yukle
+  useEffect(() => {
+    if (!company?.id) return;
+    getAllExpertSpaces(company.id)
+      .then(data => {
+        // { spaceId: [expertId, ...] } formatina cevir
+        const map = {};
+        (data || []).forEach(es => {
+          if (!map[es.space_id]) map[es.space_id] = [];
+          map[es.space_id].push(es.expert_id);
+        });
+        setExpertSpaceMap(map);
+      })
+      .catch(() => setExpertSpaceMap({}));
+  }, [company?.id]);
+
+  // Bir odaya atanmis uzmanlar
+  const getRoomExperts = (roomId) => {
+    const expertIds = expertSpaceMap[roomId] || [];
+    return (experts || []).filter(e => expertIds.includes(e.id));
+  };
 
   const handleRoomClick = (room) => {
     const isExpanded = expandedRoomId === room.id;
@@ -183,7 +208,7 @@ export default function BedCalendarSidebar({
                 </div>
               </div>
 
-              {/* Yatak listesi (acik oldugunda) */}
+              {/* Oda icerigi (acik oldugunda) */}
               {isExpanded && (
                 <div style={{
                   background: '#F8FAF9',
@@ -194,48 +219,97 @@ export default function BedCalendarSidebar({
                 }}>
                   {isLoading ? (
                     <div style={{ fontSize: 11, color: '#5A8A6E', padding: '8px 0', textAlign: 'center' }}>
-                      Yataklar yukleniyor...
+                      Yukleniyor...
                     </div>
                   ) : (
                     <>
-                      {/* Tum Yataklar butonu */}
-                      {units.length > 1 && (
-                        <div
-                          onClick={(e) => handleAllUnitsClick(room, units.filter(u => !u.busy), e)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            padding: '6px 10px',
-                            marginBottom: 6,
-                            background: !selectedUnit && isSelected ? '#E8E5FF' : '#EDF5F0',
-                            border: `1px solid ${!selectedUnit && isSelected ? '#7F77DD' : '#C5DDD0'}`,
-                            borderRadius: 6,
-                            cursor: 'pointer',
-                            fontSize: 11,
-                            fontWeight: 500,
-                            color: '#534AB7',
-                            transition: 'all 0.12s',
-                          }}
-                        >
-                          <Layers size={12} />
-                          Tum Yataklar
-                        </div>
-                      )}
+                      {/* Personeller */}
+                      {(() => {
+                        const roomExperts = getRoomExperts(room.id);
+                        if (roomExperts.length === 0) return null;
+                        return (
+                          <div style={{ marginBottom: 8 }}>
+                            <div style={{ fontSize: 9, fontWeight: 600, color: '#5A8A6E', marginBottom: 4, textTransform: 'uppercase' }}>
+                              Personeller
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                              {roomExperts.map(expert => (
+                                <div
+                                  key={expert.id}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    padding: '4px 8px',
+                                    borderRadius: 6,
+                                    background: '#fff',
+                                    border: '1px solid #C5DDD0',
+                                    fontSize: 10,
+                                    fontWeight: 500,
+                                    color: '#0F3D2A',
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: 8,
+                                      height: 8,
+                                      borderRadius: '50%',
+                                      background: expert.color || '#1D9E75',
+                                    }}
+                                  />
+                                  {expert.name}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
 
-                      {/* Yatak butonlari */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {units.map(unit => (
-                          <BedButton
-                            key={unit.id}
-                            name={unit.name}
-                            busy={unit.busy}
-                            partiallyBooked={unit.partiallyBooked}
-                            occupancyPct={unit.occupancyPct}
-                            selected={selectedUnit?.id === unit.id}
-                            onClick={(e) => handleUnitClick(room, unit, e)}
-                          />
-                        ))}
+                      {/* Yataklar */}
+                      <div style={{ marginBottom: 4 }}>
+                        <div style={{ fontSize: 9, fontWeight: 600, color: '#5A8A6E', marginBottom: 4, textTransform: 'uppercase' }}>
+                          Yataklar
+                        </div>
+
+                        {/* Tum Yataklar butonu */}
+                        {units.length > 1 && (
+                          <div
+                            onClick={(e) => handleAllUnitsClick(room, units.filter(u => !u.busy), e)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              padding: '6px 10px',
+                              marginBottom: 6,
+                              background: !selectedUnit && isSelected ? '#E8E5FF' : '#EDF5F0',
+                              border: `1px solid ${!selectedUnit && isSelected ? '#7F77DD' : '#C5DDD0'}`,
+                              borderRadius: 6,
+                              cursor: 'pointer',
+                              fontSize: 11,
+                              fontWeight: 500,
+                              color: '#534AB7',
+                              transition: 'all 0.12s',
+                            }}
+                          >
+                            <Layers size={12} />
+                            Tum Yataklar
+                          </div>
+                        )}
+
+                        {/* Yatak butonlari */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {units.map(unit => (
+                            <BedButton
+                              key={unit.id}
+                              name={unit.name}
+                              busy={unit.busy}
+                              partiallyBooked={unit.partiallyBooked}
+                              occupancyPct={unit.occupancyPct}
+                              selected={selectedUnit?.id === unit.id}
+                              onClick={(e) => handleUnitClick(room, unit, e)}
+                            />
+                          ))}
+                        </div>
                       </div>
                     </>
                   )}

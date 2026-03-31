@@ -536,6 +536,7 @@ export default function DayDetailPanel({
                 company={company}
                 date={date}
                 spaces={spaces}
+                experts={allExperts}
                 selectedRoom={selectedRoom}
                 selectedUnit={selectedUnit}
                 onSelectRoom={(room) => {
