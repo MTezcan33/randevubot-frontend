@@ -538,21 +538,10 @@ export default function DayDetailPanel({
                 spaces={spaces}
                 experts={allExperts}
                 selectedRoom={selectedRoom}
-                selectedUnit={selectedUnit}
                 onSelectRoom={(room) => {
                   setSelectedRoom(room);
                   setSelectedUnit(null);
                   setSelectedAllUnits(null);
-                  setNewAppointment(null);
-                }}
-                onSelectUnit={(unit) => {
-                  setSelectedUnit(unit);
-                  setSelectedAllUnits(null);
-                  setNewAppointment(null);
-                }}
-                onSelectAllUnits={(units) => {
-                  setSelectedUnit(null);
-                  setSelectedAllUnits(units);
                   setNewAppointment(null);
                 }}
               />

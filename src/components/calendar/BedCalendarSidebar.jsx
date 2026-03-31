@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronRight, Bed, Layers, User } from 'lucide-react';
-import { getUnitAvailability } from '@/services/roomUnitService';
+import React, { useState, useEffect } from 'react';
+import { ChevronDown, ChevronRight, Bed, User } from 'lucide-react';
 import { getAllExpertSpaces } from '@/services/resourceService';
 
 /**
  * Bagimsiz yatak takvimi gorunumu icin sol sidebar.
- * Odalari accordion tarzinda listeler, oda tiklaninca yataklari ve personelleri gosterir.
+ * Odalari accordion tarzinda listeler, oda tiklaninca personelleri gosterir.
+ * Yatak takvimi sag tarafta grid olarak goruntulenir.
  */
 export default function BedCalendarSidebar({
   company,
@@ -13,39 +13,13 @@ export default function BedCalendarSidebar({
   spaces,
   experts, // Tum uzmanlar
   selectedRoom,
-  selectedUnit,
   onSelectRoom,
-  onSelectUnit,
-  onSelectAllUnits, // Odanin tum yataklarini sec
 }) {
   const [expandedRoomId, setExpandedRoomId] = useState(null);
-  const [unitDataMap, setUnitDataMap] = useState({}); // { roomId: unitData[] }
-  const [loadingRoomId, setLoadingRoomId] = useState(null);
   const [expertSpaceMap, setExpertSpaceMap] = useState({}); // { spaceId: [expertId, ...] }
 
   // Sadece private odalar (yatak takvimi icin)
   const privateRooms = (spaces || []).filter(s => s.is_active && s.booking_mode === 'private');
-
-  // Oda acildiginda yataklari yukle
-  useEffect(() => {
-    if (!expandedRoomId || !company?.id) return;
-    if (unitDataMap[expandedRoomId]) return; // Zaten yuklenmis
-
-    setLoadingRoomId(expandedRoomId);
-    getUnitAvailability(company.id, expandedRoomId, date)
-      .then(data => {
-        setUnitDataMap(prev => ({ ...prev, [expandedRoomId]: data || [] }));
-      })
-      .catch(() => {
-        setUnitDataMap(prev => ({ ...prev, [expandedRoomId]: [] }));
-      })
-      .finally(() => setLoadingRoomId(null));
-  }, [expandedRoomId, company?.id, date]);
-
-  // Tarih degistiginde cache'i temizle
-  useEffect(() => {
-    setUnitDataMap({});
-  }, [date]);
 
   // Uzman-oda atamalarini yukle
   useEffect(() => {
@@ -76,62 +50,12 @@ export default function BedCalendarSidebar({
       setExpandedRoomId(null);
       if (selectedRoom?.id === room.id) {
         onSelectRoom(null);
-        onSelectUnit(null);
       }
     } else {
       // Aciliyor
       setExpandedRoomId(room.id);
       onSelectRoom(room);
     }
-  };
-
-  const handleUnitClick = (room, unit, e) => {
-    e.stopPropagation();
-    if (unit.busy) return;
-
-    const isSelected = selectedUnit?.id === unit.id;
-    if (isSelected) {
-      onSelectUnit(null);
-    } else {
-      onSelectRoom(room);
-      onSelectUnit({ id: unit.id, name: unit.name });
-    }
-  };
-
-  const handleAllUnitsClick = (room, units, e) => {
-    e.stopPropagation();
-    onSelectRoom(room);
-    onSelectUnit(null); // Tek yatak secimi kaldir
-    if (onSelectAllUnits) {
-      onSelectAllUnits(units);
-    }
-  };
-
-  const totalDayMinutes = (21 - 8) * 60; // 780 dakika
-
-  const processUnits = (roomId, roomCapacity) => {
-    const raw = unitDataMap[roomId] || [];
-    if (raw.length === 0) {
-      // Default yataklar olustur
-      return Array.from({ length: roomCapacity || 1 }, (_, i) => ({
-        id: `auto-${roomId}-${i + 1}`,
-        name: roomCapacity === 1 ? 'Yatak 1' : `Yatak ${i + 1}`,
-        busy: false,
-        partiallyBooked: false,
-        occupancyPct: 0,
-      }));
-    }
-    return raw.map(u => {
-      const bookedMinutes = (u.busySlots || []).reduce((sum, s) => sum + (s.endMin - s.startMin), 0);
-      const occupancyPct = Math.round((bookedMinutes / totalDayMinutes) * 100);
-      return {
-        id: u.id,
-        name: u.name,
-        busy: occupancyPct >= 95,
-        partiallyBooked: occupancyPct > 0 && occupancyPct < 95,
-        occupancyPct,
-      };
-    });
   };
 
   if (!privateRooms.length) {
@@ -161,8 +85,7 @@ export default function BedCalendarSidebar({
         {privateRooms.map(room => {
           const isExpanded = expandedRoomId === room.id;
           const isSelected = selectedRoom?.id === room.id;
-          const isLoading = loadingRoomId === room.id;
-          const units = isExpanded ? processUnits(room.id, room.capacity) : [];
+          const roomExperts = getRoomExperts(room.id);
 
           return (
             <div key={room.id} style={{ marginBottom: 6 }}>
@@ -208,110 +131,54 @@ export default function BedCalendarSidebar({
                 </div>
               </div>
 
-              {/* Oda icerigi (acik oldugunda) */}
+              {/* Oda icerigi - Personeller (acik oldugunda) */}
               {isExpanded && (
                 <div style={{
                   background: '#F8FAF9',
                   border: '1px solid #B5D0C0',
                   borderTop: 'none',
                   borderRadius: '0 0 8px 8px',
-                  padding: '8px 10px',
+                  padding: '10px 12px',
                 }}>
-                  {isLoading ? (
-                    <div style={{ fontSize: 11, color: '#5A8A6E', padding: '8px 0', textAlign: 'center' }}>
-                      Yukleniyor...
+                  <div style={{ fontSize: 9, fontWeight: 600, color: '#5A8A6E', marginBottom: 6, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <User size={10} />
+                    Personeller
+                  </div>
+
+                  {roomExperts.length === 0 ? (
+                    <div style={{ fontSize: 10, color: '#888', fontStyle: 'italic' }}>
+                      Bu odaya atanmis personel yok
                     </div>
                   ) : (
-                    <>
-                      {/* Personeller */}
-                      {(() => {
-                        const roomExperts = getRoomExperts(room.id);
-                        if (roomExperts.length === 0) return null;
-                        return (
-                          <div style={{ marginBottom: 8 }}>
-                            <div style={{ fontSize: 9, fontWeight: 600, color: '#5A8A6E', marginBottom: 4, textTransform: 'uppercase' }}>
-                              Personeller
-                            </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                              {roomExperts.map(expert => (
-                                <div
-                                  key={expert.id}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 4,
-                                    padding: '4px 8px',
-                                    borderRadius: 6,
-                                    background: '#fff',
-                                    border: '1px solid #C5DDD0',
-                                    fontSize: 10,
-                                    fontWeight: 500,
-                                    color: '#0F3D2A',
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      width: 8,
-                                      height: 8,
-                                      borderRadius: '50%',
-                                      background: expert.color || '#1D9E75',
-                                    }}
-                                  />
-                                  {expert.name}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })()}
-
-                      {/* Yataklar */}
-                      <div style={{ marginBottom: 4 }}>
-                        <div style={{ fontSize: 9, fontWeight: 600, color: '#5A8A6E', marginBottom: 4, textTransform: 'uppercase' }}>
-                          Yataklar
-                        </div>
-
-                        {/* Tum Yataklar butonu */}
-                        {units.length > 1 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {roomExperts.map(expert => (
+                        <div
+                          key={expert.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '4px 8px',
+                            borderRadius: 6,
+                            background: '#fff',
+                            border: '1px solid #C5DDD0',
+                            fontSize: 10,
+                            fontWeight: 500,
+                            color: '#0F3D2A',
+                          }}
+                        >
                           <div
-                            onClick={(e) => handleAllUnitsClick(room, units.filter(u => !u.busy), e)}
                             style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              padding: '6px 10px',
-                              marginBottom: 6,
-                              background: !selectedUnit && isSelected ? '#E8E5FF' : '#EDF5F0',
-                              border: `1px solid ${!selectedUnit && isSelected ? '#7F77DD' : '#C5DDD0'}`,
-                              borderRadius: 6,
-                              cursor: 'pointer',
-                              fontSize: 11,
-                              fontWeight: 500,
-                              color: '#534AB7',
-                              transition: 'all 0.12s',
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              background: expert.color || '#1D9E75',
                             }}
-                          >
-                            <Layers size={12} />
-                            Tum Yataklar
-                          </div>
-                        )}
-
-                        {/* Yatak butonlari */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {units.map(unit => (
-                            <BedButton
-                              key={unit.id}
-                              name={unit.name}
-                              busy={unit.busy}
-                              partiallyBooked={unit.partiallyBooked}
-                              occupancyPct={unit.occupancyPct}
-                              selected={selectedUnit?.id === unit.id}
-                              onClick={(e) => handleUnitClick(room, unit, e)}
-                            />
-                          ))}
+                          />
+                          {expert.name}
                         </div>
-                      </div>
-                    </>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
@@ -319,57 +186,6 @@ export default function BedCalendarSidebar({
           );
         })}
       </div>
-    </div>
-  );
-}
-
-function BedButton({ name, busy, partiallyBooked, occupancyPct, selected, onClick }) {
-  const statusBg = busy
-    ? 'rgba(226,75,74,0.15)'
-    : partiallyBooked
-      ? 'rgba(239,159,39,0.2)'
-      : 'rgba(29,158,117,0.2)';
-  const statusColor = busy
-    ? '#A32D2D'
-    : partiallyBooked
-      ? '#854F0B'
-      : '#0F6E56';
-  const statusText = busy
-    ? 'dolu'
-    : partiallyBooked
-      ? `%${occupancyPct} dolu`
-      : 'musait';
-
-  return (
-    <div
-      onClick={busy ? undefined : onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '6px 10px',
-        borderRadius: 6,
-        border: `1px solid ${selected ? '#7F77DD' : '#C5DDD0'}`,
-        background: selected ? '#EEEDFE' : '#fff',
-        cursor: busy ? 'not-allowed' : 'pointer',
-        opacity: busy ? 0.5 : 1,
-        transition: 'all 0.12s',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Bed size={12} color={selected ? '#534AB7' : '#5A8A6E'} />
-        <span style={{ fontSize: 11, fontWeight: 500, color: '#0F3D2A' }}>{name}</span>
-      </div>
-      <span style={{
-        fontSize: 9,
-        padding: '2px 6px',
-        borderRadius: 4,
-        fontWeight: 600,
-        background: statusBg,
-        color: statusColor,
-      }}>
-        {statusText}
-      </span>
     </div>
   );
 }
