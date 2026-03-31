@@ -41,6 +41,8 @@ export default function DayDetailPanel({
   const [gridViewMode, setGridViewMode] = useState(independentMode ? 'bed' : 'expert');
   const [selectedRoomUnits, setSelectedRoomUnits] = useState([]);
   const [movingAptId, setMovingAptId] = useState(null); // suruklenmekte olan mevcut randevu id'si
+  // Sol sidebar tab: 'services' (hizmetler) veya 'rooms' (odalar/yataklar)
+  const [sidebarTab, setSidebarTab] = useState(independentMode ? 'rooms' : 'services');
 
   const dateObj = new Date(date + 'T00:00:00');
   const [y, m, d] = date.split('-');
@@ -50,11 +52,11 @@ export default function DayDetailPanel({
 
   // Oda secildiginde yataklari yukle
   useEffect(() => {
-    // Bagimsiz modda isSelfService kontrolu yapma
+    // Bagimsiz modda veya ODALAR sekmesinde isSelfService kontrolu yapma
     if (!selectedRoom?.id || !company?.id) { setSelectedRoomUnits([]); return; }
-    if (!independentMode && isSelfService) { setSelectedRoomUnits([]); return; }
+    if (!independentMode && sidebarTab !== 'rooms' && isSelfService) { setSelectedRoomUnits([]); return; }
     getRoomUnits(company.id, selectedRoom.id).then(units => setSelectedRoomUnits(units || []));
-  }, [selectedRoom?.id, company?.id, isSelfService, independentMode]);
+  }, [selectedRoom?.id, company?.id, isSelfService, independentMode, sidebarTab]);
 
   // Randevulari yukle
   useEffect(() => {
@@ -406,11 +408,11 @@ export default function DayDetailPanel({
 
   // Oda secildiginde yataklari yukle
   useEffect(() => {
-    // Bagimsiz modda isSelfService kontrolu yapma
+    // Bagimsiz modda veya ODALAR sekmesinde isSelfService kontrolu yapma
     if (!selectedRoom?.id || !company?.id) { setSelectedRoomUnits([]); return; }
-    if (!independentMode && isSelfService) { setSelectedRoomUnits([]); return; }
+    if (!independentMode && sidebarTab !== 'rooms' && isSelfService) { setSelectedRoomUnits([]); return; }
     getRoomUnits(company.id, selectedRoom.id).then(units => setSelectedRoomUnits(units || []));
-  }, [selectedRoom?.id, company?.id, isSelfService, independentMode]);
+  }, [selectedRoom?.id, company?.id, isSelfService, independentMode, sidebarTab]);
 
   const handleSelectService = (s) => { setSelectedService(s); setSelectedRoom(null); setSelectedUnit(null); setNewAppointment(null); };
   const handleSelectRoom = (r) => { setSelectedRoom(r); setSelectedUnit(null); setNewAppointment(null); };
@@ -425,8 +427,8 @@ export default function DayDetailPanel({
     if (newAppointment) crumbs.push({ label: `${newAppointment.expert?.name} ${newAppointment.startTime}` });
   }
 
-  // Bagimsiz modda hint farkli
-  const hint = independentMode
+  // Bagimsiz modda veya ODALAR sekmesinde hint farkli
+  const hint = (independentMode || sidebarTab === 'rooms')
     ? (!selectedRoom ? 'Oda seç' : !selectedUnit && !selectedAllUnits ? 'Yatak seç' : null)
     : (!selectedService ? 'Hizmet seç'
       : isSelfService && !selectedRoom ? 'Tesis seç'
@@ -436,8 +438,8 @@ export default function DayDetailPanel({
       : null);
 
   // Sag panel icin: uzman hizmeti → time grid, self servis → kapasite paneli
-  // Bagimsiz modda: oda secildiginde grid goster (hizmet secimi gerekmez)
-  const showExpertGrid = independentMode
+  // Bagimsiz modda veya ODALAR sekmesinde: oda secildiginde grid goster (hizmet secimi gerekmez)
+  const showExpertGrid = (independentMode || sidebarTab === 'rooms')
     ? (selectedRoom && (selectedUnit || selectedAllUnits))
     : (!isSelfService && selectedService && selectedUnit);
   const showFacilityPanel = isSelfService && selectedRoom;
@@ -480,42 +482,90 @@ export default function DayDetailPanel({
 
       {/* ═══ BODY ═══ */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        {/* Sol panel — Jade */}
-        <div style={{ width: 240, minWidth: 240, borderRight: '1px solid #B5D0C0', overflowY: 'auto', background: '#E8F1EC' }}>
-          {independentMode ? (
-            <BedCalendarSidebar
-              company={company}
-              date={date}
-              spaces={spaces}
-              selectedRoom={selectedRoom}
-              selectedUnit={selectedUnit}
-              onSelectRoom={(room) => {
-                setSelectedRoom(room);
-                setSelectedUnit(null);
-                setSelectedAllUnits(null);
-                setNewAppointment(null);
-              }}
-              onSelectUnit={(unit) => {
-                setSelectedUnit(unit);
-                setSelectedAllUnits(null);
-                setNewAppointment(null);
-              }}
-              onSelectAllUnits={(units) => {
-                setSelectedUnit(null);
-                setSelectedAllUnits(units);
-                setNewAppointment(null);
-              }}
-            />
-          ) : (
-            <DayDetailServiceList
-              company={company} date={date}
-              selectedService={selectedService} onSelectService={handleSelectService}
-              selectedRoom={selectedRoom} onSelectRoom={handleSelectRoom}
-              selectedUnit={selectedUnit} onSelectUnit={handleSelectUnit}
-              spaces={spaces} experts={allExperts}
-              isSelfServiceMode={isSelfService}
-            />
+        {/* Sol panel — Tab sistemi ile */}
+        <div style={{ width: 240, minWidth: 240, borderRight: '1px solid #B5D0C0', display: 'flex', flexDirection: 'column', background: '#E8F1EC' }}>
+          {/* Tab Butonlari */}
+          {!independentMode && (
+            <div style={{ display: 'flex', borderBottom: '1px solid #B5D0C0', background: '#D8E8DE' }}>
+              <button
+                onClick={() => {
+                  setSidebarTab('services');
+                  // Hizmetler sekmesine gecince expert moduna don
+                  if (gridViewMode === 'bed' && !selectedService) {
+                    setGridViewMode('expert');
+                  }
+                }}
+                style={{
+                  flex: 1, padding: '10px 8px', fontSize: 11, fontWeight: 600,
+                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  background: sidebarTab === 'services' ? '#E8F1EC' : 'transparent',
+                  color: sidebarTab === 'services' ? '#0F3D2A' : '#5A8A6E',
+                  borderBottom: sidebarTab === 'services' ? '2px solid #1D9E75' : '2px solid transparent',
+                  transition: 'all 0.15s',
+                }}
+              >
+                HİZMETLER
+              </button>
+              <button
+                onClick={() => {
+                  setSidebarTab('rooms');
+                  // Odalar sekmesine gecince bed moduna gec
+                  setGridViewMode('bed');
+                  // Hizmet secimini temizle
+                  setSelectedService(null);
+                  setNewAppointment(null);
+                }}
+                style={{
+                  flex: 1, padding: '10px 8px', fontSize: 11, fontWeight: 600,
+                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  background: sidebarTab === 'rooms' ? '#E8F1EC' : 'transparent',
+                  color: sidebarTab === 'rooms' ? '#534AB7' : '#5A8A6E',
+                  borderBottom: sidebarTab === 'rooms' ? '2px solid #534AB7' : '2px solid transparent',
+                  transition: 'all 0.15s',
+                }}
+              >
+                ODALAR
+              </button>
+            </div>
           )}
+
+          {/* Tab Icerigi */}
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {sidebarTab === 'rooms' ? (
+              <BedCalendarSidebar
+                company={company}
+                date={date}
+                spaces={spaces}
+                selectedRoom={selectedRoom}
+                selectedUnit={selectedUnit}
+                onSelectRoom={(room) => {
+                  setSelectedRoom(room);
+                  setSelectedUnit(null);
+                  setSelectedAllUnits(null);
+                  setNewAppointment(null);
+                }}
+                onSelectUnit={(unit) => {
+                  setSelectedUnit(unit);
+                  setSelectedAllUnits(null);
+                  setNewAppointment(null);
+                }}
+                onSelectAllUnits={(units) => {
+                  setSelectedUnit(null);
+                  setSelectedAllUnits(units);
+                  setNewAppointment(null);
+                }}
+              />
+            ) : (
+              <DayDetailServiceList
+                company={company} date={date}
+                selectedService={selectedService} onSelectService={handleSelectService}
+                selectedRoom={selectedRoom} onSelectRoom={handleSelectRoom}
+                selectedUnit={selectedUnit} onSelectUnit={handleSelectUnit}
+                spaces={spaces} experts={allExperts}
+                isSelfServiceMode={isSelfService}
+              />
+            )}
+          </div>
         </div>
 
         {/* Sag panel */}
