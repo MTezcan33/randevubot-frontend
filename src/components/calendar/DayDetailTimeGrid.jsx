@@ -252,7 +252,8 @@ export default function DayDetailTimeGrid({
                       const unitName = isExpertMode && bk.apt.room_unit_id
                         ? (roomUnits.find(u => u.id === bk.apt.room_unit_id)?.name || '')
                         : '';
-                      const isMovable = isExpertMode && onExistingDragStart && bk.apt.status !== 'iptal';
+                      // Hem uzman hem yatak modunda suruklenebilir
+                      const isMovable = onExistingDragStart && bk.apt.status !== 'iptal';
                       return (
                         <div
                           onMouseDown={isMovable ? (e) => {
@@ -303,17 +304,17 @@ export default function DayDetailTimeGrid({
                     {/* Yeni randevu bloku (mor) */}
                     {isNewFirst && (
                       <div
-                        onMouseDown={e => { e.stopPropagation(); if (isExpertMode) onDragStart?.(e); }}
+                        onMouseDown={e => { e.stopPropagation(); onDragStart?.(e); }}
                         onClick={e => e.stopPropagation()}
                         style={{
                           position: 'absolute', left: 2, right: 2, top: 1,
                           height: slotsNeeded * ROW_H - 2, borderRadius: 6,
                           background: '#534AB7', zIndex: 5, padding: '5px 8px',
-                          cursor: isExpertMode ? 'grab' : 'default',
+                          cursor: 'grab',
                           pointerEvents: 'auto',
                         }}
                       >
-                        <div style={{ fontSize: 11, fontWeight: 600, color: '#fff' }}>{service?.description}</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: '#fff' }}>{service?.description || newAppointment?.serviceName}</div>
                         <div style={{ fontSize: 9, color: '#CECBF6', marginTop: 1 }}>
                           {isExpertMode
                             ? `${newAppointment.expert?.name} · ${newAppointment.startTime}-${newAppointment.endTime}`

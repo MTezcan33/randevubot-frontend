@@ -87,6 +87,8 @@ const RoomCalendarGrid = ({
   // Walk-in kapasite props
   onWalkIn,
   onWalkOut,
+  // Oda tiklandiginda yatak takvimi acmak icin
+  onRoomClick,
 }) => {
   const { t } = useTranslation();
 
@@ -261,12 +263,14 @@ const RoomCalendarGrid = ({
                 onDragLeave?.();
               }}
             >
-              {/* Oda Basligi */}
+              {/* Oda Basligi — private odalar icin tiklanabilir (yatak takvimi acar) */}
               <div
                 className={`h-8 sticky top-0 backdrop-blur-sm z-30 px-2 border-b flex items-center justify-center gap-1 transition-colors ${
                   isDragTarget ? 'bg-emerald-100/90 border-emerald-400' : 'bg-white/95'
-                }`}
+                } ${!isShared && onRoomClick ? 'cursor-pointer hover:bg-slate-50' : ''}`}
                 style={!isDragTarget ? { borderBottomColor: space.color || '#e2e8f0' } : {}}
+                onClick={() => !isShared && onRoomClick?.(space)}
+                title={!isShared ? 'Yatak takvimini görüntüle' : undefined}
               >
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: space.color || '#94a3b8' }} />
                 <p className="font-medium text-[10px] truncate" style={{ color: space.color || '#1e293b' }}>

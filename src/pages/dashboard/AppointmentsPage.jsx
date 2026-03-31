@@ -12,6 +12,7 @@ import { getSpaces, getAppointmentResourcesByDate } from '../../services/resourc
 import CalendarViewToggle from '@/components/calendar/CalendarViewToggle';
 import RoomCalendarGrid from '@/components/calendar/RoomCalendarGrid';
 import MonthlyCalendar from '@/components/calendar/MonthlyCalendar';
+import DayDetailPanel from '@/components/calendar/DayDetailPanel';
 import StaffSidebar from '@/components/appointment/StaffSidebar';
 import {
   Dialog,
@@ -318,6 +319,8 @@ const AppointmentsPage = () => {
   // ── Oda Görünümü State'leri ──
   const [calendarView, setCalendarView] = useState(() => localStorage.getItem('calendarView') || 'expert');
   const [spaces, setSpaces] = useState([]);
+  // Yatak takvimi icin secili oda (null ise RoomCalendarGrid, dolu ise DayDetailPanel)
+  const [bedViewRoom, setBedViewRoom] = useState(null);
   // Drag-drop uzman-oda ataması
   const [dragOverSpaceId, setDragOverSpaceId] = useState(null);
   const [draggingExpert, setDraggingExpert] = useState(null);
@@ -981,34 +984,52 @@ const AppointmentsPage = () => {
 
             {/* ═══ ODA GÖRÜNÜMÜ ═══ */}
             {calendarView === 'room' && (
-              <div className="flex h-full">
-                {/* Sol: Sürüklenebilir Uzman Sidebar */}
-                <StaffSidebar
-                  experts={experts}
-                  onDragStart={(exp) => setDraggingExpert(exp)}
-                  onDragEnd={() => { setDraggingExpert(null); setDragOverSpaceId(null); }}
-                  compact
-                />
-                {/* Sağ: Oda Takvimi */}
-                <div className="flex-1 overflow-auto">
-                  <RoomCalendarGrid
-                    spaces={spaces}
-                    appointments={appointments}
-                    appointmentResources={appointmentResources}
-                    timeSlots={timeSlots}
+              bedViewRoom ? (
+                // Yatak takvimi görünümü — secili oda icin
+                <div className="h-full">
+                  <DayDetailPanel
+                    date={currentDate.toISOString().split('T')[0]}
+                    onClose={() => setBedViewRoom(null)}
+                    company={company}
                     experts={experts}
-                    onAppointmentClick={(app) => openReorderPanel(app)}
-                    ROW_HEIGHT={ROW_HEIGHT}
-                    PIXELS_PER_MINUTE={PIXELS_PER_MINUTE}
-                    onExpertDrop={handleExpertDropToRoom}
-                    dragOverSpaceId={dragOverSpaceId}
-                    onDragOver={(spaceId) => setDragOverSpaceId(spaceId)}
-                    onDragLeave={() => setDragOverSpaceId(null)}
-                    onWalkIn={handleWalkIn}
-                    onWalkOut={handleWalkOut}
+                    spaces={spaces}
+                    workingHours={workingHours}
+                    independentMode={true}
+                    initialRoom={bedViewRoom}
                   />
                 </div>
-              </div>
+              ) : (
+                // Normal oda takvimi görünümü
+                <div className="flex h-full">
+                  {/* Sol: Sürüklenebilir Uzman Sidebar */}
+                  <StaffSidebar
+                    experts={experts}
+                    onDragStart={(exp) => setDraggingExpert(exp)}
+                    onDragEnd={() => { setDraggingExpert(null); setDragOverSpaceId(null); }}
+                    compact
+                  />
+                  {/* Sağ: Oda Takvimi */}
+                  <div className="flex-1 overflow-auto">
+                    <RoomCalendarGrid
+                      spaces={spaces}
+                      appointments={appointments}
+                      appointmentResources={appointmentResources}
+                      timeSlots={timeSlots}
+                      experts={experts}
+                      onAppointmentClick={(app) => openReorderPanel(app)}
+                      ROW_HEIGHT={ROW_HEIGHT}
+                      PIXELS_PER_MINUTE={PIXELS_PER_MINUTE}
+                      onExpertDrop={handleExpertDropToRoom}
+                      dragOverSpaceId={dragOverSpaceId}
+                      onDragOver={(spaceId) => setDragOverSpaceId(spaceId)}
+                      onDragLeave={() => setDragOverSpaceId(null)}
+                      onWalkIn={handleWalkIn}
+                      onWalkOut={handleWalkOut}
+                      onRoomClick={(room) => setBedViewRoom(room)}
+                    />
+                  </div>
+                </div>
+              )
             )}
 
             {/* ═══ UZMAN GÖRÜNÜMÜ (mevcut) ═══ */}

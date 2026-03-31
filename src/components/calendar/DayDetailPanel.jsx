@@ -7,6 +7,7 @@ import { useDragAppointment } from '@/hooks/useDragAppointment';
 import { checkResourceAvailability } from '@/services/resourceService';
 import { getRoomUnits } from '@/services/roomUnitService';
 import DayDetailServiceList from './DayDetailServiceList';
+import BedCalendarSidebar from './BedCalendarSidebar';
 import DayDetailTimeGrid, { slotToTime, timeToSlot, durationToSlots, TOTAL_SLOTS, SLOT_MINUTES, DAY_START_HOUR } from './DayDetailTimeGrid';
 
 const MONTHS = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
@@ -14,14 +15,20 @@ const DAYS_FULL = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','
 function barColor(p) { return p<=30?'#97C459':p<=50?'#C0DD97':p<=70?'#EF9F27':p<=85?'#E24B4A':'#A32D2D'; }
 function textColor(p) { return p<=30?'#27500A':p<=50?'#3B6D11':p<=70?'#854F0B':p<=85?'#791F1F':'#501313'; }
 
-export default function DayDetailPanel({ date, onClose, company, experts: allExperts, spaces, workingHours }) {
+export default function DayDetailPanel({
+  date, onClose, company, experts: allExperts, spaces, workingHours,
+  // Bagimsiz yatak takvimi modu icin
+  independentMode = false,
+  initialRoom = null,
+}) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const cellRefs = useRef({});
 
   const [selectedService, setSelectedService] = useState(null);
-  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [selectedRoom, setSelectedRoom] = useState(initialRoom);
   const [selectedUnit, setSelectedUnit] = useState(null);
+  const [selectedAllUnits, setSelectedAllUnits] = useState(null); // Tum yataklar secili mi
   const [newAppointment, setNewAppointment] = useState(null);
   const [dayAppointments, setDayAppointments] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -30,7 +37,8 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState(null); // 'expert' | 'facility'
-  const [gridViewMode, setGridViewMode] = useState('expert'); // 'expert' | 'bed'
+  // Bagimsiz modda varsayilan 'bed', normal modda 'expert'
+  const [gridViewMode, setGridViewMode] = useState(independentMode ? 'bed' : 'expert');
   const [selectedRoomUnits, setSelectedRoomUnits] = useState([]);
   const [movingAptId, setMovingAptId] = useState(null); // suruklenmekte olan mevcut randevu id'si
 
@@ -42,9 +50,11 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
 
   // Oda secildiginde yataklari yukle
   useEffect(() => {
-    if (!selectedRoom?.id || !company?.id || isSelfService) { setSelectedRoomUnits([]); return; }
+    // Bagimsiz modda isSelfService kontrolu yapma
+    if (!selectedRoom?.id || !company?.id) { setSelectedRoomUnits([]); return; }
+    if (!independentMode && isSelfService) { setSelectedRoomUnits([]); return; }
     getRoomUnits(company.id, selectedRoom.id).then(units => setSelectedRoomUnits(units || []));
-  }, [selectedRoom?.id, company?.id, isSelfService]);
+  }, [selectedRoom?.id, company?.id, isSelfService, independentMode]);
 
   // Randevulari yukle
   useEffect(() => {
@@ -155,16 +165,73 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
     return bookedSlots;
   }, [bookedSlots, movingAptId, activeExperts, dayAppointments]);
 
-  // Drag (sadece uzman hizmetleri)
+  // Yatak modu icin bookedSlots — room_unit_id bazli
+  const bedBookedSlots = useMemo(() => {
+    const map = {};
+    if (!selectedRoomUnits.length) return map;
+    dayAppointments.forEach(apt => {
+      if (!apt.time || apt.status === 'iptal' || !apt.room_unit_id) return;
+      // Suruklenen randevuyu atla
+      if (movingAptId && apt.id === movingAptId) return;
+      const ci = selectedRoomUnits.findIndex(u => u.id === apt.room_unit_id);
+      if (ci === -1) return;
+      const [h, mn] = apt.time.split(':').map(Number);
+      const startSlot = Math.floor((h * 60 + mn - DAY_START_HOUR * 60) / SLOT_MINUTES);
+      const dur = apt.total_duration || apt.company_services?.duration || 60;
+      const slots = durationToSlots(dur);
+      for (let k = 0; k < slots; k++) { const s = startSlot + k; if (s >= 0 && s < TOTAL_SLOTS) map[`${ci}-${s}`] = true; }
+    });
+    return map;
+  }, [selectedRoomUnits, dayAppointments, movingAptId]);
+
+  // Drag icin kullanilacak sutun listesi ve bookedSlots — moda gore degisir
+  const dragColumns = gridViewMode === 'bed' ? selectedRoomUnits : activeExperts;
+  const dragBookedSlots = gridViewMode === 'bed' ? bedBookedSlots : effectiveBookedSlots;
+
+  // Drag — uzman veya yatak moduna gore farkli davranis
   const { dragState, handleDragStart, startDrag } = useDragAppointment({
     newAppointment: newAppointment ? { ...newAppointment, serviceName: selectedService?.description } : null,
-    slotsNeeded, bookedSlots: effectiveBookedSlots, experts: activeExperts, cellRefs, totalSlots: TOTAL_SLOTS,
+    slotsNeeded, bookedSlots: dragBookedSlots, experts: dragColumns, cellRefs, totalSlots: TOTAL_SLOTS,
     onDrop: async (col, slot) => {
+      const newTime = slotToTime(slot);
+
+      // === YATAK MODU ===
+      if (gridViewMode === 'bed') {
+        const targetUnit = selectedRoomUnits[col];
+        if (!targetUnit) return;
+
+        if (movingAptId) {
+          // Mevcut randevuyu yeni yataga/saate tasi
+          try {
+            const updateData = { time: newTime };
+            const movingApt = dayAppointments.find(a => a.id === movingAptId);
+            // Yatak degistiyse room_unit_id guncelle
+            if (movingApt && targetUnit.id !== movingApt.room_unit_id) {
+              updateData.room_unit_id = targetUnit.id;
+            }
+            const { error } = await supabase.from('appointments').update(updateData).eq('id', movingAptId);
+            if (error) throw error;
+            toast({ title: 'Randevu taşındı', description: `${targetUnit.name} · ${newTime}` });
+            setNewAppointment(null);
+            setMovingAptId(null);
+            fetchDayAppointments(company.id, date).then(setDayAppointments);
+          } catch (err) {
+            toast({ title: 'Taşıma hatası', description: err.message, variant: 'destructive' });
+            setNewAppointment(null);
+            setMovingAptId(null);
+          }
+        } else {
+          // Yeni randevu olusturma (bagimsiz modda henuz desteklenmiyor)
+          toast({ title: 'Bilgi', description: 'Yatak takviminde yeni randevu için sol menüden hizmet seçin', variant: 'default' });
+        }
+        return;
+      }
+
+      // === UZMAN MODU ===
       const expert = activeExperts[col];
       if (!expert) return;
       if (movingAptId) {
         // Mevcut randevuyu yeni konuma tasi — DB guncelle
-        const newTime = slotToTime(slot);
         try {
           const updateData = { time: newTime };
           // Uzman degistiyse expert_id de guncelle
@@ -195,11 +262,31 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
 
   // Mevcut randevuyu suruklemek icin: bloku "virtual new appointment" a donustur
   const handleExistingDragStart = useCallback((e, apt) => {
-    const ci = activeExperts.findIndex(ex => ex.id === apt.expert_id);
-    if (ci === -1) return;
     const dur = apt.total_duration || apt.company_services?.duration || 60;
     const startSlot = timeToSlot(apt.time);
     const slotsN = durationToSlots(dur);
+
+    // Yatak modunda room_unit_id uzerinden index bul
+    if (gridViewMode === 'bed') {
+      const ci = selectedRoomUnits.findIndex(u => u.id === apt.room_unit_id);
+      if (ci === -1) return;
+      setMovingAptId(apt.id);
+      setNewAppointment({
+        colIndex: ci,
+        startSlot,
+        expert: null, // Yatak modunda expert yok
+        startTime: slotToTime(startSlot),
+        endTime: slotToTime(startSlot + slotsN),
+        selectedUnitId: apt.room_unit_id || null,
+        serviceName: apt.company_services?.description || '',
+      });
+      startDrag(e, apt.company_services?.description || 'Randevu');
+      return;
+    }
+
+    // Uzman modunda expert_id uzerinden index bul
+    const ci = activeExperts.findIndex(ex => ex.id === apt.expert_id);
+    if (ci === -1) return;
     setMovingAptId(apt.id);
     setNewAppointment({
       colIndex: ci,
@@ -212,7 +299,7 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
     });
     // startDrag state beklemez — dogrudan ghost olusturur ve sureklemeyi baslatir
     startDrag(e, apt.company_services?.description || 'Randevu');
-  }, [activeExperts, startDrag]);
+  }, [activeExperts, selectedRoomUnits, gridViewMode, startDrag]);
 
   // Onayla tiklaninca modal ac
   const handleConfirmClick = (type) => {
@@ -319,9 +406,11 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
 
   // Oda secildiginde yataklari yukle
   useEffect(() => {
-    if (!selectedRoom?.id || !company?.id || isSelfService) { setSelectedRoomUnits([]); return; }
+    // Bagimsiz modda isSelfService kontrolu yapma
+    if (!selectedRoom?.id || !company?.id) { setSelectedRoomUnits([]); return; }
+    if (!independentMode && isSelfService) { setSelectedRoomUnits([]); return; }
     getRoomUnits(company.id, selectedRoom.id).then(units => setSelectedRoomUnits(units || []));
-  }, [selectedRoom?.id, company?.id, isSelfService]);
+  }, [selectedRoom?.id, company?.id, isSelfService, independentMode]);
 
   const handleSelectService = (s) => { setSelectedService(s); setSelectedRoom(null); setSelectedUnit(null); setNewAppointment(null); };
   const handleSelectRoom = (r) => { setSelectedRoom(r); setSelectedUnit(null); setNewAppointment(null); };
@@ -336,15 +425,21 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
     if (newAppointment) crumbs.push({ label: `${newAppointment.expert?.name} ${newAppointment.startTime}` });
   }
 
-  const hint = !selectedService ? 'Hizmet seç'
-    : isSelfService && !selectedRoom ? 'Tesis seç'
-    : !isSelfService && !selectedRoom ? 'Oda seç'
-    : !isSelfService && !selectedUnit ? 'Yatak seç'
-    : !isSelfService && !newAppointment ? 'Saat ve personel seç'
-    : null;
+  // Bagimsiz modda hint farkli
+  const hint = independentMode
+    ? (!selectedRoom ? 'Oda seç' : !selectedUnit && !selectedAllUnits ? 'Yatak seç' : null)
+    : (!selectedService ? 'Hizmet seç'
+      : isSelfService && !selectedRoom ? 'Tesis seç'
+      : !isSelfService && !selectedRoom ? 'Oda seç'
+      : !isSelfService && !selectedUnit ? 'Yatak seç'
+      : !isSelfService && !newAppointment ? 'Saat ve personel seç'
+      : null);
 
   // Sag panel icin: uzman hizmeti → time grid, self servis → kapasite paneli
-  const showExpertGrid = !isSelfService && selectedService && selectedUnit;
+  // Bagimsiz modda: oda secildiginde grid goster (hizmet secimi gerekmez)
+  const showExpertGrid = independentMode
+    ? (selectedRoom && (selectedUnit || selectedAllUnits))
+    : (!isSelfService && selectedService && selectedUnit);
   const showFacilityPanel = isSelfService && selectedRoom;
 
   return (
@@ -387,14 +482,40 @@ export default function DayDetailPanel({ date, onClose, company, experts: allExp
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         {/* Sol panel — Jade */}
         <div style={{ width: 240, minWidth: 240, borderRight: '1px solid #B5D0C0', overflowY: 'auto', background: '#E8F1EC' }}>
-          <DayDetailServiceList
-            company={company} date={date}
-            selectedService={selectedService} onSelectService={handleSelectService}
-            selectedRoom={selectedRoom} onSelectRoom={handleSelectRoom}
-            selectedUnit={selectedUnit} onSelectUnit={handleSelectUnit}
-            spaces={spaces} experts={allExperts}
-            isSelfServiceMode={isSelfService}
-          />
+          {independentMode ? (
+            <BedCalendarSidebar
+              company={company}
+              date={date}
+              spaces={spaces}
+              selectedRoom={selectedRoom}
+              selectedUnit={selectedUnit}
+              onSelectRoom={(room) => {
+                setSelectedRoom(room);
+                setSelectedUnit(null);
+                setSelectedAllUnits(null);
+                setNewAppointment(null);
+              }}
+              onSelectUnit={(unit) => {
+                setSelectedUnit(unit);
+                setSelectedAllUnits(null);
+                setNewAppointment(null);
+              }}
+              onSelectAllUnits={(units) => {
+                setSelectedUnit(null);
+                setSelectedAllUnits(units);
+                setNewAppointment(null);
+              }}
+            />
+          ) : (
+            <DayDetailServiceList
+              company={company} date={date}
+              selectedService={selectedService} onSelectService={handleSelectService}
+              selectedRoom={selectedRoom} onSelectRoom={handleSelectRoom}
+              selectedUnit={selectedUnit} onSelectUnit={handleSelectUnit}
+              spaces={spaces} experts={allExperts}
+              isSelfServiceMode={isSelfService}
+            />
+          )}
         </div>
 
         {/* Sag panel */}
