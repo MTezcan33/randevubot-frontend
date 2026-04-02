@@ -469,34 +469,22 @@ export default function DayDetailPanel({
         )}
       </div>
 
-      {/* ═══ BREADCRUMB ═══ */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#fafafa', borderTop: '1px solid #e8e8e3', borderBottom: '1px solid #e8e8e3', fontSize: 10, flexWrap: 'wrap' }}>
-        {crumbs.map((c, i) => (
-          <React.Fragment key={i}>
-            {i > 0 && <span style={{ color: '#8ABFA2' }}>›</span>}
-            <span style={{ color: '#534AB7', fontWeight: 500 }}>{c.label}</span>
-          </React.Fragment>
-        ))}
-        {hint && (<><span style={{ color: '#8ABFA2' }}>›</span><span style={{ color: '#5A8A6E' }}>{hint}</span></>)}
-      </div>
-
       {/* ═══ BODY ═══ */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, borderTop: '1px solid #e8e8e3' }}>
         {/* Sol panel — Tab sistemi ile */}
-        <div style={{ width: 200, minWidth: 200, borderRight: '1px solid #e8e8e3', display: 'flex', flexDirection: 'column', background: '#fafafa' }}>
-          {/* Tab Butonlari */}
+        <div style={{ width: 180, minWidth: 180, borderRight: '1px solid #e8e8e3', display: 'flex', flexDirection: 'column', background: '#fafafa' }}>
+          {/* Tab Butonlari — 28px yukseklik, header ile ayni */}
           {!independentMode && (
-            <div style={{ display: 'flex', borderBottom: '1px solid #e8e8e3', background: '#f5f5f5' }}>
+            <div style={{ display: 'flex', height: 28, borderBottom: '1px solid #e8e8e3', background: '#f5f5f5', flexShrink: 0 }}>
               <button
                 onClick={() => {
                   setSidebarTab('services');
-                  // Hizmetler sekmesine gecince expert moduna don
                   if (gridViewMode === 'bed' && !selectedService) {
                     setGridViewMode('expert');
                   }
                 }}
                 style={{
-                  flex: 1, padding: '8px 6px', fontSize: 10, fontWeight: 600,
+                  flex: 1, fontSize: 9, fontWeight: 600,
                   border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   background: sidebarTab === 'services' ? '#fff' : 'transparent',
                   color: sidebarTab === 'services' ? '#1a1a1a' : '#888',
@@ -509,14 +497,12 @@ export default function DayDetailPanel({
               <button
                 onClick={() => {
                   setSidebarTab('rooms');
-                  // Odalar sekmesine gecince bed moduna gec
                   setGridViewMode('bed');
-                  // Hizmet secimini temizle
                   setSelectedService(null);
                   setNewAppointment(null);
                 }}
                 style={{
-                  flex: 1, padding: '8px 6px', fontSize: 10, fontWeight: 600,
+                  flex: 1, fontSize: 9, fontWeight: 600,
                   border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   background: sidebarTab === 'rooms' ? '#fff' : 'transparent',
                   color: sidebarTab === 'rooms' ? '#1a1a1a' : '#888',

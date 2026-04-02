@@ -145,31 +145,25 @@ export default function DayDetailTimeGrid({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-      {/* Header */}
-      <div style={{ display: 'grid', gridTemplateColumns: gtc, borderBottom: '1px solid #e0e0db', background: '#FDFCFA' }}>
-        <div style={{ padding: '8px 4px', fontSize: 10, color: '#999', fontWeight: 500 }} />
+      {/* Header — kompakt, tek satir */}
+      <div style={{ display: 'grid', gridTemplateColumns: gtc, borderBottom: '1px solid #e8e8e3', background: '#fafafa', height: 28 }}>
+        <div />
         {columns.map((col, ci) => {
           if (isExpertMode) {
             const colors = getStaffColors(ci);
             const occ = calculateStaffOccupancy(col.id, appointments || []);
             return (
-              <div key={col.id} style={{ padding: '6px 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                <span style={{ fontSize: 11, fontWeight: 500, color: colors.dark }}>{col.name}</span>
-                <div style={{ width: 48, height: 4, borderRadius: 2, overflow: 'hidden', background: colors.light }}>
-                  <div style={{ height: '100%', borderRadius: 2, background: colors.fill, width: `${Math.min(100, occ)}%`, transition: 'width 0.4s' }} />
-                </div>
-                <span style={{ fontSize: 9, fontWeight: 500, fontFamily: "'SF Mono','Menlo',monospace", color: colors.dark }}>%{occ}</span>
+              <div key={col.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <span style={{ fontSize: 10, fontWeight: 500, color: colors.dark }}>{col.name}</span>
+                <span style={{ fontSize: 9, fontWeight: 500, fontFamily: "'SF Mono','Menlo',monospace", color: colors.fill }}>%{occ}</span>
               </div>
             );
           } else {
             const occ = calculateBedOccupancy(col.id, appointments || []);
             return (
-              <div key={col.id} style={{ padding: '6px 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                <span style={{ fontSize: 11, fontWeight: 500, color: '#534AB7' }}>{col.name}</span>
-                <div style={{ width: 48, height: 4, borderRadius: 2, overflow: 'hidden', background: '#EEEDFE' }}>
-                  <div style={{ height: '100%', borderRadius: 2, background: '#AFA9EC', width: `${Math.min(100, occ)}%`, transition: 'width 0.4s' }} />
-                </div>
-                <span style={{ fontSize: 9, fontWeight: 500, fontFamily: "'SF Mono','Menlo',monospace", color: '#534AB7' }}>%{occ}</span>
+              <div key={col.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <span style={{ fontSize: 10, fontWeight: 500, color: '#534AB7' }}>{col.name}</span>
+                <span style={{ fontSize: 9, fontWeight: 500, fontFamily: "'SF Mono','Menlo',monospace", color: '#AFA9EC' }}>%{occ}</span>
               </div>
             );
           }
