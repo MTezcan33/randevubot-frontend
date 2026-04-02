@@ -136,7 +136,7 @@ export default function DayDetailTimeGrid({
   const columns = isExpertMode ? experts : roomUnits;
   const cols = columns.length;
   // Sabit sutun genisligi — personel azalinca genisletme
-  const COL_WIDTH = 80;
+  const COL_WIDTH = 108;
   const gtc = `48px repeat(${cols}, ${COL_WIDTH}px)`;
 
   if (!cols) {
