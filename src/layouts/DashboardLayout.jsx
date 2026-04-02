@@ -334,7 +334,7 @@ const DashboardLayout = () => {
         fixed top-0 left-0 h-full z-50
         bg-gradient-to-b from-stone-900 to-emerald-950
         hidden lg:block transition-all duration-300
-        ${collapsed ? 'w-[72px]' : 'w-[260px]'}
+        ${collapsed ? 'w-[72px]' : 'w-[156px]'}
       `}>
         <SidebarContent />
       </aside>
@@ -356,7 +356,7 @@ const DashboardLayout = () => {
         />
         {/* Drawer paneli */}
         <aside className={`
-          absolute top-0 left-0 h-full w-[260px]
+          absolute top-0 left-0 h-full w-[156px]
           bg-gradient-to-b from-stone-900 to-emerald-950
           transition-transform duration-300
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -370,7 +370,7 @@ const DashboardLayout = () => {
         fixed top-0 right-0 h-16 bg-white border-b border-stone-200 z-40
         flex items-center justify-between px-4 lg:px-6
         transition-all duration-300
-        left-0 ${collapsed ? 'lg:left-[72px]' : 'lg:left-[260px]'}
+        left-0 ${collapsed ? 'lg:left-[72px]' : 'lg:left-[156px]'}
       `}>
         {/* Sol: hamburger + sayfa başlığı */}
         <div className="flex items-center gap-3">
@@ -451,7 +451,7 @@ const DashboardLayout = () => {
       {/* Ana İçerik */}
       <main className={`
         transition-all duration-300 pt-16 min-h-screen
-        ${collapsed ? 'lg:pl-[72px]' : 'lg:pl-[260px]'}
+        ${collapsed ? 'lg:pl-[72px]' : 'lg:pl-[156px]'}
       `}>
         <div className="p-4 lg:p-6">
           <Outlet />
