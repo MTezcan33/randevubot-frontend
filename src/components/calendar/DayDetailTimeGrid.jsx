@@ -135,7 +135,9 @@ export default function DayDetailTimeGrid({
   const isExpertMode = viewMode === 'expert';
   const columns = isExpertMode ? experts : roomUnits;
   const cols = columns.length;
-  const gtc = `48px repeat(${cols}, minmax(0, 1fr))`;
+  // Sabit sutun genisligi — personel azalinca genisletme
+  const COL_WIDTH = 80;
+  const gtc = `48px repeat(${cols}, ${COL_WIDTH}px)`;
 
   if (!cols) {
     return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240, color: '#999', fontSize: 14 }}>
@@ -190,10 +192,10 @@ export default function DayDetailTimeGrid({
             <div key={si} style={{ display: 'grid', gridTemplateColumns: gtc }}>
               {/* Saat etiketi */}
               <div style={{
-                minHeight: ROW_H, borderBottom: `1px solid ${isHour ? '#e8e8e3' : '#f0f0eb'}`,
-                borderRight: '1px solid #f0f0eb', display: 'flex', alignItems: 'flex-start',
-                justifyContent: 'flex-end', padding: '2px 8px 0 0',
-                fontSize: 11, color: '#999', fontFamily: "'SF Mono','Menlo',monospace", fontWeight: 500,
+                height: ROW_H, borderBottom: '1px solid #f0f0eb',
+                borderRight: '1px solid #f0f0eb', display: 'flex', alignItems: 'center',
+                justifyContent: 'flex-end', paddingRight: 6,
+                fontSize: 9, color: '#999', fontFamily: "'SF Mono','Menlo',monospace", fontWeight: 500,
                 background: '#fdfdf9',
               }}>
                 {isHour ? slotToTime(si) : ''}
@@ -234,8 +236,8 @@ export default function DayDetailTimeGrid({
                       }
                     }}
                     style={{
-                      minHeight: ROW_H, position: 'relative',
-                      borderBottom: `1px solid ${isHour ? '#e8e8e3' : '#f0f0eb'}`,
+                      height: ROW_H, position: 'relative',
+                      borderBottom: '1px solid #f0f0eb',
                       borderRight: ci < cols - 1 ? '1px solid #f0f0eb' : 'none',
                       cursor: isExpertMode && isFree && service ? 'pointer' : 'default',
                       transition: 'background 0.08s',
@@ -253,6 +255,10 @@ export default function DayDetailTimeGrid({
                         ? (spaces.find(s => s.id === bk.apt.space_id)?.name || '')
                         : '';
                       const customerName = bk.apt.customers?.name || '';
+                      // Baslangic ve bitis saati
+                      const startTime = bk.apt.time?.substring(0, 5) || '';
+                      const dur = bk.apt.total_duration || bk.apt.company_services?.duration || 60;
+                      const endTime = formatMinutes(timeToMinutes(bk.apt.time) + dur);
                       // Hem uzman hem yatak modunda suruklenebilir
                       const isMovable = onExistingDragStart && bk.apt.status !== 'iptal';
                       return (
@@ -306,9 +312,9 @@ export default function DayDetailTimeGrid({
                               <Pencil size={8} color={blockColors.dark} />
                             </div>
                           )}
-                          {/* Satir 1: Hizmet adi */}
+                          {/* Satir 1: Hizmet adi + saat */}
                           <div style={{ fontSize: 9, fontWeight: 600, color: blockColors.dark, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: onEditAppointment ? 14 : 0 }}>
-                            {bk.apt.company_services?.description || ''}
+                            {bk.apt.company_services?.description || ''} <span style={{ fontWeight: 400, fontSize: 8 }}>{startTime}-{endTime}</span>
                           </div>
                           {/* Satir 2: Musteri adi */}
                           {customerName && (
