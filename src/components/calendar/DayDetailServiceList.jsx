@@ -7,6 +7,7 @@ export default function DayDetailServiceList({
   company, date, selectedService, onSelectService,
   selectedRoom, onSelectRoom, selectedUnit, onSelectUnit,
   spaces, experts,
+  filterType = 'services', // 'services' | 'packages' | 'facility'
 }) {
   const { t } = useTranslation();
   const [services, setServices] = useState([]);
@@ -26,8 +27,19 @@ export default function DayDetailServiceList({
     })();
   }, [company?.id]);
 
-  const expertSvcs = services.filter(s => s.requires_expert !== false);
-  const selfSvcs = services.filter(s => s.requires_expert === false);
+  // Filtre tipine gore hizmetleri ayir
+  const filteredServices = services.filter(s => {
+    if (filterType === 'facility') {
+      // Tesis: self-servis hizmetler (sauna, buhar banyosu vb.)
+      return s.requires_expert === false;
+    } else if (filterType === 'packages') {
+      // Paketler: category icinde 'Paket' gecenler
+      return s.requires_expert !== false && (s.category || '').toLowerCase().includes('paket');
+    } else {
+      // Hizmetler: normal uzman hizmetleri (paket olmayan)
+      return s.requires_expert !== false && !(s.category || '').toLowerCase().includes('paket');
+    }
+  });
 
   const formatPrice = (p) => p ? Number(p).toLocaleString('tr-TR') : '';
 
@@ -40,38 +52,33 @@ export default function DayDetailServiceList({
         <div
           onClick={() => onSelectService(isS ? null : svc)}
           style={{
-            borderBottom: '1px solid #C8D9CF', padding: '6px 12px', cursor: 'pointer',
+            borderBottom: '1px solid #e8e8e3', padding: '8px 10px', cursor: 'pointer',
             transition: 'all 0.12s',
             background: isS ? '#E0DCF5' : undefined,
             borderLeft: isS ? '3px solid #7F77DD' : '3px solid transparent',
-            paddingLeft: isS ? '9px' : '12px',
+            paddingLeft: isS ? '7px' : '10px',
           }}
-          onMouseEnter={e => { if (!isS) e.currentTarget.style.background = '#DDE8E1'; }}
+          onMouseEnter={e => { if (!isS) e.currentTarget.style.background = '#f5f5f5'; }}
           onMouseLeave={e => { if (!isS) e.currentTarget.style.background = ''; }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 11, fontWeight: 500, color: '#0F3D2A' }}>{svc.description}</span>
+            <span style={{ fontSize: 10, fontWeight: 500, color: '#1a1a1a' }}>{svc.description}</span>
             <span style={{
-              fontSize: 12, color: isS ? '#7F77DD' : '#8ABFA2',
+              fontSize: 10, color: isS ? '#7F77DD' : '#999',
               transition: 'transform 0.15s',
               display: 'inline-block',
               transform: isS ? 'rotate(90deg)' : 'none',
             }}>›</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
-            {isSelf && (
-              <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: '#FAC775', color: '#633806', fontWeight: 600 }}>
-                Self Servis
-              </span>
-            )}
-            <span style={{ fontSize: 10, color: '#1D9E75' }}>{svc.duration} dk</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+            <span style={{ fontSize: 9, color: '#888' }}>{svc.duration} dk</span>
             {svc.price > 0 && (
-              <span style={{ fontSize: 10, fontWeight: 500, color: '#0F6E56' }}>{formatPrice(svc.price)} TL</span>
+              <span style={{ fontSize: 9, fontWeight: 500, color: '#1D9E75' }}>{formatPrice(svc.price)} TL</span>
             )}
           </div>
         </div>
 
-        {/* Seçiliyse altında odalar */}
+        {/* Seciliyse altinda odalar */}
         {isS && (
           <DayDetailRoomList
             company={company} date={date} service={svc} spaces={spaces}
@@ -84,29 +91,20 @@ export default function DayDetailServiceList({
     );
   };
 
+  if (filteredServices.length === 0) {
+    const emptyMsg = filterType === 'facility' ? 'Tesis hizmeti bulunamadi'
+      : filterType === 'packages' ? 'Paket bulunamadi'
+      : 'Hizmet bulunamadi';
+    return (
+      <div style={{ padding: 16, color: '#999', fontSize: 10, textAlign: 'center' }}>
+        {emptyMsg}
+      </div>
+    );
+  }
+
   return (
     <div>
-      {/* Hizmetler kategori */}
-      {expertSvcs.length > 0 && (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '10px 12px 6px' }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#534AB7' }} />
-            <span style={{ fontSize: 10, fontWeight: 500, color: '#534AB7', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Hizmetler</span>
-          </div>
-          {expertSvcs.map(renderItem)}
-        </>
-      )}
-
-      {/* Self Servis kategori */}
-      {selfSvcs.length > 0 && (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '10px 12px 6px' }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#1D9E75' }} />
-            <span style={{ fontSize: 10, fontWeight: 500, color: '#0F6E56', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Self servis</span>
-          </div>
-          {selfSvcs.map(renderItem)}
-        </>
-      )}
+      {filteredServices.map(renderItem)}
     </div>
   );
 }

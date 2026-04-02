@@ -7,7 +7,6 @@ import { useDragAppointment } from '@/hooks/useDragAppointment';
 import { checkResourceAvailability } from '@/services/resourceService';
 import { getRoomUnits } from '@/services/roomUnitService';
 import DayDetailServiceList from './DayDetailServiceList';
-import BedCalendarSidebar from './BedCalendarSidebar';
 import DayDetailTimeGrid, { slotToTime, timeToSlot, durationToSlots, TOTAL_SLOTS, SLOT_MINUTES, DAY_START_HOUR } from './DayDetailTimeGrid';
 
 const MONTHS = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
@@ -41,8 +40,8 @@ export default function DayDetailPanel({
   const [gridViewMode, setGridViewMode] = useState(independentMode ? 'bed' : 'expert');
   const [selectedRoomUnits, setSelectedRoomUnits] = useState([]);
   const [movingAptId, setMovingAptId] = useState(null); // suruklenmekte olan mevcut randevu id'si
-  // Sol sidebar tab: 'services' (hizmetler) veya 'rooms' (odalar/yataklar)
-  const [sidebarTab, setSidebarTab] = useState(independentMode ? 'rooms' : 'services');
+  // Sol sidebar tab: 'services' (hizmetler), 'packages' (paketler), 'facility' (tesis/self-servis)
+  const [sidebarTab, setSidebarTab] = useState('services');
   // Oda/yatak duzenleme modali icin
   const [editingAppointment, setEditingAppointment] = useState(null);
 
@@ -474,73 +473,73 @@ export default function DayDetailPanel({
         {/* Sol panel — Tab sistemi ile */}
         <div style={{ width: 180, minWidth: 180, borderRight: '1px solid #e8e8e3', display: 'flex', flexDirection: 'column', background: '#fafafa' }}>
           {/* Tab Butonlari — 28px yukseklik, header ile ayni */}
-          {!independentMode && (
-            <div style={{ display: 'flex', height: 28, borderBottom: '1px solid #e8e8e3', background: '#f5f5f5', flexShrink: 0 }}>
-              <button
-                onClick={() => {
-                  setSidebarTab('services');
-                  if (gridViewMode === 'bed' && !selectedService) {
-                    setGridViewMode('expert');
-                  }
-                }}
-                style={{
-                  flex: 1, fontSize: 9, fontWeight: 600,
-                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  background: sidebarTab === 'services' ? '#fff' : 'transparent',
-                  color: sidebarTab === 'services' ? '#1a1a1a' : '#888',
-                  borderBottom: sidebarTab === 'services' ? '2px solid #1D9E75' : '2px solid transparent',
-                  transition: 'all 0.15s',
-                }}
-              >
-                HİZMETLER
-              </button>
-              <button
-                onClick={() => {
-                  setSidebarTab('rooms');
-                  setGridViewMode('bed');
-                  setSelectedService(null);
-                  setNewAppointment(null);
-                }}
-                style={{
-                  flex: 1, fontSize: 9, fontWeight: 600,
-                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  background: sidebarTab === 'rooms' ? '#fff' : 'transparent',
-                  color: sidebarTab === 'rooms' ? '#1a1a1a' : '#888',
-                  borderBottom: sidebarTab === 'rooms' ? '2px solid #534AB7' : '2px solid transparent',
-                  transition: 'all 0.15s',
-                }}
-              >
-                ODALAR
-              </button>
-            </div>
-          )}
+          <div style={{ display: 'flex', height: 28, borderBottom: '1px solid #e8e8e3', background: '#f5f5f5', flexShrink: 0 }}>
+            <button
+              onClick={() => {
+                setSidebarTab('services');
+                setGridViewMode('expert');
+                setSelectedService(null);
+                setNewAppointment(null);
+              }}
+              style={{
+                flex: 1, fontSize: 8, fontWeight: 600,
+                border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                background: sidebarTab === 'services' ? '#fff' : 'transparent',
+                color: sidebarTab === 'services' ? '#1a1a1a' : '#888',
+                borderBottom: sidebarTab === 'services' ? '2px solid #1D9E75' : '2px solid transparent',
+                transition: 'all 0.15s',
+              }}
+            >
+              HİZMETLER
+            </button>
+            <button
+              onClick={() => {
+                setSidebarTab('packages');
+                setGridViewMode('expert');
+                setSelectedService(null);
+                setNewAppointment(null);
+              }}
+              style={{
+                flex: 1, fontSize: 8, fontWeight: 600,
+                border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                background: sidebarTab === 'packages' ? '#fff' : 'transparent',
+                color: sidebarTab === 'packages' ? '#1a1a1a' : '#888',
+                borderBottom: sidebarTab === 'packages' ? '2px solid #534AB7' : '2px solid transparent',
+                transition: 'all 0.15s',
+              }}
+            >
+              PAKETLER
+            </button>
+            <button
+              onClick={() => {
+                setSidebarTab('facility');
+                setGridViewMode('expert');
+                setSelectedService(null);
+                setNewAppointment(null);
+              }}
+              style={{
+                flex: 1, fontSize: 8, fontWeight: 600,
+                border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                background: sidebarTab === 'facility' ? '#fff' : 'transparent',
+                color: sidebarTab === 'facility' ? '#1a1a1a' : '#888',
+                borderBottom: sidebarTab === 'facility' ? '2px solid #EF9F27' : '2px solid transparent',
+                transition: 'all 0.15s',
+              }}
+            >
+              TESİS
+            </button>
+          </div>
 
           {/* Tab Icerigi */}
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            {sidebarTab === 'rooms' ? (
-              <BedCalendarSidebar
-                company={company}
-                date={date}
-                spaces={spaces}
-                experts={allExperts}
-                selectedRoom={selectedRoom}
-                onSelectRoom={(room) => {
-                  setSelectedRoom(room);
-                  setSelectedUnit(null);
-                  setSelectedAllUnits(null);
-                  setNewAppointment(null);
-                }}
-              />
-            ) : (
-              <DayDetailServiceList
-                company={company} date={date}
-                selectedService={selectedService} onSelectService={handleSelectService}
-                selectedRoom={selectedRoom} onSelectRoom={handleSelectRoom}
-                selectedUnit={selectedUnit} onSelectUnit={handleSelectUnit}
-                spaces={spaces} experts={allExperts}
-                isSelfServiceMode={isSelfService}
-              />
-            )}
+            <DayDetailServiceList
+              company={company} date={date}
+              selectedService={selectedService} onSelectService={handleSelectService}
+              selectedRoom={selectedRoom} onSelectRoom={handleSelectRoom}
+              selectedUnit={selectedUnit} onSelectUnit={handleSelectUnit}
+              spaces={spaces} experts={allExperts}
+              filterType={sidebarTab}
+            />
           </div>
         </div>
 
