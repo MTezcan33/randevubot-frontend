@@ -6,7 +6,7 @@ import { timeToMinutes, formatMinutes } from '@/services/availabilityService';
 const SLOT_MINUTES = 15;
 const ROW_H = 14;
 const DAY_START_HOUR = 8;
-const DAY_END_HOUR = 21;
+const DAY_END_HOUR = 23;
 const TOTAL_SLOTS = ((DAY_END_HOUR - DAY_START_HOUR) * 60) / SLOT_MINUTES; // 52
 
 // Personel renk paleti — her personele 3 ton atanir
@@ -136,7 +136,7 @@ export default function DayDetailTimeGrid({
   const columns = isExpertMode ? experts : roomUnits;
   const cols = columns.length;
   // Sabit sutun genisligi — personel azalinca genisletme
-  const COL_WIDTH = 108;
+  const COL_WIDTH = 146;
   const gtc = `48px repeat(${cols}, ${COL_WIDTH}px)`;
 
   if (!cols) {
@@ -314,11 +314,11 @@ export default function DayDetailTimeGrid({
                           )}
                           {/* Satir 1: Hizmet adi + saat */}
                           <div style={{ fontSize: 9, fontWeight: 600, color: blockColors.dark, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: onEditAppointment ? 14 : 0 }}>
-                            {bk.apt.company_services?.description || ''} <span style={{ fontWeight: 400, fontSize: 8 }}>{startTime}-{endTime}</span>
+                            {bk.apt.company_services?.description || ''} <span style={{ fontWeight: 600, fontSize: 8, color: '#E24B4A' }}>{startTime}-{endTime}</span>
                           </div>
                           {/* Satir 2: Musteri adi */}
                           {customerName && (
-                            <div style={{ fontSize: 8, color: '#555', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{ fontSize: 8, color: '#0F6E56', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {customerName}
                             </div>
                           )}
