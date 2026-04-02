@@ -66,12 +66,11 @@ export default function MonthlyCalendar() {
         flexDirection: 'column',
         height: '100%',
         overflow: 'hidden',
-        padding: '8px 0',
         borderRight: '1px solid #e8e8e3',
         background: '#fafafa',
       }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px 8px', flexShrink: 0 }}>
+        {/* Header - 32px yukseklik, DayDetailPanel ile ayni */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px', height: 32, flexShrink: 0 }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: '#1a1a1a' }}>Takvim</span>
           <div style={{ display: 'flex', gap: 2 }}>
             <button onClick={prevMonth} style={navBtnStyle}><ChevronSvg dir="left" /></button>
@@ -79,8 +78,11 @@ export default function MonthlyCalendar() {
           </div>
         </div>
 
+        {/* Ayirici cizgi - DayDetailPanel ile hizali */}
+        <div style={{ borderBottom: '1px solid #e8e8e3', flexShrink: 0 }} />
+
         {/* 3 Ay Grid */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, overflow: 'auto', padding: '0 4px' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, overflow: 'auto', padding: '8px 4px' }}>
           <MiniMonth
             date={baseMonth}
             occupancyMap={occ1}

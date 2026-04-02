@@ -447,32 +447,30 @@ export default function DayDetailPanel({
   const showFacilityPanel = isSelfService && selectedRoom;
 
   return (
-    <div style={{ border: '1px solid #B5D0C0', borderRadius: 14, overflow: 'hidden', background: '#fff', display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ overflow: 'hidden', background: '#fff', display: 'flex', flexDirection: 'column', height: '100%' }}>
 
-      {/* ═══ HEADER ═══ */}
-      <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #B5D0C0', background: '#E8F1EC' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 500, color: '#0F3D2A' }}>{titleDate}</div>
-            <div style={{ fontSize: 11, color: '#1D9E75', marginTop: 2 }}>{dayStats.total} randevu</div>
-          </div>
-          <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+      {/* ═══ HEADER — Takvim ile ayni hizaya ═══ */}
+      <div style={{ padding: '0 12px', height: 32, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#1a1a1a' }}>{titleDate}</span>
+          <span style={{ fontSize: 10, color: '#1D9E75' }}>{dayStats.total} randevu</span>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <MiniBar color="#534AB7" pct={dayStats.mPct} />
             <MiniBar color="#1D9E75" pct={dayStats.fPct} />
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        {onClose && (
           <button onClick={onClose} style={{
-            width: 32, height: 32, borderRadius: '50%', border: '1px solid #B5D0C0', background: '#F5F9F7',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1D9E75',
+            width: 20, height: 20, borderRadius: 4, border: '1px solid #e8e8e3', background: '#fff',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666',
           }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M10.5 3.5l-7 7M3.5 3.5l7 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+            <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M10.5 3.5l-7 7M3.5 3.5l7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
           </button>
-        </div>
+        )}
       </div>
 
       {/* ═══ BREADCRUMB ═══ */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 20px', background: '#E0EAE4', borderBottom: '1px solid #B5D0C0', fontSize: 11, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#fafafa', borderTop: '1px solid #e8e8e3', borderBottom: '1px solid #e8e8e3', fontSize: 10, flexWrap: 'wrap' }}>
         {crumbs.map((c, i) => (
           <React.Fragment key={i}>
             {i > 0 && <span style={{ color: '#8ABFA2' }}>›</span>}
@@ -485,10 +483,10 @@ export default function DayDetailPanel({
       {/* ═══ BODY ═══ */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         {/* Sol panel — Tab sistemi ile */}
-        <div style={{ width: 240, minWidth: 240, borderRight: '1px solid #B5D0C0', display: 'flex', flexDirection: 'column', background: '#E8F1EC' }}>
+        <div style={{ width: 200, minWidth: 200, borderRight: '1px solid #e8e8e3', display: 'flex', flexDirection: 'column', background: '#fafafa' }}>
           {/* Tab Butonlari */}
           {!independentMode && (
-            <div style={{ display: 'flex', borderBottom: '1px solid #B5D0C0', background: '#D8E8DE' }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid #e8e8e3', background: '#f5f5f5' }}>
               <button
                 onClick={() => {
                   setSidebarTab('services');
@@ -498,10 +496,10 @@ export default function DayDetailPanel({
                   }
                 }}
                 style={{
-                  flex: 1, padding: '10px 8px', fontSize: 11, fontWeight: 600,
+                  flex: 1, padding: '8px 6px', fontSize: 10, fontWeight: 600,
                   border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  background: sidebarTab === 'services' ? '#E8F1EC' : 'transparent',
-                  color: sidebarTab === 'services' ? '#0F3D2A' : '#5A8A6E',
+                  background: sidebarTab === 'services' ? '#fff' : 'transparent',
+                  color: sidebarTab === 'services' ? '#1a1a1a' : '#888',
                   borderBottom: sidebarTab === 'services' ? '2px solid #1D9E75' : '2px solid transparent',
                   transition: 'all 0.15s',
                 }}
@@ -518,10 +516,10 @@ export default function DayDetailPanel({
                   setNewAppointment(null);
                 }}
                 style={{
-                  flex: 1, padding: '10px 8px', fontSize: 11, fontWeight: 600,
+                  flex: 1, padding: '8px 6px', fontSize: 10, fontWeight: 600,
                   border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  background: sidebarTab === 'rooms' ? '#E8F1EC' : 'transparent',
-                  color: sidebarTab === 'rooms' ? '#534AB7' : '#5A8A6E',
+                  background: sidebarTab === 'rooms' ? '#fff' : 'transparent',
+                  color: sidebarTab === 'rooms' ? '#1a1a1a' : '#888',
                   borderBottom: sidebarTab === 'rooms' ? '2px solid #534AB7' : '2px solid transparent',
                   transition: 'all 0.15s',
                 }}

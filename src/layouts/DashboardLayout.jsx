@@ -185,7 +185,7 @@ const DashboardLayout = () => {
   const SidebarContent = ({ isMobile = false }) => (
     <div className="flex flex-col h-full">
       {/* Logo + Toggle/Close */}
-      <div className={`flex items-center h-16 px-4 border-b border-white/10 flex-shrink-0 ${
+      <div className={`flex items-center h-12 px-4 flex-shrink-0 ${
         !isMobile && collapsed ? 'justify-center' : 'justify-between'
       }`}>
         {(isMobile || !collapsed) ? (
@@ -194,14 +194,14 @@ const DashboardLayout = () => {
             className="flex items-center gap-2"
             onClick={isMobile ? () => setMobileOpen(false) : undefined}
           >
-            <div className="w-8 h-8 bg-gradient-to-br from-emerald-800 to-teal-700 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Leaf className="w-4 h-4 text-white" />
+            <div className="w-7 h-7 bg-gradient-to-br from-emerald-800 to-teal-700 rounded flex items-center justify-center flex-shrink-0">
+              <Leaf className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="text-white font-bold text-lg">RandevuBot</span>
+            <span className="text-white font-bold text-sm">RandevuBot</span>
           </Link>
         ) : (
-          <Link to="/" className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-emerald-800 to-teal-700 rounded-lg mx-auto">
-            <Leaf className="w-4 h-4 text-white" />
+          <Link to="/" className="flex items-center justify-center w-7 h-7 bg-gradient-to-br from-emerald-800 to-teal-700 rounded mx-auto">
+            <Leaf className="w-3.5 h-3.5 text-white" />
           </Link>
         )}
 
@@ -367,7 +367,7 @@ const DashboardLayout = () => {
 
       {/* Header — üstte sabit */}
       <header className={`
-        fixed top-0 right-0 h-16 bg-white border-b border-stone-200 z-40
+        fixed top-0 right-0 h-12 bg-white z-40
         flex items-center justify-between px-4 lg:px-6
         transition-all duration-300
         left-0 ${collapsed ? 'lg:left-[72px]' : 'lg:left-[156px]'}
@@ -450,10 +450,10 @@ const DashboardLayout = () => {
 
       {/* Ana İçerik */}
       <main className={`
-        transition-all duration-300 pt-16 min-h-screen
+        transition-all duration-300 pt-12 min-h-screen
         ${collapsed ? 'lg:pl-[72px]' : 'lg:pl-[156px]'}
       `}>
-        <div className="p-4 lg:p-6">
+        <div className="p-3 lg:p-4">
           <Outlet />
         </div>
       </main>
