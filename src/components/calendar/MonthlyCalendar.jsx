@@ -45,55 +45,92 @@ export default function MonthlyCalendar() {
 
   const weekdays = WEEKDAYS_SHORT[lang] || WEEKDAYS_SHORT.tr;
 
-  // ═══ Gun seciliyse DayDetailPanel goster ═══
-  if (selectedDay) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <DayDetailPanel date={selectedDay} onClose={() => setSelectedDay(null)}
-          company={company} experts={experts} spaces={spaces} workingHours={workingHours} />
-      </div>
-    );
-  }
+  // Sayfa acildiginda bugunun tarihini sec
+  useEffect(() => {
+    if (!selectedDay) {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+      setSelectedDay(todayStr);
+    }
+  }, []);
 
-  // ═══ 3 Aylik Kompakt Takvim ═══
+  // ═══ YAN YANA LAYOUT: Takvim + DayDetailPanel ═══
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', padding: '8px 0', width: 156, flexShrink: 0 }}>
+    <div style={{ display: 'flex', height: '100%', overflow: 'hidden', gap: 0 }}>
 
-      {/* ═══ HEADER ═══ */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px 8px', flexShrink: 0 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a' }}>{t('appointments')}</span>
-        <div style={{ display: 'flex', gap: 2 }}>
-          <button onClick={prevMonth} style={navBtnStyle}><ChevronSvg dir="left" /></button>
-          <button onClick={nextMonth} style={navBtnStyle}><ChevronSvg dir="right" /></button>
+      {/* ═══ SOL: Kompakt 3 Aylik Takvim ═══ */}
+      <div style={{
+        width: 156,
+        flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        overflow: 'hidden',
+        padding: '8px 0',
+        borderRight: '1px solid #e8e8e3',
+        background: '#fafafa',
+      }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px 8px', flexShrink: 0 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#1a1a1a' }}>Takvim</span>
+          <div style={{ display: 'flex', gap: 2 }}>
+            <button onClick={prevMonth} style={navBtnStyle}><ChevronSvg dir="left" /></button>
+            <button onClick={nextMonth} style={navBtnStyle}><ChevronSvg dir="right" /></button>
+          </div>
+        </div>
+
+        {/* 3 Ay Grid */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, overflow: 'auto', padding: '0 4px' }}>
+          <MiniMonth
+            date={baseMonth}
+            occupancyMap={occ1}
+            weekdays={weekdays}
+            lang={lang}
+            selectedDay={selectedDay}
+            onDayClick={handleDayClick}
+          />
+          <MiniMonth
+            date={month2}
+            occupancyMap={occ2}
+            weekdays={weekdays}
+            lang={lang}
+            selectedDay={selectedDay}
+            onDayClick={handleDayClick}
+          />
+          <MiniMonth
+            date={month3}
+            occupancyMap={occ3}
+            weekdays={weekdays}
+            lang={lang}
+            selectedDay={selectedDay}
+            onDayClick={handleDayClick}
+          />
         </div>
       </div>
 
-      {/* ═══ 3 AY GRID ═══ */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, overflow: 'auto', padding: '0 4px' }}>
-        <MiniMonth
-          date={baseMonth}
-          occupancyMap={occ1}
-          weekdays={weekdays}
-          lang={lang}
-          selectedDay={selectedDay}
-          onDayClick={handleDayClick}
-        />
-        <MiniMonth
-          date={month2}
-          occupancyMap={occ2}
-          weekdays={weekdays}
-          lang={lang}
-          selectedDay={selectedDay}
-          onDayClick={handleDayClick}
-        />
-        <MiniMonth
-          date={month3}
-          occupancyMap={occ3}
-          weekdays={weekdays}
-          lang={lang}
-          selectedDay={selectedDay}
-          onDayClick={handleDayClick}
-        />
+      {/* ═══ SAG: Gun Detay Paneli ═══ */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        {selectedDay ? (
+          <DayDetailPanel
+            date={selectedDay}
+            onClose={() => setSelectedDay(null)}
+            company={company}
+            experts={experts}
+            spaces={spaces}
+            workingHours={workingHours}
+          />
+        ) : (
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#999',
+            fontSize: 14,
+          }}>
+            Takvimden bir gun secin
+          </div>
+        )}
       </div>
     </div>
   );
