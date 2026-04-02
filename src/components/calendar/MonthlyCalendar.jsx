@@ -57,19 +57,19 @@ export default function MonthlyCalendar() {
 
   // ═══ 3 Aylik Kompakt Takvim ═══
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', padding: '8px 0' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', padding: '8px 0', width: 156, flexShrink: 0 }}>
 
       {/* ═══ HEADER ═══ */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px 12px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 15, fontWeight: 600, color: '#1a1a1a' }}>{t('appointments')}</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px 8px', flexShrink: 0 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a' }}>{t('appointments')}</span>
+        <div style={{ display: 'flex', gap: 2 }}>
           <button onClick={prevMonth} style={navBtnStyle}><ChevronSvg dir="left" /></button>
           <button onClick={nextMonth} style={navBtnStyle}><ChevronSvg dir="right" /></button>
         </div>
       </div>
 
       {/* ═══ 3 AY GRID ═══ */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16, overflow: 'auto', padding: '0 8px' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, overflow: 'auto', padding: '0 4px' }}>
         <MiniMonth
           date={baseMonth}
           occupancyMap={occ1}
@@ -147,30 +147,29 @@ function MiniMonth({ date, occupancyMap, weekdays, lang, selectedDay, onDayClick
   return (
     <div style={{
       background: '#fff',
-      borderRadius: 10,
+      borderRadius: 6,
       border: '1px solid #e8e8e3',
-      padding: '10px 12px',
+      padding: '6px',
     }}>
       {/* Ay basligi */}
       <div style={{
-        fontSize: 13,
+        fontSize: 10,
         fontWeight: 600,
         color: '#1a1a1a',
-        marginBottom: 8,
+        marginBottom: 4,
         textAlign: 'center',
       }}>
         {monthName} {year}
       </div>
 
       {/* Hafta gunleri */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 4 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1, marginBottom: 2 }}>
         {weekdays.map((d, i) => (
           <div key={i} style={{
-            fontSize: 9,
+            fontSize: 8,
             fontWeight: 600,
             color: '#999',
             textAlign: 'center',
-            padding: '2px 0',
           }}>
             {d}
           </div>
@@ -178,10 +177,10 @@ function MiniMonth({ date, occupancyMap, weekdays, lang, selectedDay, onDayClick
       </div>
 
       {/* Gun grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1 }}>
         {calendarDays.map(day => {
           if (day.type === 'empty') {
-            return <div key={day.key} style={{ height: 28 }} />;
+            return <div key={day.key} style={{ height: 18 }} />;
           }
 
           const bgColor = day.isSelected
@@ -216,12 +215,12 @@ function MiniMonth({ date, occupancyMap, weekdays, lang, selectedDay, onDayClick
               key={day.key}
               onClick={() => !day.isClosed && onDayClick(day.date)}
               style={{
-                height: 28,
+                height: 18,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: 6,
+                borderRadius: 3,
                 background: bgColor,
                 cursor: day.isClosed ? 'default' : 'pointer',
                 transition: 'all 0.15s',
@@ -239,21 +238,22 @@ function MiniMonth({ date, occupancyMap, weekdays, lang, selectedDay, onDayClick
               }}
             >
               <span style={{
-                fontSize: 11,
+                fontSize: 9,
                 fontWeight: day.isToday || day.isSelected ? 600 : 400,
                 color: textColor,
               }}>
                 {day.dayOfMonth}
               </span>
 
-              {/* Randevu gostergesi */}
+              {/* Randevu gostergesi - kucuk nokta */}
               {dotColor && !day.isSelected && (
                 <div style={{
-                  width: 4,
-                  height: 4,
+                  position: 'absolute',
+                  bottom: 1,
+                  width: 3,
+                  height: 3,
                   borderRadius: '50%',
                   background: dotColor,
-                  marginTop: 1,
                 }}/>
               )}
             </div>
@@ -265,11 +265,11 @@ function MiniMonth({ date, occupancyMap, weekdays, lang, selectedDay, onDayClick
 }
 
 const navBtnStyle = {
-  width: 26, height: 26, borderRadius: '50%', border: '1px solid #e8e8e3',
+  width: 20, height: 20, borderRadius: '50%', border: '1px solid #e8e8e3',
   background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center',
   justifyContent: 'center', color: '#666', padding: 0,
 };
 
 function ChevronSvg({ dir }) {
-  return <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d={dir==='left'?'M10 12L6 8l4-4':'M6 4l4 4-4 4'} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+  return <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d={dir==='left'?'M10 12L6 8l4-4':'M6 4l4 4-4 4'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 }
