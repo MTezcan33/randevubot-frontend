@@ -4,7 +4,7 @@ import { Pencil } from 'lucide-react';
 import { timeToMinutes, formatMinutes } from '@/services/availabilityService';
 
 const SLOT_MINUTES = 15;
-const ROW_H = 20;
+const ROW_H = 14;
 const DAY_START_HOUR = 8;
 const DAY_END_HOUR = 21;
 const TOTAL_SLOTS = ((DAY_END_HOUR - DAY_START_HOUR) * 60) / SLOT_MINUTES; // 52
@@ -279,8 +279,8 @@ export default function DayDetailTimeGrid({
                           onClick={(e) => e.stopPropagation()}
                           style={{
                             position: 'absolute', left: 2, right: 2, top: 1,
-                            height: bk.totalSlots * ROW_H - 2, borderRadius: 6,
-                            padding: '4px 6px', overflow: 'hidden', zIndex: 2,
+                            height: bk.totalSlots * ROW_H - 2, borderRadius: 4,
+                            padding: '2px 4px', overflow: 'hidden', zIndex: 2,
                             pointerEvents: 'auto',
                             cursor: isMovable ? 'grab' : 'default',
                             background: blockColors.light, borderLeft: `3px solid ${blockColors.fill}`,
@@ -294,8 +294,8 @@ export default function DayDetailTimeGrid({
                                 onEditAppointment(bk.apt);
                               }}
                               style={{
-                                position: 'absolute', top: 3, right: 3,
-                                width: 18, height: 18, borderRadius: 4,
+                                position: 'absolute', top: 2, right: 2,
+                                width: 14, height: 14, borderRadius: 3,
                                 background: 'rgba(255,255,255,0.9)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 cursor: 'pointer',
@@ -303,26 +303,22 @@ export default function DayDetailTimeGrid({
                               }}
                               title="Oda/Yatak Değiştir"
                             >
-                              <Pencil size={10} color={blockColors.dark} />
+                              <Pencil size={8} color={blockColors.dark} />
                             </div>
                           )}
-                          {/* Satir 1: Personel adi */}
-                          <div style={{ fontSize: 10, fontWeight: 600, color: blockColors.dark, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: onEditAppointment ? 18 : 0 }}>
-                            {isExpertMode ? col.name : (experts.find(e => e.id === bk.apt.expert_id)?.name || '')}
-                          </div>
-                          {/* Satir 2: Hizmet adi */}
-                          <div style={{ fontSize: 9, color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {/* Satir 1: Hizmet adi */}
+                          <div style={{ fontSize: 9, fontWeight: 600, color: blockColors.dark, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: onEditAppointment ? 14 : 0 }}>
                             {bk.apt.company_services?.description || ''}
                           </div>
-                          {/* Satir 3: Musteri adi */}
+                          {/* Satir 2: Musteri adi */}
                           {customerName && (
-                            <div style={{ fontSize: 8, color: '#555', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>
+                            <div style={{ fontSize: 8, color: '#555', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {customerName}
                             </div>
                           )}
-                          {/* Satir 4: Oda & Yatak bilgisi */}
+                          {/* Satir 3: Oda & Yatak bilgisi */}
                           {(roomName || unitName) && (
-                            <div style={{ fontSize: 8, color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>
+                            <div style={{ fontSize: 7, color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {roomName}{unitName ? ` · ${unitName}` : ''}
                             </div>
                           )}
@@ -337,20 +333,19 @@ export default function DayDetailTimeGrid({
                         onClick={e => e.stopPropagation()}
                         style={{
                           position: 'absolute', left: 2, right: 2, top: 1,
-                          height: slotsNeeded * ROW_H - 2, borderRadius: 6,
-                          background: '#534AB7', zIndex: 5, padding: '5px 8px',
+                          height: slotsNeeded * ROW_H - 2, borderRadius: 4,
+                          background: '#534AB7', zIndex: 5, padding: '2px 4px',
                           cursor: 'grab',
                           pointerEvents: 'auto',
                         }}
                       >
-                        <div style={{ fontSize: 11, fontWeight: 600, color: '#fff' }}>{service?.description || newAppointment?.serviceName}</div>
-                        <div style={{ fontSize: 9, color: '#CECBF6', marginTop: 1 }}>
+                        <div style={{ fontSize: 9, fontWeight: 600, color: '#fff' }}>{service?.description || newAppointment?.serviceName}</div>
+                        <div style={{ fontSize: 8, color: '#CECBF6' }}>
                           {isExpertMode
-                            ? `${newAppointment.expert?.name} · ${newAppointment.startTime}-${newAppointment.endTime}`
-                            : `${newAppointment.expert?.name} · ${col.name}`
+                            ? `${newAppointment.startTime}-${newAppointment.endTime}`
+                            : col.name
                           }
                         </div>
-                        {isExpertMode && <div style={{ fontSize: 8, color: '#AFA9EC', marginTop: 2 }}>⁂ sürükle taşı</div>}
                       </div>
                     )}
                   </div>
