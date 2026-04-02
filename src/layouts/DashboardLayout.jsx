@@ -453,7 +453,7 @@ const DashboardLayout = () => {
         transition-all duration-300 pt-12 min-h-screen
         ${collapsed ? 'lg:pl-[72px]' : 'lg:pl-[156px]'}
       `}>
-        <div className="p-3 lg:p-4">
+        <div className="px-3 pb-3 lg:px-4 lg:pb-4">
           <Outlet />
         </div>
       </main>
