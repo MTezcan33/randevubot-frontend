@@ -596,6 +596,7 @@ export default function DayDetailPanel({
                 dragState={dragState} cellRefs={cellRefs}
                 viewMode={gridViewMode}
                 roomUnits={selectedRoomUnits}
+                spaces={spaces}
                 onExistingDragStart={handleExistingDragStart}
                 movingAptId={movingAptId}
               />
@@ -622,6 +623,7 @@ export default function DayDetailPanel({
               dragState={dragState} cellRefs={cellRefs}
               viewMode="expert"
               roomUnits={[]}
+              spaces={spaces}
               onExistingDragStart={handleExistingDragStart}
               movingAptId={movingAptId}
             />

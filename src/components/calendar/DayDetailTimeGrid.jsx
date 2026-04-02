@@ -54,6 +54,7 @@ export default function DayDetailTimeGrid({
   newAppointment, onSlotClick, onDragStart, dragState, cellRefs,
   viewMode = 'expert', // 'expert' | 'bed'
   roomUnits = [],      // array of { id, name } for bed mode
+  spaces = [],         // array of rooms for looking up room names
   onExistingDragStart, // callback(e, apt) — mevcut randevu surukle
   movingAptId = null,  // suruklenmekte olan mevcut randevunun id'si
 }) {
@@ -249,9 +250,13 @@ export default function DayDetailTimeGrid({
                   >
                     {/* Randevu bloku */}
                     {bk?.isFirst && !(movingAptId && bk.apt.id === movingAptId) && (() => {
-                      const unitName = isExpertMode && bk.apt.room_unit_id
+                      const unitName = bk.apt.room_unit_id
                         ? (roomUnits.find(u => u.id === bk.apt.room_unit_id)?.name || '')
                         : '';
+                      const roomName = bk.apt.space_id
+                        ? (spaces.find(s => s.id === bk.apt.space_id)?.name || '')
+                        : '';
+                      const customerName = bk.apt.customers?.name || '';
                       // Hem uzman hem yatak modunda suruklenebilir
                       const isMovable = onExistingDragStart && bk.apt.status !== 'iptal';
                       return (
@@ -285,16 +290,24 @@ export default function DayDetailTimeGrid({
                             background: blockColors.light, borderLeft: `3px solid ${blockColors.fill}`,
                           }}
                         >
+                          {/* Satir 1: Personel adi */}
                           <div style={{ fontSize: 10, fontWeight: 600, color: blockColors.dark, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {isExpertMode ? col.name : (experts.find(e => e.id === bk.apt.expert_id)?.name || '')}
                           </div>
+                          {/* Satir 2: Hizmet adi */}
                           <div style={{ fontSize: 9, color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {bk.apt.company_services?.description || ''}
-                            {isExpertMode && unitName ? ` · ${unitName}` : ''}
                           </div>
-                          {!isExpertMode && (
+                          {/* Satir 3: Musteri adi */}
+                          {customerName && (
+                            <div style={{ fontSize: 8, color: '#555', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>
+                              {customerName}
+                            </div>
+                          )}
+                          {/* Satir 4: Oda & Yatak bilgisi */}
+                          {(roomName || unitName) && (
                             <div style={{ fontSize: 8, color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>
-                              {bk.apt.customers?.name || ''}
+                              {roomName}{unitName ? ` · ${unitName}` : ''}
                             </div>
                           )}
                         </div>
