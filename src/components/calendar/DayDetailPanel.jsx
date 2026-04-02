@@ -43,6 +43,8 @@ export default function DayDetailPanel({
   const [movingAptId, setMovingAptId] = useState(null); // suruklenmekte olan mevcut randevu id'si
   // Sol sidebar tab: 'services' (hizmetler) veya 'rooms' (odalar/yataklar)
   const [sidebarTab, setSidebarTab] = useState(independentMode ? 'rooms' : 'services');
+  // Oda/yatak duzenleme modali icin
+  const [editingAppointment, setEditingAppointment] = useState(null);
 
   const dateObj = new Date(date + 'T00:00:00');
   const [y, m, d] = date.split('-');
@@ -599,6 +601,7 @@ export default function DayDetailPanel({
                 spaces={spaces}
                 onExistingDragStart={handleExistingDragStart}
                 movingAptId={movingAptId}
+                onEditAppointment={setEditingAppointment}
               />
             </>
           )}
@@ -626,6 +629,7 @@ export default function DayDetailPanel({
               spaces={spaces}
               onExistingDragStart={handleExistingDragStart}
               movingAptId={movingAptId}
+              onEditAppointment={setEditingAppointment}
             />
           )}
           {!showExpertGrid && !showFacilityPanel && (allExperts || []).length === 0 && (
@@ -650,6 +654,17 @@ export default function DayDetailPanel({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ═══ RANDEVU ODA/YATAK DUZENLEME MODALI ═══ */}
+      {editingAppointment && (
+        <AppointmentEditModal
+          appointment={editingAppointment}
+          spaces={spaces}
+          company={company}
+          onClose={() => setEditingAppointment(null)}
+          onSaved={() => fetchDayAppointments(company.id, date).then(setDayAppointments)}
+        />
       )}
 
       {/* ═══ MÜŞTERİ SEÇİM MODALI ═══ */}
@@ -922,6 +937,148 @@ function MiniBar({ color, pct }) {
         <div style={{ height: '100%', borderRadius: 3, width: `${pct}%`, background: barColor(pct) }} />
       </div>
       <span style={{ fontSize: 11, fontWeight: 500, fontFamily: "'SF Mono','Menlo',monospace", color: textColor(pct) }}>%{pct}</span>
+    </div>
+  );
+}
+
+// ═══ RANDEVU ODA/YATAK DUZENLEME MODALI ═══
+function AppointmentEditModal({ appointment, spaces, company, onClose, onSaved }) {
+  const [selectedSpaceId, setSelectedSpaceId] = useState(appointment.space_id || '');
+  const [selectedUnitId, setSelectedUnitId] = useState(appointment.room_unit_id || '');
+  const [units, setUnits] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Private odalar (yatak iceren)
+  const privateRooms = (spaces || []).filter(s => s.is_active && s.booking_mode === 'private');
+
+  // Oda secildiginde yataklari yukle
+  useEffect(() => {
+    if (!selectedSpaceId || !company?.id) {
+      setUnits([]);
+      return;
+    }
+    setLoading(true);
+    getRoomUnits(company.id, selectedSpaceId)
+      .then(data => setUnits(data || []))
+      .catch(() => setUnits([]))
+      .finally(() => setLoading(false));
+  }, [selectedSpaceId, company?.id]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const updateData = {};
+      if (selectedSpaceId !== appointment.space_id) {
+        updateData.space_id = selectedSpaceId || null;
+      }
+      if (selectedUnitId !== appointment.room_unit_id) {
+        updateData.room_unit_id = selectedUnitId || null;
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        onClose();
+        return;
+      }
+
+      const { error } = await supabase
+        .from('appointments')
+        .update(updateData)
+        .eq('id', appointment.id);
+
+      if (error) throw error;
+      onSaved?.();
+      onClose();
+    } catch (err) {
+      console.error('Randevu guncelleme hatasi:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const modalStyle = {
+    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+  };
+  const contentStyle = {
+    background: '#fff', borderRadius: 12, padding: 24, width: 360, maxWidth: '90vw',
+    boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+  };
+  const selectStyle = {
+    width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #B5D0C0',
+    fontSize: 13, fontFamily: 'inherit', background: '#fff', marginTop: 6,
+  };
+
+  return (
+    <div style={modalStyle} onClick={onClose}>
+      <div style={contentStyle} onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: '#0F3D2A', marginBottom: 16 }}>
+          Oda & Yatak Degistir
+        </div>
+
+        {/* Randevu bilgisi */}
+        <div style={{ background: '#F8FAF9', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 12 }}>
+          <div style={{ fontWeight: 600, color: '#0F3D2A' }}>{appointment.company_services?.description || 'Hizmet'}</div>
+          <div style={{ color: '#666', marginTop: 4 }}>{appointment.customers?.name || 'Musteri'} · {appointment.time}</div>
+        </div>
+
+        {/* Oda secimi */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: '#0F3D2A' }}>Oda</label>
+          <select
+            value={selectedSpaceId}
+            onChange={e => { setSelectedSpaceId(e.target.value); setSelectedUnitId(''); }}
+            style={selectStyle}
+          >
+            <option value="">-- Oda Sec --</option>
+            {privateRooms.map(room => (
+              <option key={room.id} value={room.id}>{room.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Yatak secimi */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: '#0F3D2A' }}>Yatak</label>
+          <select
+            value={selectedUnitId}
+            onChange={e => setSelectedUnitId(e.target.value)}
+            disabled={!selectedSpaceId || loading}
+            style={{ ...selectStyle, opacity: !selectedSpaceId ? 0.5 : 1 }}
+          >
+            <option value="">-- Yatak Sec --</option>
+            {units.map(unit => (
+              <option key={unit.id} value={unit.id}>{unit.name}</option>
+            ))}
+          </select>
+          {loading && <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Yataklar yukleniyor...</div>}
+        </div>
+
+        {/* Butonlar */}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '10px 20px', borderRadius: 8, border: '1px solid #B5D0C0',
+              background: '#fff', color: '#0F3D2A', fontSize: 13, fontWeight: 500,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            Iptal
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{
+              padding: '10px 20px', borderRadius: 8, border: 'none',
+              background: '#1D9E75', color: '#fff', fontSize: 13, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.7 : 1,
+            }}
+          >
+            {saving ? 'Kaydediliyor...' : 'Kaydet'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

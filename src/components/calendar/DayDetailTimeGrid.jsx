@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useCallback, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Pencil } from 'lucide-react';
 import { timeToMinutes, formatMinutes } from '@/services/availabilityService';
 
 const SLOT_MINUTES = 15;
@@ -57,6 +58,7 @@ export default function DayDetailTimeGrid({
   spaces = [],         // array of rooms for looking up room names
   onExistingDragStart, // callback(e, apt) — mevcut randevu surukle
   movingAptId = null,  // suruklenmekte olan mevcut randevunun id'si
+  onEditAppointment,   // callback(apt) — randevu duzenleme modalini ac
 }) {
   const { t } = useTranslation();
   const slotsNeeded = service ? durationToSlots(service.duration) : 0;
@@ -285,13 +287,33 @@ export default function DayDetailTimeGrid({
                             position: 'absolute', left: 2, right: 2, top: 1,
                             height: bk.totalSlots * ROW_H - 2, borderRadius: 6,
                             padding: '4px 6px', overflow: 'hidden', zIndex: 2,
-                            pointerEvents: isMovable ? 'auto' : 'none',
+                            pointerEvents: 'auto',
                             cursor: isMovable ? 'grab' : 'default',
                             background: blockColors.light, borderLeft: `3px solid ${blockColors.fill}`,
                           }}
                         >
+                          {/* Duzenle butonu */}
+                          {onEditAppointment && (
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEditAppointment(bk.apt);
+                              }}
+                              style={{
+                                position: 'absolute', top: 3, right: 3,
+                                width: 18, height: 18, borderRadius: 4,
+                                background: 'rgba(255,255,255,0.9)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                              }}
+                              title="Oda/Yatak Değiştir"
+                            >
+                              <Pencil size={10} color={blockColors.dark} />
+                            </div>
+                          )}
                           {/* Satir 1: Personel adi */}
-                          <div style={{ fontSize: 10, fontWeight: 600, color: blockColors.dark, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: blockColors.dark, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: onEditAppointment ? 18 : 0 }}>
                             {isExpertMode ? col.name : (experts.find(e => e.id === bk.apt.expert_id)?.name || '')}
                           </div>
                           {/* Satir 2: Hizmet adi */}
