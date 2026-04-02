@@ -554,17 +554,6 @@ const ResourcesPage = () => {
           <DoorOpen className="w-4 h-4" />
           {t('spaces')} ({spaces.length})
         </button>
-        <button
-          onClick={() => setActiveTab('equipment')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            activeTab === 'equipment'
-              ? 'bg-white text-stone-800 shadow-sm'
-              : 'text-stone-500 hover:text-stone-700'
-          }`}
-        >
-          <Wrench className="w-4 h-4" />
-          {t('equipment')} ({equipment.length})
-        </button>
         {spaces.length > 0 && (
           <button
             onClick={() => setActiveTab('occupancy')}
@@ -680,113 +669,6 @@ const ResourcesPage = () => {
                       <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-700">
                         <Clock className="w-3 h-3" />
                         {space.buffer_minutes} dk
-                      </span>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ============================================================ */}
-      {/* EKİPMANLAR TAB'I */}
-      {/* ============================================================ */}
-      {activeTab === 'equipment' && (
-        <div className="space-y-4">
-          {/* Arama + Ekle */}
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-              <Input
-                placeholder={t('searchEquipment')}
-                value={equipmentSearchQuery}
-                onChange={(e) => setEquipmentSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Button onClick={() => handleOpenEquipmentModal()} className="gap-2 bg-gradient-to-r from-emerald-700 to-teal-600 hover:from-emerald-800 hover:to-teal-700">
-              <Plus className="w-4 h-4" />
-              {t('addEquipment')}
-            </Button>
-          </div>
-
-          {/* Ekipman kartları */}
-          {equipmentLoading ? (
-            <div className="flex items-center justify-center py-12 text-stone-400">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
-            </div>
-          ) : filteredEquipment.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-xl border border-stone-200">
-              <Wrench className="w-12 h-12 text-stone-300 mx-auto mb-3" />
-              <p className="text-stone-500 font-medium">{t('noEquipmentYet')}</p>
-              <p className="text-sm text-stone-400 mt-1">{t('noEquipmentDescription')}</p>
-              <Button
-                onClick={() => handleOpenEquipmentModal()}
-                className="mt-4 gap-2 bg-gradient-to-r from-emerald-700 to-teal-600"
-              >
-                <Plus className="w-4 h-4" />
-                {t('addFirstEquipment')}
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredEquipment.map((eq, idx) => (
-                <motion.div
-                  key={eq.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className="bg-white rounded-xl border border-stone-200 p-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-                        <Wrench className="w-5 h-5 text-amber-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-stone-800 text-sm">{eq.name}</h3>
-                        {eq.description && (
-                          <p className="text-xs text-stone-400 line-clamp-1 mt-0.5">{eq.description}</p>
-                        )}
-                      </div>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="p-1 rounded hover:bg-stone-100 text-stone-400">
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleOpenEquipmentModal(eq)}>
-                          <Edit className="w-4 h-4 mr-2" /> {t('edit')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setEquipmentToDelete(eq)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" /> {t('delete')}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-stone-100 text-stone-600">
-                      <Package className="w-3 h-3" />
-                      {t('quantity')}: {eq.quantity}
-                    </span>
-                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
-                      eq.location_type === 'fixed' ? 'bg-indigo-100 text-indigo-700' : 'bg-green-100 text-green-700'
-                    }`}>
-                      <MapPin className="w-3 h-3" />
-                      {eq.location_type === 'fixed' ? t('locationFixed') : t('locationPortable')}
-                    </span>
-                    {eq.location_type === 'fixed' && eq.spaces?.name && (
-                      <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700">
-                        <DoorOpen className="w-3 h-3" />
-                        {eq.spaces.name}
                       </span>
                     )}
                   </div>
@@ -1295,105 +1177,6 @@ const ResourcesPage = () => {
       </Dialog>
 
       {/* ============================================================ */}
-      {/* EKİPMAN EKLEME/DÜZENLEME MODAL */}
-      {/* ============================================================ */}
-      <Dialog open={equipmentModalOpen} onOpenChange={setEquipmentModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-amber-600" />
-              {editingEquipment ? t('editEquipment') : t('addEquipment')}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            {/* İsim */}
-            <div>
-              <label className="text-sm font-medium text-stone-700 mb-1 block">{t('equipmentName')} *</label>
-              <Input
-                value={equipmentForm.name}
-                onChange={(e) => setEquipmentForm(f => ({ ...f, name: e.target.value }))}
-                placeholder={t('equipmentNamePlaceholder')}
-              />
-            </div>
-
-            {/* Açıklama */}
-            <div>
-              <label className="text-sm font-medium text-stone-700 mb-1 block">{t('description')}</label>
-              <textarea
-                value={equipmentForm.description}
-                onChange={(e) => setEquipmentForm(f => ({ ...f, description: e.target.value }))}
-                placeholder={t('equipmentDescriptionPlaceholder')}
-                rows={2}
-                className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            {/* Miktar */}
-            <div>
-              <label className="text-sm font-medium text-stone-700 mb-1 block">{t('quantity')}</label>
-              <Input
-                type="number"
-                min={1}
-                value={equipmentForm.quantity}
-                onChange={(e) => setEquipmentForm(f => ({ ...f, quantity: parseInt(e.target.value) || 1 }))}
-              />
-            </div>
-
-            {/* Konum Tipi */}
-            <div>
-              <label className="text-sm font-medium text-stone-700 mb-1 block">{t('locationType')}</label>
-              <Select
-                value={equipmentForm.location_type}
-                onValueChange={(val) => setEquipmentForm(f => ({ ...f, location_type: val }))}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="portable">{t('locationPortable')}</SelectItem>
-                  <SelectItem value="fixed">{t('locationFixed')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Sabit Alan (sadece fixed ise) */}
-            {equipmentForm.location_type === 'fixed' && (
-              <div>
-                <label className="text-sm font-medium text-stone-700 mb-1 block">{t('fixedSpace')}</label>
-                <Select
-                  value={equipmentForm.fixed_space_id || 'none'}
-                  onValueChange={(val) => setEquipmentForm(f => ({ ...f, fixed_space_id: val === 'none' ? null : val }))}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={t('selectSpace')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{t('noSpace')}</SelectItem>
-                    {spaces.map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEquipmentModalOpen(false)} disabled={saving}>
-              {t('cancel')}
-            </Button>
-            <Button
-              onClick={handleSaveEquipment}
-              disabled={saving || !equipmentForm.name.trim()}
-              className="bg-gradient-to-r from-emerald-700 to-teal-600"
-            >
-              {saving ? t('saving') : t('save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* ============================================================ */}
       {/* SİLME ONAY DİALOGLARI */}
       {/* ============================================================ */}
@@ -1408,23 +1191,6 @@ const ResourcesPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteSpace} className="bg-red-600 hover:bg-red-700">
-              {t('delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={!!equipmentToDelete} onOpenChange={() => setEquipmentToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('deleteEquipment')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              "{equipmentToDelete?.name}" {t('deleteEquipmentConfirm')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteEquipment} className="bg-red-600 hover:bg-red-700">
               {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>

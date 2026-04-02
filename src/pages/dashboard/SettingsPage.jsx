@@ -848,44 +848,6 @@ const SettingsPage = () => {
                 </div>
               </div>
 
-              {/* Kaynak Yönetimi Ayarları */}
-              <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
-                <div className="flex items-center gap-2 mb-3">
-                  <DoorOpen className="w-4 h-4 text-purple-600" />
-                  <p className="text-sm font-medium text-purple-800">{t('resourceSettings')}</p>
-                </div>
-                <p className="text-xs text-purple-600 mb-3">{t('resourceSettingsDesc')}</p>
-                <div className="space-y-2">
-                  {[
-                    { value: 'optional', labelKey: 'enforcementOptional', descKey: 'enforcementOptionalDesc' },
-                    { value: 'recommended', labelKey: 'enforcementRecommended', descKey: 'enforcementRecommendedDesc' },
-                    { value: 'mandatory', labelKey: 'enforcementMandatory', descKey: 'enforcementMandatoryDesc' },
-                  ].map(opt => (
-                    <label
-                      key={opt.value}
-                      className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
-                        formData.resource_enforcement === opt.value
-                          ? 'bg-white border-2 border-purple-400 shadow-sm'
-                          : 'bg-white/60 border border-purple-100 hover:bg-white'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="resource_enforcement"
-                        value={opt.value}
-                        checked={formData.resource_enforcement === opt.value}
-                        onChange={(e) => setFormData({ ...formData, resource_enforcement: e.target.value })}
-                        className="mt-0.5 accent-purple-600"
-                      />
-                      <div>
-                        <p className="text-sm font-medium text-stone-800">{t(opt.labelKey)}</p>
-                        <p className="text-xs text-stone-500 mt-0.5">{t(opt.descKey)}</p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
               {/* Kaydet Butonu */}
               <Button type="submit" disabled={loading} className="w-full" size="lg">
                 {loading ? (
