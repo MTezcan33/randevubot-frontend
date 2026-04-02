@@ -365,95 +365,12 @@ const DashboardLayout = () => {
         </aside>
       </div>
 
-      {/* Header — üstte sabit */}
-      <header className={`
-        fixed top-0 right-0 h-12 bg-white z-40
-        flex items-center justify-between px-4 lg:px-6
-        transition-all duration-300
-        left-0 ${collapsed ? 'lg:left-[72px]' : 'lg:left-[156px]'}
-      `}>
-        {/* Sol: hamburger + sayfa başlığı */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="lg:hidden p-2 rounded-lg hover:bg-stone-100 text-stone-500 transition-colors"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <h1 className="text-base lg:text-lg font-semibold text-stone-800 truncate">{pageTitle}</h1>
-        </div>
-
-        {/* Sağ: dil + bildirim zili */}
-        <div className="flex items-center gap-2 lg:gap-3">
-          <div className="hidden sm:block">
-            <LanguageSwitcher />
-          </div>
-
-          {/* Bildirim Zili */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="relative p-2 rounded-lg hover:bg-stone-100 text-stone-500 hover:text-stone-700 transition-colors">
-                <Bell className="w-5 h-5" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-emerald-800 to-teal-700 text-[10px] text-white font-bold leading-none">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <div className="flex items-center justify-between px-2 py-1.5">
-                <DropdownMenuLabel className="p-0 text-sm font-semibold">{t('notifications')}</DropdownMenuLabel>
-                {unreadCount > 0 && (
-                  <button
-                    onClick={handleMarkAllRead}
-                    className="flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-800 transition-colors"
-                  >
-                    <CheckCheck className="w-3 h-3" />
-                    {t('markAllRead')}
-                  </button>
-                )}
-              </div>
-              <DropdownMenuSeparator />
-              {notifications.length > 0 ? (
-                <div className="max-h-72 overflow-y-auto">
-                  {notifications.map(n => (
-                    <DropdownMenuItem
-                      key={n.id}
-                      onClick={() => handleNotificationClick(n)}
-                      className={`flex items-start gap-2 cursor-pointer ${!n.is_read ? 'bg-emerald-50' : ''}`}
-                    >
-                      <div className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${
-                        !n.is_read ? 'bg-gradient-to-br from-emerald-800 to-teal-700' : 'bg-transparent'
-                      }`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{n.title}</p>
-                        {n.message && (
-                          <p className="text-xs text-slate-500 truncate">{n.message}</p>
-                        )}
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          {new Date(n.created_at).toLocaleString(i18n.language)}
-                        </p>
-                      </div>
-                    </DropdownMenuItem>
-                  ))}
-                </div>
-              ) : (
-                <DropdownMenuItem disabled className="text-sm text-slate-500 justify-center py-4">
-                  {t('noNotifications')}
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </header>
-
       {/* Ana İçerik */}
       <main className={`
-        transition-all duration-300 pt-12 min-h-screen
+        transition-all duration-300 min-h-screen
         ${collapsed ? 'lg:pl-[72px]' : 'lg:pl-[156px]'}
       `}>
-        <div className="px-3 pb-3 lg:px-4 lg:pb-4">
+        <div className="h-screen">
           <Outlet />
         </div>
       </main>
