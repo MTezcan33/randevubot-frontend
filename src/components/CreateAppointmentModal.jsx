@@ -127,6 +127,29 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
     });
   }, [serviceSelections, allServices]);
 
+  // Seçili gün için çalışma saatleri aralığı (tüm uzmanların min-max'ı)
+  const dayWorkingRange = useMemo(() => {
+    if (!appointmentDate) return { minTime: '09:00', maxTime: '18:00', isClosed: true };
+
+    const dateObj = appointmentDate instanceof Date ? appointmentDate : new Date(appointmentDate);
+    const dayName = DAY_NAMES_TR[dateObj.getDay()];
+    const todayHours = workingHours?.filter(wh => wh.day === dayName && wh.is_open) || [];
+
+    if (todayHours.length === 0) {
+      return { minTime: '09:00', maxTime: '18:00', isClosed: true };
+    }
+
+    // Tüm uzmanların en erken açılış ve en geç kapanış saatini bul
+    const startTimes = todayHours.map(wh => wh.start_time).sort();
+    const endTimes = todayHours.map(wh => wh.end_time).sort().reverse();
+
+    return {
+      minTime: startTimes[0],
+      maxTime: endTimes[0],
+      isClosed: false
+    };
+  }, [appointmentDate, workingHours]);
+
   // Hizmetleri grupla: requires_expert true/false + category
   const groupedServices = useMemo(() => {
     const expertServices = allServices.filter(s => s.requires_expert !== false);
@@ -604,6 +627,34 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
       // Uzman gerektiren hizmetler için uzman kontrolü
       if (hasExpertRequiredService && !allExpertsAssigned) {
         toast({ title: t('error'), description: t('missingExpertWarning'), variant: 'destructive' });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Çalışma saatleri kontrolü — başlangıç ve bitiş saati aralık içinde mi?
+      const startMin = timeToMinutes(appointmentTime);
+      const endMin = startMin + totalDuration;
+      const workStart = timeToMinutes(dayWorkingRange.minTime);
+      const workEnd = timeToMinutes(dayWorkingRange.maxTime);
+
+      if (dayWorkingRange.isClosed) {
+        toast({ title: t('error'), description: t('dayClosedError') || 'Bu gün kapalı, randevu oluşturulamaz', variant: 'destructive' });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (startMin < workStart || startMin > workEnd) {
+        toast({ title: t('error'), description: t('outsideWorkingHoursError') || 'Seçilen saat çalışma saatleri dışında', variant: 'destructive' });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (endMin > workEnd) {
+        toast({
+          title: t('error'),
+          description: t('appointmentExceedsWorkingHours') || `Randevu bitiş saati (${formatMinutes(endMin)}) çalışma saatini (${dayWorkingRange.maxTime}) aşıyor`,
+          variant: 'destructive'
+        });
         setIsSubmitting(false);
         return;
       }
@@ -1184,8 +1235,14 @@ const CreateAppointmentModal = ({ isOpen, onClose, experts, currentDate, onAppoi
                   type="time"
                   value={appointmentTime}
                   onChange={(e) => setAppointmentTime(e.target.value)}
+                  min={dayWorkingRange.minTime}
+                  max={dayWorkingRange.maxTime}
+                  step="600"
                   className="pl-10 h-11"
                 />
+                {dayWorkingRange.isClosed && (
+                  <p className="text-xs text-amber-600 mt-1">{t('dayClosed') || 'Bu gün kapalı'}</p>
+                )}
               </div>
             </div>
           </div>

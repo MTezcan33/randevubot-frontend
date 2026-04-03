@@ -125,10 +125,11 @@ const TimeIndicator = ({ companyTimezone }) => {
       const hours = now.getHours();
       const minutes = now.getMinutes();
       const totalMinutes = hours * 60 + minutes;
-      const startOfDayMinutes = 5 * 60; // 05:00
+      const startOfDayMinutes = 6 * 60; // 06:00
       const minutesFromStart = totalMinutes - startOfDayMinutes;
 
-      if (minutesFromStart < 0 || minutesFromStart > 19 * 60) return -1; // 05:00 - 24:00
+      // Grid dışındaysa gösterme (06:00 - 24:00)
+      if (minutesFromStart < 0 || totalMinutes > 24 * 60) return -1;
 
       return minutesFromStart * PIXELS_PER_MINUTE;
     } catch (e) {
@@ -738,13 +739,22 @@ const AppointmentsPage = () => {
   };
 
 
-  // 05:00 - 24:00 arası, her 10 dakikada bir (114 slot)
-  const timeSlots = Array.from({ length: 115 }, (_, i) => {
-    const totalMinutes = 5 * 60 + i * 10;
-    const h = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
-    const m = (totalMinutes % 60).toString().padStart(2, '0');
-    return `${h}:${m}`;
-  });
+  // 06:00 - 24:00 arası sabit grid (scroll için yeterli uzunluk)
+  const GRID_START_HOUR = 6;
+  const GRID_END_HOUR = 24;
+  const gridStartMinutes = GRID_START_HOUR * 60;
+  const gridEndMinutes = GRID_END_HOUR * 60;
+
+  // Her 10 dakikada bir slot
+  const timeSlots = useMemo(() => {
+    const slots = [];
+    for (let m = gridStartMinutes; m <= gridEndMinutes; m += 10) {
+      const h = Math.floor(m / 60).toString().padStart(2, '0');
+      const min = (m % 60).toString().padStart(2, '0');
+      slots.push(`${h}:${min}`);
+    }
+    return slots;
+  }, [gridStartMinutes, gridEndMinutes]);
 
   // ── Sürükle-Bırak: Uzmanlar Arası Taşıma ──
   const handleDragStart = (e, appointmentId, serviceId, currentExpertId, blockKey) => {
@@ -936,7 +946,7 @@ const AppointmentsPage = () => {
         <meta name="description" content={t('appointmentsSubtitle')} />
       </Helmet>
 
-      <div className="flex gap-3 h-[calc(100vh-6rem)]">
+      <div className="flex gap-3 h-full overflow-hidden">
         {/* Sol Panel - Mini Takvim ve Randevu Oluştur (aylık görünümde gizle) */}
         {calendarView !== 'monthly' && (
         <div className="w-52 flex-shrink-0 space-y-3">
@@ -979,8 +989,8 @@ const AppointmentsPage = () => {
 
         {/* Sağ Panel - Randevu Takvimi (günlük görünümler) */}
         {calendarView !== 'monthly' && (
-        <div className="flex-grow bg-white rounded-lg shadow-sm overflow-hidden border">
-          <div className="h-full overflow-auto">
+        <div className="flex-grow bg-white rounded-lg shadow-sm overflow-hidden border flex flex-col min-h-0">
+          <div className="flex-1 overflow-auto min-h-0">
 
             {/* ═══ ODA GÖRÜNÜMÜ ═══ */}
             {calendarView === 'room' && (
@@ -1034,7 +1044,7 @@ const AppointmentsPage = () => {
 
             {/* ═══ UZMAN GÖRÜNÜMÜ (mevcut) ═══ */}
             {calendarView === 'expert' && (
-            <div className="flex">
+            <div className="flex" style={{ minHeight: `${timeSlots.length * ROW_HEIGHT + 32}px` }}>
               {/* Saat Sütunu */}
               <div className="w-14 flex-shrink-0 bg-gray-50 border-r sticky left-0 z-10">
                 <div className="h-8 border-b bg-white"></div>
@@ -1063,9 +1073,13 @@ const AppointmentsPage = () => {
                         <div className="h-8 sticky top-0 z-30 border-b bg-white/95 flex items-center justify-center">
                           <span className="text-[10px] text-slate-300">—</span>
                         </div>
-                        <div className="relative" style={{ height: `${19 * 6 * ROW_HEIGHT}px` }}>
-                          {timeSlots.map((_, i) => (
-                            <div key={i} className="border-b border-gray-100" style={{ height: `${ROW_HEIGHT * 6}px` }} />
+                        <div className="relative" style={{ height: `${timeSlots.length * ROW_HEIGHT}px` }}>
+                          {timeSlots.map((_, index) => (
+                            <div
+                              key={index}
+                              style={{ height: `${ROW_HEIGHT}px` }}
+                              className={index % 6 === 0 ? 'border-t border-slate-200' : ''}
+                            />
                           ))}
                         </div>
                       </div>
@@ -1176,7 +1190,7 @@ const AppointmentsPage = () => {
                         });
 
                         return blocks.map(block => {
-                          const topPosition = (block.startMinutes - 5 * 60) * PIXELS_PER_MINUTE;
+                          const topPosition = (block.startMinutes - gridStartMinutes) * PIXELS_PER_MINUTE;
                           const height = block.duration * PIXELS_PER_MINUTE;
                           const isDragging = dragData?.blockKey === block.blockKey;
                           const isAnyDragging = !!dragData; // Herhangi bir blok sürükleniyor mu?

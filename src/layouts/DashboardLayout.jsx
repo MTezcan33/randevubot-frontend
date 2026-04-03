@@ -367,12 +367,10 @@ const DashboardLayout = () => {
 
       {/* Ana İçerik */}
       <main className={`
-        transition-all duration-300 min-h-screen
+        transition-all duration-300 h-screen overflow-hidden
         ${collapsed ? 'lg:pl-[72px]' : 'lg:pl-[156px]'}
       `}>
-        <div className="h-screen">
-          <Outlet />
-        </div>
+        <Outlet />
       </main>
       <AsistanChatWidget />
     </div>
