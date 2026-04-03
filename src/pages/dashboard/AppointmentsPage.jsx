@@ -291,7 +291,7 @@ const MiniCalendar = ({ currentDate, onDateChange }) => {
 };
 
 const AppointmentsPage = () => {
-  const { company, staff, user, selectedExpert } = useAuth();
+  const { company, staff, user, selectedExpert, workingHours } = useAuth();
   const { toast } = useToast();
   const { t, i18n } = useTranslation();
   const experts = staff.filter(s => s.role === 'Uzman');
@@ -1158,6 +1158,66 @@ const AppointmentsPage = () => {
 
                     {/* Zaman Grid'i — sadece saat başı çizgileri */}
                     <div className="relative" style={{ height: `${timeSlots.length * ROW_HEIGHT}px` }}>
+                      {/* Uzmanın kapalı saatlerini hesapla ve boyama */}
+                      {(() => {
+                        const dayName = getTurkishDayName(currentDate);
+                        const expertHours = workingHours?.find(wh =>
+                          wh.expert_id === expert.id && wh.day === dayName
+                        );
+
+                        const closedAreas = [];
+
+                        if (!expertHours || !expertHours.is_open) {
+                          // Uzman bu gün tamamen kapalı - tüm grid'i boyama
+                          closedAreas.push({ top: 0, height: timeSlots.length * ROW_HEIGHT, reason: 'Kapalı' });
+                        } else {
+                          // Uzmanın çalışma saatleri
+                          const [expStartH, expStartM] = expertHours.start_time.split(':').map(Number);
+                          const [expEndH, expEndM] = expertHours.end_time.split(':').map(Number);
+                          const expStartMin = expStartH * 60 + expStartM;
+                          const expEndMin = expEndH * 60 + expEndM;
+
+                          // Grid başlangıcından uzman başlangıcına kadar kapalı
+                          if (expStartMin > gridStartMinutes) {
+                            const topPx = 0;
+                            const heightPx = (expStartMin - gridStartMinutes) * PIXELS_PER_MINUTE;
+                            closedAreas.push({ top: topPx, height: heightPx, reason: 'Mesai öncesi' });
+                          }
+
+                          // Uzman bitişinden grid bitişine kadar kapalı
+                          if (expEndMin < gridEndMinutes) {
+                            const topPx = (expEndMin - gridStartMinutes) * PIXELS_PER_MINUTE;
+                            const heightPx = (gridEndMinutes - expEndMin) * PIXELS_PER_MINUTE;
+                            closedAreas.push({ top: topPx, height: heightPx, reason: 'Mesai sonrası' });
+                          }
+
+                          // Öğle molası
+                          if (expert.general_lunch_start_time && expert.general_lunch_end_time) {
+                            const [lunchStartH, lunchStartM] = expert.general_lunch_start_time.split(':').map(Number);
+                            const [lunchEndH, lunchEndM] = expert.general_lunch_end_time.split(':').map(Number);
+                            const lunchStartMin = lunchStartH * 60 + lunchStartM;
+                            const lunchEndMin = lunchEndH * 60 + lunchEndM;
+
+                            if (lunchStartMin >= gridStartMinutes && lunchEndMin <= gridEndMinutes) {
+                              const topPx = (lunchStartMin - gridStartMinutes) * PIXELS_PER_MINUTE;
+                              const heightPx = (lunchEndMin - lunchStartMin) * PIXELS_PER_MINUTE;
+                              closedAreas.push({ top: topPx, height: heightPx, reason: 'Öğle molası' });
+                            }
+                          }
+                        }
+
+                        return closedAreas.map((area, idx) => (
+                          <div
+                            key={`closed-${idx}`}
+                            className="absolute left-0 right-0 bg-red-100/60 pointer-events-none z-[1]"
+                            style={{ top: `${area.top}px`, height: `${area.height}px` }}
+                            title={area.reason}
+                          >
+                            <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(239,68,68,0.15)_4px,rgba(239,68,68,0.15)_8px)]" />
+                          </div>
+                        ));
+                      })()}
+
                       {timeSlots.map((time, index) => (
                         <div
                           key={index}
