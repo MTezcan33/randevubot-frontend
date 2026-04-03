@@ -747,7 +747,7 @@ const AppointmentsPage = () => {
   // Seçili gün için çalışma saatlerini hesapla (tüm uzmanların min-max'ı)
   const dayWorkingHours = useMemo(() => {
     const dayName = getTurkishDayName(currentDate);
-    const todayHours = workingHours.filter(wh => wh.day === dayName && wh.is_open);
+    const todayHours = (workingHours || []).filter(wh => wh.day === dayName && wh.is_open);
 
     if (todayHours.length === 0) {
       // Kapalı gün — varsayılan aralık göster
