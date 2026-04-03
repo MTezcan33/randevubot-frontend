@@ -982,7 +982,7 @@ const AppointmentsPage = () => {
 
         {/* ═══ AYLIK GÖRÜNÜM ═══ */}
         {calendarView === 'monthly' && (
-          <div className="flex-grow min-h-0 overflow-auto" style={{ padding: '0 4px' }}>
+          <div className="flex-grow min-h-0 overflow-auto scrollbar-hide" style={{ padding: '0 4px' }}>
             <MonthlyCalendar />
           </div>
         )}
@@ -1019,7 +1019,7 @@ const AppointmentsPage = () => {
                     compact
                   />
                   {/* Sağ: Oda Takvimi */}
-                  <div className="flex-1 overflow-auto">
+                  <div className="flex-1 overflow-auto scrollbar-hide">
                     <RoomCalendarGrid
                       spaces={spaces}
                       appointments={appointments}
