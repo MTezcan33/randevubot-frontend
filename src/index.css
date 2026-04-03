@@ -42,8 +42,17 @@ body {
   .glass-effect {
     @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl;
   }
-  
+
   .gradient-text {
     @apply bg-gradient-to-r from-emerald-800 via-teal-700 to-emerald-600 bg-clip-text text-transparent;
+  }
+
+  /* Scrollbar gizle ama scroll çalışsın */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari, Opera */
   }
 }
