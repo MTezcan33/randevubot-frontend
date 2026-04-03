@@ -111,7 +111,7 @@ const AppointmentCard = ({ appointment, t, expertColor, overrideStartMinutes, ov
   );
 };
 
-const TimeIndicator = ({ companyTimezone }) => {
+const TimeIndicator = ({ companyTimezone, gridStartMinutes, gridEndMinutes }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -125,18 +125,17 @@ const TimeIndicator = ({ companyTimezone }) => {
       const hours = now.getHours();
       const minutes = now.getMinutes();
       const totalMinutes = hours * 60 + minutes;
-      const startOfDayMinutes = 6 * 60; // 06:00
-      const minutesFromStart = totalMinutes - startOfDayMinutes;
+      const minutesFromStart = totalMinutes - gridStartMinutes;
 
-      // Grid dışındaysa gösterme (06:00 - 24:00)
-      if (minutesFromStart < 0 || totalMinutes > 24 * 60) return -1;
+      // Çalışma saatleri dışındaysa gösterme
+      if (minutesFromStart < 0 || totalMinutes > gridEndMinutes) return -1;
 
       return minutesFromStart * PIXELS_PER_MINUTE;
     } catch (e) {
       console.error("Invalid timezone:", companyTimezone);
       return -1;
     }
-  }, [currentTime, companyTimezone]);
+  }, [currentTime, companyTimezone, gridStartMinutes, gridEndMinutes]);
 
   if (topPosition === -1) return null;
 
@@ -739,13 +738,44 @@ const AppointmentsPage = () => {
   };
 
 
-  // 06:00 - 24:00 arası sabit grid (scroll için yeterli uzunluk)
-  const GRID_START_HOUR = 6;
-  const GRID_END_HOUR = 24;
-  const gridStartMinutes = GRID_START_HOUR * 60;
-  const gridEndMinutes = GRID_END_HOUR * 60;
+  // Türkçe gün adını al (JS getDay: 0=Pazar, 1=Pazartesi, ...)
+  const getTurkishDayName = (date) => {
+    const days = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+    return days[date.getDay()];
+  };
 
-  // Her 10 dakikada bir slot
+  // Seçili gün için çalışma saatlerini hesapla (tüm uzmanların min-max'ı)
+  const dayWorkingHours = useMemo(() => {
+    const dayName = getTurkishDayName(currentDate);
+    const todayHours = workingHours.filter(wh => wh.day === dayName && wh.is_open);
+
+    if (todayHours.length === 0) {
+      // Kapalı gün — varsayılan aralık göster
+      return { startTime: '09:00', endTime: '18:00' };
+    }
+
+    // Tüm uzmanların en erken açılış ve en geç kapanış saatini bul
+    const startTimes = todayHours.map(wh => wh.start_time).sort();
+    const endTimes = todayHours.map(wh => wh.end_time).sort().reverse();
+
+    return {
+      startTime: startTimes[0],
+      endTime: endTimes[0]
+    };
+  }, [currentDate, workingHours]);
+
+  // Grid başlangıç ve bitiş dakikaları
+  const gridStartMinutes = useMemo(() => {
+    const [h, m] = dayWorkingHours.startTime.split(':').map(Number);
+    return h * 60 + m;
+  }, [dayWorkingHours]);
+
+  const gridEndMinutes = useMemo(() => {
+    const [h, m] = dayWorkingHours.endTime.split(':').map(Number);
+    return h * 60 + m;
+  }, [dayWorkingHours]);
+
+  // Dinamik timeSlots — çalışma saatlerine göre
   const timeSlots = useMemo(() => {
     const slots = [];
     for (let m = gridStartMinutes; m <= gridEndMinutes; m += 10) {
@@ -1061,7 +1091,7 @@ const AppointmentsPage = () => {
 
               {/* Uzman Sütunları */}
               <div className="flex-grow grid relative" style={{ gridTemplateColumns: `repeat(${Math.max(experts.length, company?.expert_limit || 6)}, 160px)` }}>
-                <TimeIndicator companyTimezone={companyTimezone} />
+                <TimeIndicator companyTimezone={companyTimezone} gridStartMinutes={gridStartMinutes} gridEndMinutes={gridEndMinutes} />
 
                 {/* Uzman sütunları + boş sütunlar (limit kadar) */}
                 {Array.from({ length: Math.max(experts.length, company?.expert_limit || 6) }).map((_, colIdx) => {
