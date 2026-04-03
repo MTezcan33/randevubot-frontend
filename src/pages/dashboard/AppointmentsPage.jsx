@@ -990,7 +990,7 @@ const AppointmentsPage = () => {
         {/* Sağ Panel - Randevu Takvimi (günlük görünümler) */}
         {calendarView !== 'monthly' && (
         <div className="flex-grow bg-white rounded-lg shadow-sm overflow-hidden border flex flex-col min-h-0">
-          <div className="flex-1 overflow-auto min-h-0">
+          <div className="flex-1 overflow-hidden min-h-0">
 
             {/* ═══ ODA GÖRÜNÜMÜ ═══ */}
             {calendarView === 'room' && (
