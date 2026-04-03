@@ -328,7 +328,7 @@ const DashboardLayout = () => {
   );
 
   return (
-    <div className="min-h-screen bg-stone-50/80">
+    <div className="h-screen overflow-hidden bg-stone-50/80">
       {/* Desktop Sidebar — sabit, sol */}
       <aside className={`
         fixed top-0 left-0 h-full z-50
